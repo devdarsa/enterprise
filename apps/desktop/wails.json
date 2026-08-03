@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Darsa Enterprise Desktop",
+  "outputfilename": "darsa-enterprise-windows-x64",
+  "frontend:dir": "../web/dist",
+  "author": {
+    "name": "Darsa Enterprise Team",
+    "email": "dev@darsa.id"
+  },
+  "info": {
+    "productName": "Darsa Enterprise Desktop",
+    "companyName": "Darsa Systems",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright 2026 Darsa Enterprise"
+  }
+}

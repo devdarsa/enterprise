@@ -1,0 +1,19 @@
+{
+  "name": "@darsa/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Building Capacitor Mobile App bundle'",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@darsa/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "typescript": "^5.7.0"
+  }
+}
