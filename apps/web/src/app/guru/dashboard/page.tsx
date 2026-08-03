@@ -1,83 +1,132 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
-import { LoadingSpinner, SearchBar } from '@/components/Loading';
+import Toast, { ToastProps } from '@/components/Toast';
+import { SkeletonTable, EmptyState, SearchBar } from '@/components/Loading';
 
-interface SantriSetoran {
+interface SetoranItem {
   id: string;
-  nama: string;
+  santri_nama: string;
   kelas: string;
   juz: number;
   surah: string;
   nilai: number;
   tanggal: string;
+  ustadz: string;
+  instansi?: string;
+}
+
+interface JadwalItem {
+  id: string;
+  hari: string;
+  jam: string;
+  mapel: string;
+  guru: string;
+  ruang: string;
+  kelas: string;
 }
 
 export default function GuruDashboardPage() {
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, msg?: string) => setToast({ isOpen: true, type, title, message: msg });
 
-  const [setoranList, setSetoranList] = useState<SantriSetoran[]>([
-    { id: '1', nama: 'Muhammad Raihan', kelas: '10-A (Tahfidz)', juz: 15, surah: 'Al-Isra', nilai: 95, tanggal: 'Hari Ini' },
-    { id: '2', nama: 'Ahmad Fauzi', kelas: '10-A (Tahfidz)', juz: 12, surah: 'Yusuf', nilai: 88, tanggal: 'Hari Ini' },
-    { id: '3', nama: 'Siti Aminah', kelas: '11-B (Sains)', juz: 18, surah: 'Al-Kahfi', nilai: 92, tanggal: 'Kemarin' },
-  ]);
-
-  const [isInputOpen, setIsInputOpen] = useState(false);
-  const [selectedSantri, setSelectedSantri] = useState('Muhammad Raihan — 10-A');
-  const [juz, setJuz] = useState('');
-  const [surah, setSurah] = useState('');
-  const [nilai, setNilai] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [user, setUser] = useState({ nama: 'Ustadz Ahmad Al-Farisi', role: 'GURU', instansi: 'PONDOK' });
+  const [setoranList, setSetoranList] = useState<SetoranItem[]>([]);
+  const [jadwalList, setJadwalList] = useState<JadwalItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [user, setUser] = useState<{ nama: string; role: string }>({ nama: 'Dr. KH. Abdullah Ridwan', role: 'GURU' });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form State
+  const [form, setForm] = useState({
+    santri_nama: '',
+    kelas: '10-A (Tahfidz)',
+    juz: '15',
+    surah: '',
+    nilai: '90',
+  });
 
   useEffect(() => {
     try {
       const match = document.cookie.match(/darsa_session=([^;]+)/);
       if (match) {
         const s = JSON.parse(decodeURIComponent(match[1]));
-        setUser({ nama: s.nama, role: s.role });
+        setUser({ nama: s.nama, role: s.role, instansi: s.instansi || 'PONDOK' });
       }
     } catch {}
   }, []);
 
-  const handleInputTahfidz = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!juz || !surah || !nilai) { showToast('warning', 'Data Tidak Lengkap', 'Isi semua field sebelum menyimpan.'); return; }
-    setSubmitting(true);
-    await new Promise(r => setTimeout(r, 700));
-    const newSetoran: SantriSetoran = {
-      id: Date.now().toString(),
-      nama: selectedSantri.split(' — ')[0],
-      kelas: selectedSantri.split(' — ')[1] ?? '10-A',
-      juz: Number(juz),
-      surah,
-      nilai: Number(nilai),
-      tanggal: 'Baru Saja',
-    };
-    setSetoranList(prev => [newSetoran, ...prev]);
-    showToast('success', 'Setoran Tahfidz Tersimpan', `Mutaba'ah ${newSetoran.nama} berhasil disinkronkan ke Portal Wali.`);
-    setIsInputOpen(false);
-    setJuz(''); setSurah(''); setNilai('');
-    setSubmitting(false);
+  useEffect(() => { fetchGuruData(); }, [user.instansi]);
+
+  const fetchGuruData = async () => {
+    setLoading(true);
+    try {
+      const [resSetoran, resJadwal] = await Promise.all([
+        fetch(`/api/v1/simulation/data?type=setoran&instansi=${user.instansi}`),
+        fetch(`/api/v1/simulation/data?type=jadwal&instansi=${user.instansi}`),
+      ]);
+      const jsonSetoran = await resSetoran.json();
+      const jsonJadwal = await resJadwal.json();
+
+      if (jsonSetoran.success) setSetoranList(jsonSetoran.data);
+      if (jsonJadwal.success) setJadwalList(jsonJadwal.data);
+    } catch {
+      showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filtered = useMemo(() => {
-    if (!search) return setoranList;
-    const q = search.toLowerCase();
-    return setoranList.filter(s => s.nama.toLowerCase().includes(q) || s.surah.toLowerCase().includes(q));
-  }, [setoranList, search]);
+  const handleSaveSetoran = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.santri_nama.trim() || !form.surah.trim()) {
+      showToast('warning', 'Form Tidak Lengkap', 'Nama santri dan surah wajib diisi.');
+      return;
+    }
 
-  const jadwalHariIni = [
-    { mapel: "Tahfidz Al-Qur'an (Juz 11-15)", kelas: 'Kelas 10-A', ruang: 'Ruang 10-A', jam: '07:30 - 09:00' },
-    { mapel: "Hadits & Mustalah Hadits", kelas: 'Kelas 12-C', ruang: 'Masjid Utama', jam: '09:30 - 11:00' },
-    { mapel: "Fiqih Ibadah", kelas: 'Kelas 11-B', ruang: 'Ruang 11-B', jam: '13:00 - 14:30' },
-  ];
+    setSubmitting(true);
+    try {
+      const payload = {
+        santri_nama: form.santri_nama.trim(),
+        kelas: form.kelas,
+        juz: parseInt(form.juz) || 1,
+        surah: form.surah.trim(),
+        nilai: parseInt(form.nilai) || 85,
+        tanggal: 'Hari Ini',
+        ustadz: user.nama,
+        instansi: user.instansi,
+      };
+
+      const res = await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_setoran', payload }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('success', 'Setoran Disimpan', `Setoran hafalan ${form.santri_nama} telah dicatat ke Database.`);
+        fetchGuruData();
+        setIsModalOpen(false);
+        setForm({ santri_nama: '', kelas: '10-A (Tahfidz)', juz: '15', surah: '', nilai: '90' });
+      } else {
+        showToast('error', 'Gagal Simpan', json.message || 'Coba lagi.');
+      }
+    } catch {
+      showToast('error', 'Kesalahan Sistem', 'Tidak dapat terhubung ke database.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filteredSetoran = setoranList.filter(s =>
+    !search ||
+    s.santri_nama.toLowerCase().includes(search.toLowerCase()) ||
+    s.surah.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -85,143 +134,191 @@ export default function GuruDashboardPage() {
 
       {/* Header Banner */}
       <div className="relative p-6 rounded-3xl bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white border border-emerald-600 shadow-xl overflow-hidden">
-        <div className="absolute right-0 top-0 w-48 h-48 bg-white/5 rounded-full -translate-y-16 translate-x-16" />
+        <div className="absolute right-0 top-0 w-40 h-40 bg-white/5 rounded-full -translate-y-12 translate-x-12" />
         <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="relative w-14 h-14 rounded-full border-[3px] border-amber-400 overflow-hidden shadow-xl shadow-black/20 shrink-0">
-              <Image src="/logo-madrasah.png" alt="Logo Madrasah" fill className="object-cover" />
+            <div className="relative w-14 h-14 rounded-full border-[3px] border-amber-400 overflow-hidden shadow-xl shrink-0">
+              <Image src="/logo-madrasah.png" alt="Logo" fill className="object-cover" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block mb-0.5">PORTAL USTADZ / DEWAN GURU LIRBOYO</span>
+              <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block mb-0.5">
+                PORTAL GURU & USTADZ • {user.instansi}
+              </span>
               <h1 className="text-xl font-black text-white">{user.nama}</h1>
-              <p className="text-xs text-emerald-100 font-medium">Pengampu Tahfidz Al-Qur'an & Hadits • Madrasah Diniyah Darussa'adah</p>
+              <p className="text-xs text-emerald-100 font-medium mt-0.5">
+                Pengajar Mustahiq KBM & Mutaba'ah Tahfidz
+              </p>
             </div>
           </div>
-          <Link href="/login" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all shrink-0">
-            🚪 Keluar
-          </Link>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Setoran', value: `${setoranList.length}`, icon: '📖', color: 'bg-emerald-50 border-emerald-200' },
-          { label: 'Rata-rata Nilai', value: `${Math.round(setoranList.reduce((a, s) => a + s.nilai, 0) / (setoranList.length || 1))}`, icon: '⭐', color: 'bg-amber-50 border-amber-200' },
-          { label: 'Jam Mengajar Hari Ini', value: '3 Sesi', icon: '📅', color: 'bg-teal-50 border-teal-200' },
-          { label: 'Santri Bimbingan', value: '45', icon: '🎓', color: 'bg-slate-100 border-slate-200' },
-        ].map((card, i) => (
-          <div key={i} className={`p-4 rounded-2xl border ${card.color} shadow-sm`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{card.label}</span>
-              <span className="text-xl">{card.icon}</span>
-            </div>
-            <div className="text-2xl font-black text-slate-900">{card.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Setoran Tahfidz */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm">
-          <div className="flex items-center justify-between p-5 border-b border-slate-100">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Riwayat Setoran Tahfidz</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Mutaba'ah hafalan santri bimbingan</p>
-            </div>
-            <button type="button" onClick={() => setIsInputOpen(true)} className="btn-primary text-xs flex items-center gap-1.5">
-              + Input Setoran
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-amber-400 text-emerald-950 font-black text-xs hover:bg-amber-300 transition-all shadow-md shrink-0"
+            >
+              📖 Input Setoran Hafalan
             </button>
-          </div>
-
-          <div className="p-4">
-            <SearchBar value={search} onChange={setSearch} placeholder="Cari nama santri atau surah..." />
-          </div>
-
-          <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-            {filtered.map((s, i) => (
-              <div key={s.id} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-sm font-black text-emerald-700 shrink-0">
-                  {s.juz}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-slate-900 truncate">{s.nama}</p>
-                  <p className="text-[11px] text-slate-500">{s.surah} • {s.kelas}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className={`text-sm font-black ${s.nilai >= 90 ? 'text-emerald-700' : s.nilai >= 75 ? 'text-amber-700' : 'text-rose-700'}`}>
-                    {s.nilai}
-                  </span>
-                  <p className="text-[10px] text-slate-400">{s.tanggal}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Jadwal Mengajar */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Jadwal Mengajar Hari Ini</h2>
-              <p className="text-xs text-slate-500 mt-0.5">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-            </div>
-            <span className="text-2xl">📅</span>
-          </div>
-
-          <div className="p-4 space-y-3">
-            {jadwalHariIni.map((j, i) => (
-              <div key={i} className={`p-4 rounded-xl border ${i === 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'} flex items-center justify-between`}>
-                <div>
-                  <span className="block font-bold text-slate-900 text-sm">{j.mapel}</span>
-                  <span className="block text-xs text-slate-500 mt-0.5">{j.kelas} • {j.ruang}</span>
-                </div>
-                <span className={`font-mono font-bold text-xs px-2.5 py-1 rounded-lg border ${i === 0 ? 'bg-white text-emerald-800 border-emerald-300' : 'bg-white text-slate-600 border-slate-200'}`}>
-                  {j.jam}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="px-5 pb-5">
-            <Link href="/admin/jadwal" className="w-full py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2">
-              📅 Lihat Jadwal Lengkap
+            <Link href="/login" className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all shrink-0">
+              Keluar
             </Link>
           </div>
         </div>
       </div>
 
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Left Column: Setoran Recent */}
+        <div className="md:col-span-2 space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Riwayat Mutaba'ah & Setoran</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Catatan setoran hafalan santri dari Database</p>
+              </div>
+              <div className="w-full sm:w-48">
+                <SearchBar value={search} onChange={setSearch} placeholder="Cari santri/surah..." />
+              </div>
+            </div>
+
+            {loading ? (
+              <SkeletonTable rows={4} cols={4} />
+            ) : filteredSetoran.length === 0 ? (
+              <EmptyState
+                icon="📖"
+                title="Belum Ada Setoran"
+                description="Klik 'Input Setoran Hafalan' untuk mencatat hafalan santri baru."
+                actionLabel="Input Setoran Baru"
+                onAction={() => setIsModalOpen(true)}
+              />
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {filteredSetoran.map((s) => (
+                  <div key={s.id} className="py-3 flex items-center justify-between gap-4 hover:bg-slate-50/50 rounded-xl px-2 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-emerald-800 text-sm shrink-0">
+                        {s.juz}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-xs">{s.santri_nama}</p>
+                        <p className="text-[11px] text-slate-400">Surah {s.surah} • Kelas {s.kelas}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className={`text-sm font-black ${s.nilai >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        Nilai {s.nilai}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">{s.tanggal}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Today's Jadwal */}
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-sm font-bold text-slate-900">Jadwal Mengajar</h2>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+                {jadwalList.length} Slot
+              </span>
+            </div>
+
+            {loading ? (
+              <SkeletonTable rows={3} cols={2} />
+            ) : jadwalList.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">Tidak ada jadwal mengajar terdaftar.</p>
+            ) : (
+              <div className="space-y-3">
+                {jadwalList.map((j) => (
+                  <div key={j.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-1.5 py-0.5 rounded">
+                        {j.jam}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500">{j.hari}</span>
+                    </div>
+                    <p className="font-bold text-slate-900 text-xs">{j.mapel}</p>
+                    <p className="text-[10px] text-slate-500">📍 {j.ruang} • Kelas {j.kelas}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Input Setoran Modal */}
-      <Modal isOpen={isInputOpen} onClose={() => setIsInputOpen(false)} title="Input Setoran Tahfidz" subtitle="Mutaba'ah Hafalan Santri" icon="📖">
-        <form onSubmit={handleInputTahfidz} className="space-y-4">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Input Mutaba'ah & Setoran Tahfidz"
+        size="md"
+      >
+        <form onSubmit={handleSaveSetoran} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Pilih Santri</label>
-            <select value={selectedSantri} onChange={e => setSelectedSantri(e.target.value)} className="input-premium cursor-pointer">
-              <option value="Muhammad Raihan — 10-A">Muhammad Raihan — 10-A (Tahfidz)</option>
-              <option value="Ahmad Fauzi — 10-A">Ahmad Fauzi — 10-A (Tahfidz)</option>
-              <option value="Siti Aminah — 11-B">Siti Aminah — 11-B (Sains)</option>
-              <option value="Fajar Hidayat — 12-C">Fajar Hidayat — 12-C (IPS)</option>
-            </select>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap Santri *</label>
+            <input
+              type="text"
+              required
+              placeholder="Contoh: Muhammad Raihan"
+              value={form.santri_nama}
+              onChange={e => setForm({ ...form, santri_nama: e.target.value })}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Capaian Juz <span className="text-rose-500">*</span></label>
-              <input type="number" required min="1" max="30" value={juz} onChange={e => setJuz(e.target.value)} placeholder="Juz ke..." className="input-premium" />
+              <label className="block text-xs font-bold text-slate-700 mb-1">Capaian Juz (1-30)</label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                required
+                value={form.juz}
+                onChange={e => setForm({ ...form, juz: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+              />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Nama Surah <span className="text-rose-500">*</span></label>
-              <input type="text" required value={surah} onChange={e => setSurah(e.target.value)} placeholder="Al-Baqarah..." className="input-premium" />
+              <label className="block text-xs font-bold text-slate-700 mb-1">Surah Terakhir *</label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: Al-Isra / Yasin"
+                value={form.surah}
+                onChange={e => setForm({ ...form, surah: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+              />
             </div>
           </div>
+
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Nilai Kelancaran & Tajwid (0-100) <span className="text-rose-500">*</span></label>
-            <input type="number" required min="0" max="100" value={nilai} onChange={e => setNilai(e.target.value)} placeholder="95" className="input-premium" />
+            <label className="block text-xs font-bold text-slate-700 mb-1">Nilai Tajwid & Kelancaran (0-100)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              required
+              value={form.nilai}
+              onChange={e => setForm({ ...form, nilai: e.target.value })}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+            />
           </div>
-          <div className="pt-2 flex gap-3">
-            <button type="button" onClick={() => setIsInputOpen(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all">Batal</button>
-            <button type="submit" disabled={submitting} className="flex-1 btn-primary flex items-center justify-center gap-2 text-xs disabled:opacity-60">
-              {submitting ? <><LoadingSpinner size="sm" variant="white" /> Menyimpan...</> : '💾 Simpan Setoran'}
+
+          <div className="pt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200"
+            >
+              Batal
+            </button>
+            <button type="submit" disabled={submitting} className="btn-primary">
+              {submitting ? 'Menyimpan...' : 'Simpan Setoran'}
             </button>
           </div>
         </form>

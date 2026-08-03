@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
+import { SkeletonTable, EmptyState, SearchBar } from '@/components/Loading';
 
-interface JadwalSlot {
+interface SlotJadwal {
   id: string;
   hari: string;
   jam: string;
@@ -13,99 +14,152 @@ interface JadwalSlot {
   ruang: string;
   kelas: string;
   jenis: 'WAJIB' | 'SUNNAH' | 'EKSTRAKURIKULER';
+  instansi?: string;
 }
 
-const HARI_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', "Jum'at", 'Sabtu'];
-const JAM_LIST = ['07:30 - 09:00', '09:30 - 11:00', '13:00 - 14:30', '15:30 - 17:00', '19:00 - 20:30'];
-
-const INITIAL_JADWAL: JadwalSlot[] = [
-  { id: '1',  hari: 'Senin',   jam: '07:30 - 09:00', mapel: "Tahfidz Al-Qur'an",       guru: 'Ust. Fatimah Azzahra',  ruang: 'Ruang 10-A',    kelas: '10-A', jenis: 'WAJIB' },
-  { id: '2',  hari: 'Senin',   jam: '09:30 - 11:00', mapel: 'Bahasa Arab (Saraf)',     guru: 'Ust. M. Zulkarnain',    ruang: 'Ruang 10-A',    kelas: '10-A', jenis: 'WAJIB' },
-  { id: '3',  hari: 'Selasa',  jam: '07:30 - 09:00', mapel: 'Fiqih & Usul Fiqih',      guru: 'Ust. Ahmad Al-Farisi',  ruang: 'Ruang 10-A',    kelas: '10-A', jenis: 'WAJIB' },
-  { id: '4',  hari: 'Selasa',  jam: '09:30 - 11:00', mapel: "Tahfidz Al-Qur'an",       guru: 'Ust. Fatimah Azzahra',  ruang: 'Ruang 10-A',    kelas: '10-A', jenis: 'WAJIB' },
-  { id: '5',  hari: 'Rabu',    jam: '07:30 - 09:00', mapel: 'Bahasa Arab (Nahu)',      guru: 'Ust. M. Zulkarnain',    ruang: 'Ruang Bahasa',  kelas: '10-A', jenis: 'WAJIB' },
-  { id: '6',  hari: 'Rabu',    jam: '09:30 - 11:00', mapel: 'Tafsir Jalalain',         guru: 'Dr. KH. A. Ridwan',     ruang: 'Ruang 10-A',    kelas: '10-A', jenis: 'WAJIB' },
-  { id: '7',  hari: 'Kamis',   jam: '07:30 - 09:00', mapel: "Hadits Arba'in",          guru: 'Dr. KH. A. Ridwan',     ruang: 'Masjid Utama',  kelas: '10-A', jenis: 'WAJIB' },
-  { id: '8',  hari: 'Kamis',   jam: '09:30 - 11:00', mapel: 'Bahasa Inggris',          guru: 'Ust. Sarah, M.Pd',      ruang: 'Ruang 10-A',    kelas: '10-A', jenis: 'WAJIB' },
-  { id: '9',  hari: "Jum'at",  jam: '07:30 - 09:00', mapel: 'Kajian Kitab Kuning',    guru: 'Dr. KH. A. Ridwan',     ruang: 'Masjid Utama',  kelas: '10-A', jenis: 'SUNNAH' },
-  { id: '10', hari: "Jum'at",  jam: '13:00 - 14:30', mapel: 'Praktek Khutbah',        guru: 'Ust. Ahmad Al-Farisi',  ruang: 'Aula Pondok',   kelas: '10-A', jenis: 'SUNNAH' },
-  { id: '11', hari: 'Sabtu',   jam: '07:30 - 09:00', mapel: 'Sains & Matematika',     guru: 'Ust. Hendra, S.Pd',     ruang: 'Lab Sains',     kelas: '10-A', jenis: 'WAJIB' },
-  { id: '12', hari: 'Sabtu',   jam: '15:30 - 17:00', mapel: 'Ekstrakurikuler Memanah', guru: 'Pelatih Ridho',         ruang: 'Lapangan Utama', kelas: '10-A', jenis: 'EKSTRAKURIKULER' },
-];
-
+const HARI_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jum\'at', 'Sabtu', 'Ahad'];
+const KELAS_LIST = ['10-A (Tahfidz)', '10-B (Tahfidz)', '11-A (Sains)', '11-B (Sains)', '12-A (IPS)', '7-A Diniyah', 'MI Kelas 4'];
 const JENIS_CONFIG = {
-  WAJIB:           { color: 'bg-emerald-50 border-emerald-300 text-emerald-900', header: 'border-emerald-300 bg-emerald-600', pill: 'bg-emerald-100 text-emerald-700' },
-  SUNNAH:          { color: 'bg-amber-50 border-amber-300 text-amber-900',       header: 'border-amber-300 bg-amber-500',     pill: 'bg-amber-100 text-amber-700' },
-  EKSTRAKURIKULER: { color: 'bg-teal-50 border-teal-300 text-teal-900',          header: 'border-teal-300 bg-teal-600',       pill: 'bg-teal-100 text-teal-700' },
+  WAJIB:            { label: 'Wajib KBM', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+  SUNNAH:           { label: 'Kajian Sunnah', color: 'bg-amber-50 text-amber-800 border-amber-200' },
+  EKSTRAKURIKULER:  { label: 'Ekstrakurikuler', color: 'bg-teal-50 text-teal-800 border-teal-200' },
 };
 
-export default function JadwalPelajaranPage() {
-  const [jadwal, setJadwal] = useState<JadwalSlot[]>(INITIAL_JADWAL);
-  const [selectedKelas, setSelectedKelas] = useState('10-A');
+export default function JadwalKBMPage() {
+  const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
+  const [userRole, setUserRole] = useState<string>('ADMIN_INSTANSI');
+  const [jadwalList, setJadwalList] = useState<SlotJadwal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedHari, setSelectedHari] = useState<string>('Semua');
+  const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<JadwalSlot | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<JadwalSlot | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SlotJadwal | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, msg?: string) =>
     setToast({ isOpen: true, type, title, message: msg });
 
-  const [form, setForm] = useState({ hari: 'Senin', jam: JAM_LIST[0], mapel: '', guru: '', ruang: '', kelas: '10-A', jenis: 'WAJIB' as 'WAJIB' | 'SUNNAH' | 'EKSTRAKURIKULER' });
-  const resetForm = () => setForm({ hari: 'Senin', jam: JAM_LIST[0], mapel: '', guru: '', ruang: '', kelas: '10-A', jenis: 'WAJIB' });
+  // Form state
+  const [form, setForm] = useState({
+    hari: 'Senin',
+    jam: '07:30 - 09:00',
+    mapel: '',
+    guru: '',
+    ruang: '',
+    kelas: KELAS_LIST[0],
+    jenis: 'WAJIB' as 'WAJIB' | 'SUNNAH' | 'EKSTRAKURIKULER',
+  });
 
-  const openAdd = () => { setEditTarget(null); resetForm(); setIsModalOpen(true); };
-  const openEdit = (slot: JadwalSlot) => {
-    setEditTarget(slot);
-    setForm({ hari: slot.hari, jam: slot.jam, mapel: slot.mapel, guru: slot.guru, ruang: slot.ruang, kelas: slot.kelas, jenis: slot.jenis });
-    setIsModalOpen(true);
+  // Read session cookie
+  useEffect(() => {
+    try {
+      const match = document.cookie.match(/darsa_session=([^;]+)/);
+      if (match) {
+        const s = JSON.parse(decodeURIComponent(match[1]));
+        if (s.role) setUserRole(s.role);
+        if (s.instansi) {
+          const inst = s.instansi.toLowerCase() as 'pondok' | 'madrasah' | 'mi';
+          if (['pondok', 'madrasah', 'mi'].includes(inst)) {
+            setInstansiFilter(inst);
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchJadwal(); }, [instansiFilter]);
+
+  const fetchJadwal = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/simulation/data?type=jadwal&instansi=${instansiFilter.toUpperCase()}`);
+      const json = await res.json();
+      if (json.success) setJadwalList(json.data);
+    } catch {
+      showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.mapel || !form.guru || !form.ruang) { showToast('warning', 'Data Tidak Lengkap', 'Mapel, guru, dan ruang wajib diisi.'); return; }
-    setSubmitting(true);
-    await new Promise(r => setTimeout(r, 500));
-
-    if (editTarget) {
-      setJadwal(prev => prev.map(j => j.id === editTarget.id ? { ...j, ...form } : j));
-      showToast('success', 'Jadwal Diperbarui', `${form.mapel} pada ${form.hari} berhasil diperbarui.`);
-    } else {
-      const newSlot: JadwalSlot = { id: Date.now().toString(), ...form };
-      setJadwal(prev => [...prev, newSlot]);
-      showToast('success', 'Jadwal Ditambahkan', `${form.mapel} pada ${form.hari} berhasil ditambahkan.`);
+    if (!form.mapel.trim() || !form.guru.trim() || !form.ruang.trim()) {
+      showToast('warning', 'Form Tidak Lengkap', 'Nama mata pelajaran, guru, dan ruangan wajib diisi.');
+      return;
     }
 
-    setSubmitting(false);
-    setIsModalOpen(false);
+    setSubmitting(true);
+    try {
+      const payload = {
+        hari: form.hari,
+        jam: form.jam,
+        mapel: form.mapel.trim(),
+        guru: form.guru.trim(),
+        ruang: form.ruang.trim(),
+        kelas: form.kelas,
+        jenis: form.jenis,
+        instansi: instansiFilter.toUpperCase(),
+      };
+
+      const res = await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_jadwal', payload }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('success', 'Jadwal Disimpan', `Jadwal ${form.mapel} telah tersimpan di Database.`);
+        fetchJadwal();
+        setIsModalOpen(false);
+        setForm({ hari: 'Senin', jam: '07:30 - 09:00', mapel: '', guru: '', ruang: '', kelas: KELAS_LIST[0], jenis: 'WAJIB' });
+      } else {
+        showToast('error', 'Gagal Simpan', json.message || 'Coba lagi.');
+      }
+    } catch {
+      showToast('error', 'Kesalahan Sistem', 'Tidak dapat terhubung ke database.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    await new Promise(r => setTimeout(r, 500));
-    setJadwal(prev => prev.filter(j => j.id !== deleteTarget.id));
-    showToast('info', 'Slot Jadwal Dihapus', `${deleteTarget.mapel} dihapus dari jadwal.`);
-    setDeleteTarget(null);
-    setDeleting(false);
+    try {
+      const res = await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_jadwal', id: deleteTarget.id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setJadwalList(prev => prev.filter(j => j.id !== deleteTarget.id));
+        showToast('info', 'Jadwal Dihapus', `Slot jadwal ${deleteTarget.mapel} telah dihapus dari Database.`);
+      }
+    } catch {
+      showToast('error', 'Gagal Hapus', 'Tidak dapat terhubung ke database.');
+    } finally {
+      setDeleteTarget(null);
+      setDeleting(false);
+    }
   };
 
-  const filteredByKelas = useMemo(() => jadwal.filter(j => j.kelas === selectedKelas), [jadwal, selectedKelas]);
-
-  // Build grid: hari x jam
-  const gridData = useMemo(() => {
-    const map: Record<string, Record<string, JadwalSlot | undefined>> = {};
-    JAM_LIST.forEach(jam => {
-      map[jam] = {};
-      HARI_LIST.forEach(hari => { map[jam][hari] = undefined; });
+  const filtered = useMemo(() => {
+    return jadwalList.filter(j => {
+      const matchHari = selectedHari === 'Semua' || j.hari === selectedHari;
+      const q = search.toLowerCase();
+      const matchQuery = !q ||
+        j.mapel.toLowerCase().includes(q) ||
+        j.guru.toLowerCase().includes(q) ||
+        j.ruang.toLowerCase().includes(q) ||
+        j.kelas.toLowerCase().includes(q);
+      return matchHari && matchQuery;
     });
-    filteredByKelas.forEach(slot => {
-      if (map[slot.jam]) map[slot.jam][slot.hari] = slot;
-    });
-    return map;
-  }, [filteredByKelas]);
+  }, [jadwalList, selectedHari, search]);
 
   return (
     <div className="space-y-6">
@@ -114,10 +168,16 @@ export default function JadwalPelajaranPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900">Jadwal Pelajaran Mingguan</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Pengaturan jadwal kegiatan belajar mengajar per kelas dan guru pengampu</p>
+          <h1 className="text-xl font-black text-slate-900 leading-tight">Jadwal KBM & Pelajaran</h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            Pengaturan jadwal kegiatan belajar mengajar per instansi dari Database Lokal
+          </p>
         </div>
-        <button type="button" onClick={openAdd} className="btn-primary inline-flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary inline-flex items-center gap-2 shrink-0"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -125,213 +185,314 @@ export default function JadwalPelajaranPage() {
         </button>
       </div>
 
-      {/* Controls */}
+      {/* Filter + Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        {/* Kelas Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-500">Kelas:</span>
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            {['10-A', '11-B', '12-C'].map(k => (
+        {/* Instansi Display / Filter */}
+        {userRole === 'SUPER_ADMIN' ? (
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+            {(['pondok', 'madrasah', 'mi'] as const).map((key) => (
               <button
-                key={k}
+                key={key}
                 type="button"
-                onClick={() => setSelectedKelas(k)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${selectedKelas === k ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-emerald-700'}`}
+                onClick={() => { setInstansiFilter(key); setSearch(''); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                  instansiFilter === key ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-emerald-700'
+                }`}
               >
-                {k}
+                {key === 'pondok' ? '🏛 Pondok' : key === 'madrasah' ? '📚 Diniyah' : '🏫 MI'}
               </button>
             ))}
           </div>
+        ) : (
+          <div className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 shrink-0">
+            <span className="text-xs font-black text-emerald-800 uppercase tracking-wide">
+              {instansiFilter === 'pondok' ? '🏛️ Jadwal Pondok Pesantren' : instansiFilter === 'madrasah' ? '📚 Jadwal Madrasah Diniyah' : '🏫 Jadwal Formal / MI'}
+            </span>
+          </div>
+        )}
+
+        <div className="flex-1 w-full">
+          <SearchBar value={search} onChange={setSearch} placeholder="Cari mapel, guru, ruang, kelas..." />
         </div>
 
-        {/* View mode */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 ml-auto">
-          {[{ mode: 'grid', icon: '⊞', label: 'Grid' }, { mode: 'list', icon: '☰', label: 'List' }].map(v => (
-            <button
-              key={v.mode}
-              type="button"
-              onClick={() => setViewMode(v.mode as any)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${viewMode === v.mode ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500'}`}
-            >
-              <span>{v.icon}</span> {v.label}
-            </button>
-          ))}
+        {/* Hari Selector */}
+        <select
+          value={selectedHari}
+          onChange={e => setSelectedHari(e.target.value)}
+          className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer shrink-0"
+        >
+          <option value="Semua">Semua Hari</option>
+          {HARI_LIST.map(h => <option key={h} value={h}>{h}</option>)}
+        </select>
+
+        {/* View Mode Toggle */}
+        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500'}`}
+          >
+            📋 Grid
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500'}`}
+          >
+            ☰ Tabel
+          </button>
         </div>
-
-        <span className="text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl shrink-0">
-          {filteredByKelas.length} slot
-        </span>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 text-[10px] font-bold">
-        <span className="text-slate-400 uppercase tracking-wider">Keterangan:</span>
-        {Object.entries(JENIS_CONFIG).map(([key, conf]) => (
-          <span key={key} className={`px-2.5 py-1 rounded-full border ${conf.pill}`}>{key}</span>
-        ))}
-      </div>
+      {/* Main Display */}
+      {loading ? (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <SkeletonTable rows={4} cols={5} />
+        </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon="📅"
+          title="Belum Ada Jadwal"
+          description={search ? 'Coba kata kunci pencarian lain.' : 'Klik "Tambah Slot Jadwal" untuk mendaftarkan jam pelajaran baru.'}
+          actionLabel="Tambah Slot Jadwal"
+          onAction={() => setIsModalOpen(true)}
+        />
+      ) : viewMode === 'grid' ? (
+        /* Grid View grouped by Hari */
+        <div className="space-y-6">
+          {HARI_LIST.map((hari) => {
+            const dayItems = filtered.filter(j => j.hari === hari);
+            if (dayItems.length === 0 && selectedHari !== 'Semua') return null;
+            return (
+              <div key={hari} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                    <h2 className="text-sm font-black text-slate-900">{hari}</h2>
+                    <span className="text-[11px] font-bold text-slate-400">({dayItems.length} kelas)</span>
+                  </div>
+                  <span className="text-xs text-slate-400 font-medium">Lirboyo Academic Grid</span>
+                </div>
 
-      {/* Grid View */}
-      {viewMode === 'grid' && (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse min-w-[800px] text-xs">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-3 text-center text-[10px] font-black text-slate-500 uppercase tracking-wider border-r border-slate-200 w-32">Waktu</th>
-                  {HARI_LIST.map(h => (
-                    <th key={h} className="p-3 text-center text-[10px] font-black text-slate-500 uppercase tracking-wider border-r border-slate-200 last:border-r-0">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {JAM_LIST.map(jam => (
-                  <tr key={jam} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-3 text-center border-r border-slate-200 bg-slate-50/80">
-                      <span className="font-mono text-[10px] font-bold text-emerald-700 block">{jam.split(' - ')[0]}</span>
-                      <span className="text-[9px] text-slate-400">s/d {jam.split(' - ')[1]}</span>
-                    </td>
-                    {HARI_LIST.map(hari => {
-                      const slot = gridData[jam]?.[hari];
-                      const conf = slot ? JENIS_CONFIG[slot.jenis] : null;
+                {dayItems.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2">Tidak ada jadwal KBM pada hari {hari}.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {dayItems.map((j) => {
+                      const jConfig = JENIS_CONFIG[j.jenis] || JENIS_CONFIG.WAJIB;
                       return (
-                        <td key={hari} className="p-2 border-r border-slate-100 last:border-r-0 align-top">
-                          {slot && conf ? (
-                            <div
-                              className={`p-2.5 rounded-xl border ${conf.color} cursor-pointer hover:shadow-sm transition-all group`}
-                              onClick={() => openEdit(slot)}
-                            >
-                              <span className="block font-bold text-[11px] leading-tight mb-1 truncate">{slot.mapel}</span>
-                              <span className="block text-[10px] opacity-70 truncate">👤 {slot.guru}</span>
-                              <div className="flex items-center justify-between mt-1.5">
-                                <span className="text-[9px] font-mono opacity-60 bg-white/60 px-1.5 py-0.5 rounded">📍 {slot.ruang}</span>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(slot); }}
-                                  className="text-[9px] opacity-0 group-hover:opacity-60 hover:!opacity-100 text-rose-500 font-bold transition-all"
-                                >✕</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={openAdd}
-                              className="w-full h-16 rounded-xl border-2 border-dashed border-slate-200 text-slate-300 hover:border-emerald-300 hover:text-emerald-400 transition-all text-lg flex items-center justify-center"
-                            >
-                              +
-                            </button>
-                          )}
-                        </td>
+                        <div key={j.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-300 transition-all space-y-2 group relative">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-xs font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-lg shadow-2xs">
+                              ⏰ {j.jam}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${jConfig.color}`}>
+                              {jConfig.label}
+                            </span>
+                          </div>
+
+                          <div>
+                            <h3 className="font-black text-slate-900 text-sm">{j.mapel}</h3>
+                            <p className="text-xs text-slate-600 font-medium mt-0.5">👤 {j.guru}</p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200/60">
+                            <span>📍 {j.ruang}</span>
+                            <span className="font-bold text-slate-700">Kelas {j.kelas}</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(j)}
+                            className="absolute top-2 right-2 text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                            title="Hapus Jadwal"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       );
                     })}
-                  </tr>
-                ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3.5 px-4">HARI & JAM</th>
+                  <th className="py-3.5 px-4">MATA PELAJARAN / KITAB</th>
+                  <th className="py-3.5 px-4">GURU / USTADZ</th>
+                  <th className="py-3.5 px-4">KELAS & RUANG</th>
+                  <th className="py-3.5 px-4">JENIS</th>
+                  <th className="py-3.5 px-4 text-right">AKSI</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                {filtered.map((j) => {
+                  const jConfig = JENIS_CONFIG[j.jenis] || JENIS_CONFIG.WAJIB;
+                  return (
+                    <tr key={j.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-slate-900 block">{j.hari}</span>
+                        <span className="font-mono text-[11px] text-emerald-800">{j.jam}</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-black text-slate-900 text-sm">{j.mapel}</td>
+                      <td className="py-3.5 px-4 font-medium text-slate-700">👤 {j.guru}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-slate-900 block">Kelas {j.kelas}</span>
+                        <span className="text-[11px] text-slate-400">📍 {j.ruang}</span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${jConfig.color}`}>
+                          {jConfig.label}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(j)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          Hapus
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* List View */}
-      {viewMode === 'list' && (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          {filteredByKelas.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-sm">Belum ada jadwal untuk kelas ini.</div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {HARI_LIST.map(hari => {
-                const slots = filteredByKelas.filter(j => j.hari === hari);
-                if (slots.length === 0) return null;
-                return (
-                  <div key={hari}>
-                    <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100">
-                      <span className="text-xs font-black text-slate-700 uppercase tracking-wide">{hari}</span>
-                    </div>
-                    {slots.map(slot => {
-                      const conf = JENIS_CONFIG[slot.jenis];
-                      return (
-                        <div key={slot.id} className="px-5 py-3.5 flex items-center gap-4 hover:bg-slate-50 transition-colors">
-                          <div className="w-24 shrink-0">
-                            <span className="font-mono text-[11px] font-bold text-emerald-700">{slot.jam.split(' - ')[0]}</span>
-                            <span className="block text-[10px] text-slate-400">s/d {slot.jam.split(' - ')[1]}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="font-bold text-sm text-slate-900 truncate">{slot.mapel}</span>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${conf.pill}`}>{slot.jenis}</span>
-                            </div>
-                            <span className="text-xs text-slate-500">👤 {slot.guru} • 📍 {slot.ruang}</span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => openEdit(slot)} className="px-2.5 py-1 text-[10px] font-bold rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors">Edit</button>
-                            <button onClick={() => setDeleteTarget(slot)} className="px-2.5 py-1 text-[10px] font-bold rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors">Hapus</button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editTarget ? 'Edit Slot Jadwal' : 'Tambah Slot Jadwal'} subtitle="Sistem KBM Darsa Enterprise" icon="📅">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+      {/* Add Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Tambah Slot Jadwal KBM"
+        size="md"
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Hari</label>
-              <select value={form.hari} onChange={e => setForm(f => ({ ...f, hari: e.target.value }))} className="input-premium cursor-pointer">
+              <label className="block text-xs font-bold text-slate-700 mb-1">Hari *</label>
+              <select
+                value={form.hari}
+                onChange={e => setForm({ ...form, hari: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white"
+              >
                 {HARI_LIST.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Jam Pelajaran</label>
-              <select value={form.jam} onChange={e => setForm(f => ({ ...f, jam: e.target.value }))} className="input-premium cursor-pointer">
-                {JAM_LIST.map(j => <option key={j} value={j}>{j}</option>)}
+              <label className="block text-xs font-bold text-slate-700 mb-1">Jam Pelajaran *</label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: 07:30 - 09:00"
+                value={form.jam}
+                onChange={e => setForm({ ...form, jam: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Mata Pelajaran / Kitab Kuning *</label>
+            <input
+              type="text"
+              required
+              placeholder="Contoh: Fiqih Fathul Qorib / Nahwu Saraf"
+              value={form.mapel}
+              onChange={e => setForm({ ...form, mapel: e.target.value })}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Nama Pengajar / Ustadz *</label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: Ust. Ahmad Al-Farisi"
+                value={form.guru}
+                onChange={e => setForm({ ...form, guru: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Ruangan / Kelas *</label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: Ruang 10-A / Masjid"
+                value={form.ruang}
+                onChange={e => setForm({ ...form, ruang: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Target Kelas</label>
+              <select
+                value={form.kelas}
+                onChange={e => setForm({ ...form, kelas: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white"
+              >
+                {KELAS_LIST.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Mata Pelajaran / Kitab <span className="text-rose-500">*</span></label>
-            <input type="text" required value={form.mapel} onChange={e => setForm(f => ({ ...f, mapel: e.target.value }))} placeholder="Nama mata pelajaran atau kitab..." className="input-premium" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Guru / Ustadz Pengampu <span className="text-rose-500">*</span></label>
-            <input type="text" required value={form.guru} onChange={e => setForm(f => ({ ...f, guru: e.target.value }))} placeholder="Nama guru atau ustadz..." className="input-premium" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Ruang / Tempat <span className="text-rose-500">*</span></label>
-              <input type="text" required value={form.ruang} onChange={e => setForm(f => ({ ...f, ruang: e.target.value }))} placeholder="Ruang kelas / masjid..." className="input-premium" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Jenis Pelajaran</label>
-              <select value={form.jenis} onChange={e => setForm(f => ({ ...f, jenis: e.target.value as any }))} className="input-premium cursor-pointer">
-                <option value="WAJIB">Wajib</option>
-                <option value="SUNNAH">Sunnah / Kajian</option>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Kegiatan</label>
+              <select
+                value={form.jenis}
+                onChange={e => setForm({ ...form, jenis: e.target.value as any })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white"
+              >
+                <option value="WAJIB">Wajib KBM</option>
+                <option value="SUNNAH">Kajian Sunnah</option>
                 <option value="EKSTRAKURIKULER">Ekstrakurikuler</option>
               </select>
             </div>
           </div>
-          <div className="pt-2 flex gap-3">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all">Batal</button>
-            <button type="submit" disabled={submitting} className="flex-1 btn-primary flex items-center justify-center gap-2 text-xs disabled:opacity-60">
-              {submitting ? '⏳ Menyimpan...' : editTarget ? '💾 Perbarui Jadwal' : '💾 Simpan Jadwal'}
+
+          <div className="pt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary"
+            >
+              {submitting ? 'Menyimpan...' : 'Simpan Slot Jadwal'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete Confirm */}
+      {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-        title={`Hapus Slot: ${deleteTarget?.mapel ?? ''}`}
-        message={`Slot jadwal ${deleteTarget?.mapel} pada ${deleteTarget?.hari} (${deleteTarget?.jam}) akan dihapus permanen.`}
-        confirmLabel="Ya, Hapus Slot"
-        loading={deleting}
+        title="Hapus Slot Jadwal?"
+        message={`Apakah Anda yakin ingin menghapus jadwal "${deleteTarget?.mapel}" hari ${deleteTarget?.hari}?`}
+        confirmText={deleting ? 'Menghapus...' : 'Ya, Hapus Jadwal'}
+        danger
       />
     </div>
   );

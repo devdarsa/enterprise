@@ -18,6 +18,7 @@ interface Santri {
 
 export default function MasterSantriPage() {
   const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
+  const [userRole, setUserRole] = useState<string>('ADMIN_INSTANSI');
   const [santriList, setSantriList] = useState<Santri[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,6 +36,23 @@ export default function MasterSantriPage() {
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
+
+  // Read session cookie to lock instansi
+  useEffect(() => {
+    try {
+      const match = document.cookie.match(/darsa_session=([^;]+)/);
+      if (match) {
+        const s = JSON.parse(decodeURIComponent(match[1]));
+        if (s.role) setUserRole(s.role);
+        if (s.instansi) {
+          const inst = s.instansi.toLowerCase() as 'pondok' | 'madrasah' | 'mi';
+          if (['pondok', 'madrasah', 'mi'].includes(inst)) {
+            setInstansiFilter(inst);
+          }
+        }
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => { fetchSantri(); }, [instansiFilter]);
 
@@ -86,12 +104,23 @@ export default function MasterSantriPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    await new Promise(r => setTimeout(r, 700));
-    // Simulate delete from list
-    setSantriList(prev => prev.filter(s => s.id !== deleteTarget.id));
-    showToast('info', 'Data Dihapus', `${deleteTarget.nama} telah dihapus dari sistem.`);
-    setDeleteTarget(null);
-    setDeleting(false);
+    try {
+      const res = await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_santri', id: deleteTarget.id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSantriList(prev => prev.filter(s => s.id !== deleteTarget.id));
+        showToast('info', 'Data Dihapus', `${deleteTarget.nama} telah dihapus dari Database.`);
+      }
+    } catch {
+      showToast('error', 'Gagal Hapus', 'Tidak dapat terhubung ke database.');
+    } finally {
+      setDeleteTarget(null);
+      setDeleting(false);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -139,21 +168,29 @@ export default function MasterSantriPage() {
 
       {/* Filter + Search Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        {/* Instansi Filter */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-          {(['pondok', 'madrasah', 'mi'] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => { setInstansiFilter(key); setSearch(''); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                instansiFilter === key ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-emerald-700'
-              }`}
-            >
-              {key === 'pondok' ? '🏛 Pondok' : key === 'madrasah' ? '📚 Diniyah' : '🏫 MI'}
-            </button>
-          ))}
-        </div>
+        {/* Instansi Display / Filter */}
+        {userRole === 'SUPER_ADMIN' ? (
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+            {(['pondok', 'madrasah', 'mi'] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => { setInstansiFilter(key); setSearch(''); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                  instansiFilter === key ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-emerald-700'
+                }`}
+              >
+                {key === 'pondok' ? '🏛 Pondok' : key === 'madrasah' ? '📚 Diniyah' : '🏫 MI'}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 shrink-0">
+            <span className="text-xs font-black text-emerald-800 uppercase tracking-wide">
+              {instansiFilter === 'pondok' ? '🏛️ Instansi Pondok Pesantren' : instansiFilter === 'madrasah' ? '📚 Instansi Madrasah Diniyah' : '🏫 Instansi Formal / MI'}
+            </span>
+          </div>
+        )}
 
         {/* Search */}
         <div className="flex-1 w-full">

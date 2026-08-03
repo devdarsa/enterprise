@@ -205,23 +205,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          {/* Instansi Switcher */}
-          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
-            {(['pondok', 'madrasah', 'mi'] as const).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setInstansiActive(key)}
-                className={`py-1.5 rounded-lg text-[10px] font-bold transition-all duration-200 ${
-                  instansiActive === key
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-emerald-700 hover:bg-white'
-                }`}
-              >
-                {key === 'pondok' ? 'Pondok' : key === 'madrasah' ? 'Diniyah' : 'MI / MA'}
-              </button>
-            ))}
-          </div>
+          {/* Instansi Display / Switcher */}
+          {user?.role === 'SUPER_ADMIN' ? (
+            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+              {(['pondok', 'madrasah', 'mi'] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setInstansiActive(key)}
+                  className={`py-1.5 rounded-lg text-[10px] font-bold transition-all duration-200 ${
+                    instansiActive === key
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-emerald-700 hover:bg-white'
+                  }`}
+                >
+                  {key === 'pondok' ? 'Pondok' : key === 'madrasah' ? 'Diniyah' : 'MI / MA'}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+              <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">
+                {instansiActive === 'pondok' ? '🏛️ Instansi Pondok Pesantren' : instansiActive === 'madrasah' ? '📚 Instansi Madrasah Diniyah' : '🏫 Instansi Formal / MI'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Navigation Menu */}
