@@ -254,8 +254,7 @@ export default function JadwalKBMPage() {
           icon="📅"
           title="Belum Ada Jadwal"
           description={search ? 'Coba kata kunci pencarian lain.' : 'Klik "Tambah Slot Jadwal" untuk mendaftarkan jam pelajaran baru.'}
-          actionLabel="Tambah Slot Jadwal"
-          onAction={() => setIsModalOpen(true)}
+          action={{ label: "Tambah Slot Jadwal", onClick: () => setIsModalOpen(true) }}
         />
       ) : viewMode === 'grid' ? (
         /* Grid View grouped by Hari */
@@ -491,8 +490,8 @@ export default function JadwalKBMPage() {
         onConfirm={handleDelete}
         title="Hapus Slot Jadwal?"
         message={`Apakah Anda yakin ingin menghapus jadwal "${deleteTarget?.mapel}" hari ${deleteTarget?.hari}?`}
-        confirmText={deleting ? 'Menghapus...' : 'Ya, Hapus Jadwal'}
-        danger
+        confirmLabel="Ya, Hapus Jadwal"
+        loading={deleting}
       />
     </div>
   );

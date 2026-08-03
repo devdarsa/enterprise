@@ -186,8 +186,7 @@ export default function GuruDashboardPage() {
                 icon="📖"
                 title="Belum Ada Setoran"
                 description="Klik 'Input Setoran Hafalan' untuk mencatat hafalan santri baru."
-                actionLabel="Input Setoran Baru"
-                onAction={() => setIsModalOpen(true)}
+                action={{ label: "Input Setoran Baru", onClick: () => setIsModalOpen(true) }}
               />
             ) : (
               <div className="divide-y divide-slate-100">

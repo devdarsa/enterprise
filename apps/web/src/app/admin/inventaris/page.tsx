@@ -287,8 +287,7 @@ export default function InventarisBarangPage() {
             icon="📦"
             title={search || filterKondisi !== 'SEMUA' ? 'Barang Tidak Ditemukan' : 'Belum Ada Data Inventaris'}
             description={search ? 'Coba kata kunci pencarian lain.' : 'Klik tombol "Tambah Barang Aset" untuk mendaftarkan barang baru.'}
-            actionLabel="Tambah Barang Baru"
-            onAction={handleOpenModal}
+            action={{ label: "Tambah Barang Baru", onClick: handleOpenModal }}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -464,8 +463,8 @@ export default function InventarisBarangPage() {
         onConfirm={handleDelete}
         title="Hapus Barang Inventaris?"
         message={`Apakah Anda yakin ingin menghapus "${deleteTarget?.nama}"? Data yang dihapus tidak dapat dikembalikan.`}
-        confirmText={deleting ? 'Menghapus...' : 'Ya, Hapus Barang'}
-        danger
+        confirmLabel="Ya, Hapus Barang"
+        loading={deleting}
       />
     </div>
   );
