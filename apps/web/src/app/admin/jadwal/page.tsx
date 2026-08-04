@@ -187,30 +187,6 @@ export default function JadwalKBMPage() {
 
       {/* Filter + Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        {/* Instansi Display / Filter */}
-        {userRole === 'SUPER_ADMIN' ? (
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-            {(['pondok', 'madrasah', 'mi'] as const).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => { setInstansiFilter(key); setSearch(''); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                  instansiFilter === key ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-emerald-700'
-                }`}
-              >
-                {key === 'pondok' ? '🏛 Pondok' : key === 'madrasah' ? '📚 Diniyah' : '🏫 MI'}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 shrink-0">
-            <span className="text-xs font-black text-emerald-800 uppercase tracking-wide">
-              {instansiFilter === 'pondok' ? '🏛️ Jadwal Pondok Pesantren' : instansiFilter === 'madrasah' ? '📚 Jadwal Madrasah Diniyah' : '🏫 Jadwal Formal / MI'}
-            </span>
-          </div>
-        )}
-
         <div className="flex-1 w-full">
           <SearchBar value={search} onChange={setSearch} placeholder="Cari mapel, guru, ruang, kelas..." />
         </div>

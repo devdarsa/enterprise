@@ -40,6 +40,21 @@ export default function MasterGuruPage() {
   };
 
   useEffect(() => {
+    try {
+      const match = document.cookie.match(/darsa_session=([^;]+)/);
+      if (match) {
+        const s = JSON.parse(decodeURIComponent(match[1]));
+        if (s.instansi) {
+          const inst = s.instansi.toLowerCase() as 'pondok' | 'madrasah' | 'mi';
+          if (['pondok', 'madrasah', 'mi'].includes(inst)) {
+            setInstansiFilter(inst);
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     fetchGuru();
   }, [instansiFilter]);
 
@@ -123,41 +138,7 @@ export default function MasterGuruPage() {
         </button>
       </div>
 
-      {/* Institution Filter Switcher Bar */}
-      <div className="p-4 rounded-2xl bg-white border border-emerald-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-        <div className="flex items-center gap-2 font-bold">
-          <span className="text-slate-500 font-semibold">Filter Instansi View:</span>
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setInstansiFilter('pondok')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                instansiFilter === 'pondok' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-700'
-              }`}
-            >
-              Pondok Pesantren
-            </button>
-            <button
-              type="button"
-              onClick={() => setInstansiFilter('madrasah')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                instansiFilter === 'madrasah' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-700'
-              }`}
-            >
-              Madrasah Diniyah
-            </button>
-            <button
-              type="button"
-              onClick={() => setInstansiFilter('mi')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                instansiFilter === 'mi' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-700'
-              }`}
-            >
-              MI / Formal
-            </button>
-          </div>
-        </div>
-      </div>
+
 
       {/* Table Card */}
       <div className="p-6 rounded-2xl bg-white border border-emerald-100 shadow-sm overflow-hidden">
