@@ -1,6 +1,6 @@
 /**
- * Darsa Enterprise - Local Database Simulation Engine
- * Engine pengelola data lokal dinamis per instansi tanpa data statis (hardcoded).
+ * Darsa Enterprise - Local Database Store Engine
+ * Database Engine Murni per Instansi tanpa data dummy/mock.
  */
 
 export interface SantriRecord {
@@ -90,59 +90,13 @@ export interface SetoranRecord {
 
 // Database Store Class
 class SimulationDatabaseStore {
-  private santriList: SantriRecord[] = [
-    { id: '1', nisn: '0012345678', nama: 'Muhammad Raihan', jenis_kelamin: 'L', kelas: '10-A (Tahfidz)', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 12 },
-    { id: '2', nisn: '0012345679', nama: 'Ahmad Fauzi', jenis_kelamin: 'L', kelas: '10-A (Tahfidz)', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 10 },
-    { id: '3', nisn: '0012345680', nama: 'Siti Aminah', jenis_kelamin: 'P', kelas: '11-B (Sains)', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 8 },
-    { id: '4', nisn: '0012345681', nama: 'Fajar Hidayat', jenis_kelamin: 'L', kelas: '12-C (IPS)', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 15 },
-    { id: '5', nisn: '0012345682', nama: 'Nurul Hidayah', jenis_kelamin: 'P', kelas: '10-A (Tahfidz)', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 6 },
-    { id: '6', nisn: '0012345690', nama: 'Zaidan Al-Khattab', jenis_kelamin: 'L', kelas: '7-A Diniyah', instansi: 'MADRASAH', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 3 },
-    { id: '7', nisn: '0012345695', nama: 'Bilqis Humaira', jenis_kelamin: 'P', kelas: 'MI Kelas 4', instansi: 'MI', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 1 },
-  ];
-
-  private guruList: GuruRecord[] = [
-    { id: '1', nip: '198501012010011001', nama: 'Dr. KH. Abdullah Ridwan', tugas: 'Pengasuh & Ustadz Hadits', telepon: '081234567890', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)' },
-    { id: '2', nip: '198803152012012002', nama: 'Ustadz Ahmad Al-Farisi', tugas: 'Kepala Diniyah & Fiqih', telepon: '081298765432', instansi: 'MADRASAH', tahun_ajaran: '2025/2026 (Ganjil)' },
-    { id: '3', nip: '199207202015011003', nama: 'Ust. Muhammad Zulkarnain', tugas: 'Pengajar Nahwu Saraf', telepon: '081311223344', instansi: 'MADRASAH', tahun_ajaran: '2025/2026 (Ganjil)' },
-    { id: '4', nip: '199511102018012004', nama: 'Ustadzah Fatimah Azzahra', tugas: 'Guru Kelas MI & Tahfidz', telepon: '081355667788', instansi: 'MI', tahun_ajaran: '2025/2026 (Ganjil)' },
-  ];
-
-  private suratList: SuratRecord[] = [
-    { id: '1', nomor: 'SRT/2026/08/001', jenis: 'SURAT_IZIN_SANTRI', perihal: 'Izin Pulang Santri (Keperluan Keluarga)', pengirim: 'Wali Santri M. Raihan', penerima: 'Pengasuh Pondok', tanggal: '02 Ags 2026', status: 'DISETUJUI', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)' },
-    { id: '2', nomor: 'SRT/2026/07/042', jenis: 'SURAT_MASUK', perihal: 'Undangan Ujian Diniyah Nasional', pengirim: 'Kemenag Kediri', penerima: 'Kepala Diniyah', tanggal: '28 Jul 2026', status: 'ARSIP', instansi: 'MADRASAH', tahun_ajaran: '2025/2026 (Ganjil)' },
-    { id: '3', nomor: 'SRT/2026/07/041', jenis: 'SURAT_KELUAR', perihal: 'Permohonan Bantuan Operasional MI', pengirim: 'Madrasah MI', penerima: 'Dinas Pendidikan', tanggal: '25 Jul 2026', status: 'ARSIP', instansi: 'MI', tahun_ajaran: '2025/2026 (Ganjil)' },
-  ];
-
-  private transaksiList: TransaksiRecord[] = [
-    { id: 'TRX-001', santri_nisn: '0012345678', santri_nama: 'Muhammad Raihan', jenis: 'SPP_AGUSTUS_2026', nominal: 350000, metode: 'BCA_VA', status: 'LUNAS', tanggal: '03 Ags 2026', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)' },
-    { id: 'TRX-002', santri_nisn: '0012345679', santri_nama: 'Ahmad Fauzi', jenis: 'SPP_AGUSTUS_2026', nominal: 350000, metode: 'MANDIRI_VA', status: 'LUNAS', tanggal: '02 Ags 2026', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)' },
-    { id: 'TRX-003', santri_nisn: '0012345680', santri_nama: 'Siti Aminah', jenis: 'SPP_AGUSTUS_2026', nominal: 350000, metode: 'QRIS', status: 'PENDING', tanggal: '02 Ags 2026', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)' },
-  ];
-
-  private inventarisList: InventarisRecord[] = [
-    { id: '1', kode: 'INV-PC-001', nama: 'Komputer Desktop Core i7', kategori: 'Elektronik & TI', jumlah: 25, kondisi: 'BAIK', lokasi: 'Lab Komputer 1', tahun_pengadaan: '2023', nilai_satuan: 8500000, instansi: 'PONDOK' },
-    { id: '2', kode: 'INV-PJ-002', nama: 'Proyektor Epson EB-X500', kategori: 'Elektronik', jumlah: 8, kondisi: 'BAIK', lokasi: 'Ruang Kelas 10 & 11', tahun_pengadaan: '2024', nilai_satuan: 5200000, instansi: 'PONDOK' },
-    { id: '3', kode: 'INV-AC-003', nama: 'AC Split Daikin 2 PK', kategori: 'Pendingin Ruang', jumlah: 12, kondisi: 'PERBAIKAN', lokasi: 'Masjid Utama & Aula', tahun_pengadaan: '2022', nilai_satuan: 4800000, instansi: 'MADRASAH' },
-    { id: '4', kode: 'INV-MJ-004', nama: 'Meja & Kursi Belajar Santri Jati', kategori: 'Mebel', jumlah: 450, kondisi: 'BAIK', lokasi: 'Seluruh Kelas', tahun_pengadaan: '2021', nilai_satuan: 850000, instansi: 'PONDOK' },
-    { id: '5', kode: 'INV-BK-005', nama: 'Rak Buku Kitab Kuning', kategori: 'Mebel', jumlah: 40, kondisi: 'BAIK', lokasi: 'Perpustakaan Diniyah', tahun_pengadaan: '2023', nilai_satuan: 1200000, instansi: 'MADRASAH' },
-    { id: '6', kode: 'INV-CCTV-006', nama: 'Kamera CCTV Hikvision 4MP', kategori: 'Keamanan', jumlah: 16, kondisi: 'BAIK', lokasi: 'Gedung MI', tahun_pengadaan: '2025', nilai_satuan: 750000, instansi: 'MI' },
-  ];
-
-  private jadwalList: JadwalRecord[] = [
-    { id: '1', hari: 'Senin', jam: '07:30 - 09:00', mapel: "Tahfidz Al-Qur'an", guru: 'Ustadzah Fatimah Azzahra', ruang: 'Ruang 10-A', kelas: '10-A', jenis: 'WAJIB', instansi: 'PONDOK' },
-    { id: '2', hari: 'Senin', jam: '09:30 - 11:00', mapel: 'Bahasa Arab (Saraf)', guru: 'Ust. M. Zulkarnain', ruang: 'Ruang 10-A', kelas: '10-A', jenis: 'WAJIB', instansi: 'PONDOK' },
-    { id: '3', hari: 'Selasa', jam: '07:30 - 09:00', mapel: 'Fiqih & Usul Fiqih', guru: 'Ust. Ahmad Al-Farisi', ruang: 'Ruang 10-A', kelas: '10-A', jenis: 'WAJIB', instansi: 'MADRASAH' },
-    { id: '4', hari: 'Rabu', jam: '09:30 - 11:00', mapel: 'Tafsir Jalalain', guru: 'Dr. KH. A. Ridwan', ruang: 'Ruang 10-A', kelas: '10-A', jenis: 'WAJIB', instansi: 'MADRASAH' },
-    { id: '5', hari: 'Kamis', jam: '07:30 - 09:00', mapel: "Hadits Arba'in", guru: 'Dr. KH. A. Ridwan', ruang: 'Masjid Utama', kelas: '10-A', jenis: 'WAJIB', instansi: 'PONDOK' },
-    { id: '6', hari: 'Sabtu', jam: '15:30 - 17:00', mapel: 'Ekstrakurikuler Memanah', guru: 'Pelatih Ridho', ruang: 'Lapangan MI', kelas: '10-A', jenis: 'EKSTRAKURIKULER', instansi: 'MI' },
-  ];
-
-  private setoranList: SetoranRecord[] = [
-    { id: '1', santri_nama: 'Muhammad Raihan', kelas: '10-A (Tahfidz)', juz: 15, surah: 'Al-Isra', nilai: 95, tanggal: 'Hari Ini', ustadz: 'Ust. Fatimah Azzahra', instansi: 'PONDOK' },
-    { id: '2', santri_nama: 'Ahmad Fauzi', kelas: '10-A (Tahfidz)', juz: 12, surah: 'Yusuf', nilai: 88, tanggal: 'Hari Ini', ustadz: 'Ust. Fatimah Azzahra', instansi: 'PONDOK' },
-    { id: '3', santri_nama: 'Siti Aminah', kelas: '11-B (Sains)', juz: 18, surah: 'Al-Kahfi', nilai: 92, tanggal: 'Kemarin', ustadz: 'Ust. Fatimah Azzahra', instansi: 'PONDOK' },
-    { id: '4', santri_nama: 'Zaidan Al-Khattab', kelas: '7-A Diniyah', juz: 3, surah: 'Al-Baqarah', nilai: 90, tanggal: 'Hari Ini', ustadz: 'Ust. Ahmad Al-Farisi', instansi: 'MADRASAH' },
-  ];
+  private santriList: SantriRecord[] = [];
+  private guruList: GuruRecord[] = [];
+  private suratList: SuratRecord[] = [];
+  private transaksiList: TransaksiRecord[] = [];
+  private inventarisList: InventarisRecord[] = [];
+  private jadwalList: JadwalRecord[] = [];
+  private setoranList: SetoranRecord[] = [];
 
   // 1. Santri Queries & Mutations
   getSantri(instansi?: string, tahunAjaran?: string): SantriRecord[] {
