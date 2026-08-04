@@ -7,14 +7,13 @@ import { LoadingSpinner } from '@/components/Loading';
 
 type InstansiKey = 'pondok' | 'madrasah' | 'mi';
 type AuthMethod = 'email' | 'passkey';
-type RoleKey = 'ADMIN_INSTANSI' | 'GURU' | 'SANTRI' | 'WALI_SANTRI' | 'BENDAHARA' | 'SUPER_ADMIN';
+type RoleKey = 'ADMIN_INSTANSI' | 'GURU' | 'WALI_SANTRI' | 'BENDAHARA' | 'SUPER_ADMIN';
 
 const DEMO_USERS: Record<string, { password: string; role: RoleKey; nama: string }> = {
   'super@darsa.id':     { password: 'super123',  role: 'SUPER_ADMIN',     nama: 'Super Admin Darsa' },
   'admin@darsa.id':     { password: 'admin123',  role: 'ADMIN_INSTANSI',  nama: 'Ahmad Al-Farisi' },
   'guru@darsa.id':      { password: 'guru123',   role: 'GURU',            nama: 'Dr. KH. Abdullah Ridwan' },
   'wali@darsa.id':      { password: 'wali123',   role: 'WALI_SANTRI',     nama: 'Bapak Hendra' },
-  'santri@darsa.id':    { password: 'santri123', role: 'SANTRI',          nama: 'Muhammad Raihan' },
   'bendahara@darsa.id': { password: 'bendahara123', role: 'BENDAHARA',    nama: 'Ustadzah Siti Khadijah' },
 };
 
@@ -23,7 +22,6 @@ const ROLE_REDIRECT: Record<RoleKey, string> = {
   ADMIN_INSTANSI: '/admin/dashboard',
   GURU:           '/guru/dashboard',
   WALI_SANTRI:    '/wali/dashboard',
-  SANTRI:         '/santri/dashboard',
   BENDAHARA:      '/admin/keuangan',
 };
 

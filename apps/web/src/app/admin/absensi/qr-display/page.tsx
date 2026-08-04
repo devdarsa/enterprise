@@ -69,7 +69,7 @@ export default function QRDisplayPage() {
           </div>
 
           <p className="text-xs text-slate-300">
-            Arahkan kamera smartphone Santri / Ustadz untuk melakukan presensi kehadiran real-time.
+            Arahkan kamera smartphone Ustadz / Pengajar & Pengurus untuk melakukan presensi kehadiran real-time.
           </p>
 
           {/* Real Scannable QR Code Canvas Box */}
@@ -98,7 +98,7 @@ export default function QRDisplayPage() {
       </div>
 
       <p className="text-xs text-slate-500 max-w-md font-medium">
-        *Menggunakan enkripsi TOTP dinamis terhubung ke database Neon PostgreSQL & Upstash Redis untuk menjamin validitas presensi santri & dewan guru.
+        *Menggunakan enkripsi TOTP dinamis terhubung ke database Neon PostgreSQL & Upstash Redis untuk menjamin validitas presensi dewan pengajar & pengurus ma'had.
       </p>
     </div>
   );
