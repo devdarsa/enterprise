@@ -209,16 +209,32 @@ model Guru {
 }
 
 model Santri {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id      String    @unique @db.Uuid
-  pondok_id    String    @db.Uuid
-  kelas_id     String    @db.Uuid
-  nisp         String    @unique // NISP / Stambuk (Single Source of Truth)
-  nisn         String    @unique
-  nama_lengkap String
-  nik_wali     String?   // NIK Orang Tua / Wali untuk penyambungan akun otomatis
-  deleted_at   DateTime?
-  created_at   DateTime  @default(now())
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String    @unique @db.Uuid
+  pondok_id             String    @db.Uuid
+  kelas_id              String    @db.Uuid
+  nisp                  String    @unique // NISP / Stambuk (Single Source of Truth)
+  nisn                  String    @unique
+  nis                   String?
+  nik                   String?   // NIK Santri (16 Digit)
+  nama_lengkap          String
+  jenis_kelamin         String?   // L / P
+  tempat_lahir          String?
+  tanggal_lahir         String?
+  alamat                String?   // Alamat Kependudukan Lengkap (API Cahyadsn Wilayah)
+  telepon               String?
+  avatar_url            String?
+  jenjang               String?   // Tsanawiyyah, Aliyah, Diniyah Ula/Wustho, MI
+  kamar                 String?   // Asrama / Kamar
+  status_tempat_tinggal String?   // PONDOK_PESANTREN / UNIT_LAIN
+  hafalan_juz           Int?      @default(0)
+  nik_wali              String?   // NIK Orang Tua / Wali untuk penyambungan akun otomatis
+  nama_wali             String?
+  telepon_wali          String?
+  hubungan_wali         String?   // AYAH / IBU / WALI
+  no_kk                 String?   // Nomor Kartu Keluarga
+  deleted_at            DateTime?
+  created_at            DateTime  @default(now())
 
   user       User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   pondok     Pondok         @relation(fields: [pondok_id], references: [id])
