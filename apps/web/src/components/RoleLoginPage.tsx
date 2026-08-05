@@ -25,6 +25,7 @@ export interface RoleLoginPageProps {
   roleBadge: string;
   roleTitle: string;
   roleSub: string;
+  allowedRoles?: string[];
   accentGradient?: string;
   logoUrl?: string;
   portalType: 'pondok' | 'madrasah' | 'mi' | 'keamanan' | 'gurumi' | 'general' | 'wali';
@@ -36,6 +37,7 @@ export default function RoleLoginPage({
   roleBadge,
   roleTitle,
   roleSub,
+  allowedRoles,
   accentGradient,
   logoUrl,
   portalType,
@@ -99,12 +101,28 @@ export default function RoleLoginPage({
         return;
       }
 
-      // Login sukses — get session
+      // Login kredensial sukses — Ambil session untuk verifikasi Role (BAB V & VI)
       setStep('redirecting');
       const sessionRes = await fetch('/api/auth/get-session');
       const sessionData = sessionRes.ok ? await sessionRes.json() : null;
-      const role = sessionData?.user?.role || 'SEKRETARIAT';
-      const redirectTo = ROLE_REDIRECT[role] || '/admin/dashboard';
+      const userRole = sessionData?.user?.role || 'SEKRETARIAT';
+
+      // BAB V: Validasi Hak Akses Role Terhadap Portal Halaman Login
+      if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+        // Sign out segera untuk membatalkan session tidak sah
+        try {
+          const { signOut } = await import('@darsa/auth/client');
+          await signOut();
+        } catch {}
+
+        setError('Anda tidak memiliki hak akses pada halaman login ini. Silakan gunakan halaman login sesuai Role Anda.');
+        setStep('idle');
+        setLoading(false);
+        return;
+      }
+
+      // Role sesuai — Pengalihan ke Dashboard Spesifik Role (BAB VI)
+      const redirectTo = ROLE_REDIRECT[userRole] || '/admin/dashboard';
       router.push(redirectTo);
     } catch (err: any) {
       setError(err?.message || 'Terjadi kesalahan saat masuk. Silakan coba lagi.');

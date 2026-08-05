@@ -10,6 +10,7 @@ export default function LoginKeamananPage() {
       roleBadge="PORTAL KEAMANAN & KETERTIBAN"
       roleTitle="Kamtib & Perizinan Pondok"
       roleSub="PENGAWASAN DISIPLIN SANTRI LIRBOYO KOTA KEDIRI"
+      allowedRoles={['KEAMANAN', 'SEKRETARIAT', 'ADMIN_INSTANSI']}
       accentGradient="from-slate-900 via-emerald-900 to-rose-950"
       logoUrl="/logo-pondok.png"
       showInstansiTabs={false}

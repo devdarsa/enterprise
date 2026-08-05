@@ -149,12 +149,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     },
   ];
 
-  // RBAC Filtering according to Role Specification
+  // RBAC Filtering according to BAB VII Role Specification
   const userRole = user?.role || 'SEKRETARIAT';
 
   const visibleGroups = navigationGroups
     .map((group) => {
-      // Keamanan Role: Only sees Dashboard, Keamanan, and SOP
+      // Keamanan Role: Only sees Dashboard, Keamanan, and SOP (BAB VII)
       if (userRole === 'KEAMANAN') {
         if (group.groupTitle === 'DATABASE PONDOK') return null;
         if (group.groupTitle === 'SISTEM & UTILITAS') {
@@ -164,6 +164,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           };
         }
       }
+
+      // Mustahiq / Munawwib / Guru Role: Cannot see Database Pondok, System Config, Audit Log, Akun (BAB VII)
+      if (['MUSTAHIQ', 'MUNAWWIB', 'GURU_MADRASAH', 'GURU_MI', 'GURU'].includes(userRole)) {
+        if (group.groupTitle === 'DATABASE PONDOK') return null;
+        if (group.groupTitle === 'SISTEM & UTILITAS') {
+          return {
+            ...group,
+            items: group.items.filter((item) => item.path === '/admin/sop'),
+          };
+        }
+      }
+
       // Madrasah / MI Sekretariat: Cannot access Pondok System Configuration
       if (instansiActive !== 'pondok') {
         if (group.groupTitle === 'SISTEM & UTILITAS') {

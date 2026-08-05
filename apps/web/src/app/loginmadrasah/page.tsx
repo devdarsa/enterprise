@@ -10,6 +10,7 @@ export default function LoginMadrasahPage() {
       roleBadge="PORTAL MADRASAH DINIYAH"
       roleTitle="Madrasah Diniyah Darussa'adah"
       roleSub="TSANAWIYYAH & ALIYAH LIRBOYO KOTA KEDIRI"
+      allowedRoles={['ADMIN_INSTANSI', 'GURU_MADRASAH', 'SEKRETARIAT']}
       accentGradient="from-teal-900 via-emerald-800 to-emerald-900"
       logoUrl="/logo-madrasah.png"
       showInstansiTabs={false}

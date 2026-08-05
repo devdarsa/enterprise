@@ -10,6 +10,7 @@ export default function LoginPage() {
       roleBadge="PORTAL UTAMA MUSTAHIQ / MUNAWWIB"
       roleTitle="Darsa Enterprise Integrated"
       roleSub="PONDOK PESANTREN & MADRASAH DARUSSA'ADAH LIRBOYO"
+      allowedRoles={['MUSTAHIQ', 'MUNAWWIB', 'GURU_MADRASAH', 'GURU', 'SEKRETARIAT', 'ADMIN_INSTANSI']}
       accentGradient="from-emerald-900 via-emerald-800 to-teal-900"
       logoUrl="/logo-pondok.png"
       showInstansiTabs={true}
