@@ -24,61 +24,62 @@ enum RoleType {
 }
 
 model User {
-  id            String    @id @default(dbgenerated("gen_random_uuid()"))
-  email         String    @unique
-  name          String    @default("") @map("nama_lengkap")
-  foto_url      String?
-  emailVerified Boolean   @default(false) @map("email_verified")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  id             String              @id @default(dbgenerated("gen_random_uuid()"))
+  email          String              @unique
+  nama_lengkap   String              @default("")
+  foto_url       String?
+  email_verified Boolean             @default(false)
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @updatedAt
+  deleted_at     DateTime?
 
-  accounts               Account[]
-  sessions               Session[]
-  passkeys               PasskeyCredential[]
-  user_roles             UserRole[]
-  audit_logs             AuditLog[]
-  guru                   Guru?
-  santri                 Santri?
-  wali_santri            WaliSantri?
-  pelanggaran_as_petugas Pelanggaran[]        @relation("PelanggaranPetugas")
-  perizinan_disetujui    Perizinan[]          @relation("PerizinanApprover")
+  accounts         Account[]
+  sessions         Session[]
+  passkeys         PasskeyCredential[]
+  user_roles       UserRole[]
+  audit_logs       AuditLog[]
+
+  guru             Guru?
+  santri           Santri?
+  wali_santri      WaliSantri?
+  pelanggaran_as_petugas Pelanggaran[] @relation("PelanggaranPetugas")
+  perizinan_disetujui    Perizinan[]   @relation("PerizinanApprover")
 
   @@map("users")
 }
 
 model Account {
-  id                    String    @id @default(dbgenerated("gen_random_uuid()"))
-  userId                String    @map("user_id")
-  accountId             String    @map("provider_account_id")
-  providerId            String    @map("provider")
-  password              String?
-  accessToken           String?   @map("access_token")
-  refreshToken          String?   @map("refresh_token")
-  idToken               String?   @map("id_token")
-  accessTokenExpiresAt  DateTime? @map("expires_at")
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+  id                  String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id             String
+  provider            String
+  provider_account_id String
+  password            String?
+  refresh_token       String?
+  access_token        String?
+  expires_at          Int?
+  token_type          String?
+  scope               String?
+  id_token            String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @default(now()) @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([providerId, accountId])
+  @@unique([provider, provider_account_id])
   @@map("accounts")
 }
 
 model Session {
-  id        String   @id @default(dbgenerated("gen_random_uuid()"))
-  userId    String   @map("user_id")
-  token     String   @unique @map("session_token")
-  ipAddress String?  @map("ip_address")
-  userAgent String?  @map("user_agent")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id       String
+  session_token String   @unique
+  ip_address    String?
+  user_agent    String?
+  expires_at    DateTime
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now()) @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
