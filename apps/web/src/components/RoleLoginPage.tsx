@@ -193,26 +193,6 @@ export default function RoleLoginPage({
               <div className="absolute right-8 bottom-0 w-28 h-28 rounded-full border border-white translate-y-12" />
             </div>
 
-            {/* Optional Instansi Switcher Tabs */}
-            {showInstansiTabs && (
-              <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-white/10 backdrop-blur-md rounded-2xl mb-5 text-[11px] font-bold relative z-10 border border-white/15">
-                {(['pondok', 'madrasah', 'mi'] as InstansiKey[]).map((key, idx) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setInstansi(key)}
-                    className={`py-2 rounded-xl transition-all duration-200 ${
-                      instansi === key
-                        ? 'bg-white text-emerald-900 shadow-md scale-[1.02]'
-                        : 'text-white/80 hover:bg-white/15'
-                    }`}
-                  >
-                    {idx + 1}. {key === 'pondok' ? 'Pondok' : key === 'madrasah' ? 'Diniyah' : 'MI / MA'}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Logo & Portal Branding */}
             <div className="flex items-center gap-4 relative z-10">
               <div className="relative w-16 h-16 rounded-full border-[3px] border-amber-400/90 overflow-hidden shadow-xl shadow-black/20 shrink-0 bg-white/10 backdrop-blur-sm">
@@ -383,8 +363,8 @@ export default function RoleLoginPage({
               Masuk dengan Google OAuth
             </button>
 
-            {/* Portal Wali Link (Explicit) */}
-            {portalType === 'wali' || portalType === 'general' ? (
+            {/* Portal Wali Link (Strictly on Wali Portal Only) */}
+            {portalType === 'wali' ? (
               <div className="pt-2 text-center border-t border-slate-200">
                 <Link
                   href="/register/wali"
