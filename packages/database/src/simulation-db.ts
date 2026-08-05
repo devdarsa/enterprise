@@ -7,15 +7,29 @@ export interface SantriRecord {
   id: string;
   nisp: string; // Nomor Induk Santri Pondok (Stambuk)
   nisn: string;
+  nis?: string;
+  nik?: string;
   nama: string;
   jenis_kelamin: 'L' | 'P';
+  tempat_lahir?: string;
+  tanggal_lahir?: string;
+  alamat?: string;
+  telepon?: string;
+  avatar_url?: string;
+  jenjang?: string;
   kelas: string;
+  kamar?: string;
+  status_tempat_tinggal?: 'PONDOK_PESANTREN' | 'UNIT_LAIN';
+  tahun_masuk?: number;
   instansi: 'PONDOK' | 'MADRASAH' | 'MI';
   tahun_ajaran: string;
-  status: 'AKTIF' | 'NON_AKTIF';
+  status: 'AKTIF' | 'NON_AKTIF' | 'CUTI' | 'ALUMNI' | 'MUTASI';
   hafalan_juz: number;
   nik_wali?: string; // NIK Kependudukan Wali untuk penyambungan akun otomatis
   nama_wali?: string;
+  telepon_wali?: string;
+  hubungan_wali?: 'AYAH' | 'IBU' | 'WALI';
+  no_kk?: string;
 }
 
 export interface GuruRecord {
@@ -59,10 +73,9 @@ export interface JadwalRecord {
   hari: string;
   jam: string;
   mapel: string;
-  guru: string;
-  ruang: string;
   kelas: string;
-  jenis: 'WAJIB' | 'SUNNAH' | 'EKSTRAKURIKULER';
+  pengajar: string;
+  ruang: string;
   instansi: 'PONDOK' | 'MADRASAH' | 'MI';
 }
 
@@ -96,71 +109,110 @@ class SimulationDatabaseStore {
       id: '1',
       nisp: 'PNDK-0012345678',
       nisn: '0012345678',
+      nis: '20261001',
+      nik: '3571011508080001',
       nama: 'Muhammad Raihan',
       jenis_kelamin: 'L',
+      tempat_lahir: 'Kediri',
+      tanggal_lahir: '2008-08-15',
+      alamat: 'Jl. KH. Abdul Karim No. 12, Lirboyo, Kota Kediri',
+      telepon: '081234567890',
+      jenjang: 'Tsanawiyyah',
       kelas: '10-A (Tahfidz & Diniyah)',
+      kamar: 'Asrama Abu Bakar 1',
+      status_tempat_tinggal: 'PONDOK_PESANTREN',
+      tahun_masuk: 2025,
       instansi: 'PONDOK',
       tahun_ajaran: '2025/2026 (Ganjil)',
       status: 'AKTIF',
       hafalan_juz: 15,
       nik_wali: '3571012304850001',
       nama_wali: 'Bapak Hendra',
+      telepon_wali: '081399887766',
+      hubungan_wali: 'AYAH',
+      no_kk: '3571019908050012',
     },
     {
       id: '2',
       nisp: 'PNDK-0012345679',
       nisn: '0012345679',
+      nis: '20261002',
+      nik: '3571012010090002',
       nama: 'Ahmad Fauzi',
       jenis_kelamin: 'L',
+      tempat_lahir: 'Surabaya',
+      tanggal_lahir: '2009-10-20',
+      alamat: 'Jl. Raya Darmo No. 45, Surabaya',
+      telepon: '081298765432',
+      jenjang: 'Tsanawiyyah',
       kelas: '10-A (Tahfidz & Diniyah)',
+      kamar: 'Asrama Usamah 2',
+      status_tempat_tinggal: 'PONDOK_PESANTREN',
+      tahun_masuk: 2025,
       instansi: 'PONDOK',
       tahun_ajaran: '2025/2026 (Ganjil)',
       status: 'AKTIF',
       hafalan_juz: 12,
       nik_wali: '3571012304850001', // Wali sama (Penyambungan 2 santri dalam 1 akun NIK Wali)
       nama_wali: 'Bapak Hendra',
+      telepon_wali: '081399887766',
+      hubungan_wali: 'AYAH',
+      no_kk: '3571019908050012',
     },
     {
       id: '3',
       nisp: 'PNDK-0012345680',
       nisn: '0012345680',
+      nis: '20261003',
+      nik: '3571016504090003',
       nama: 'Siti Aminah',
       jenis_kelamin: 'P',
+      tempat_lahir: 'Malang',
+      tanggal_lahir: '2009-04-25',
+      alamat: 'Jl. Ijen No. 88, Malang',
+      telepon: '085711223344',
+      jenjang: 'Aliyah',
       kelas: '11-B (Diniyah Putri)',
+      kamar: 'Asrama Aisyah 3',
+      status_tempat_tinggal: 'PONDOK_PESANTREN',
+      tahun_masuk: 2024,
       instansi: 'PONDOK',
       tahun_ajaran: '2025/2026 (Ganjil)',
       status: 'AKTIF',
       hafalan_juz: 8,
       nik_wali: '3571098706900002',
       nama_wali: 'Ibu Rahmawati',
+      telepon_wali: '085799881122',
+      hubungan_wali: 'IBU',
+      no_kk: '3571099904090088',
     },
   ];
 
   private guruList: GuruRecord[] = [
     {
       id: '1',
-      nip: '198504122010011002',
+      nip: '198504122015031002',
       nama: 'Dr. KH. Abdullah Ridwan',
-      tugas: 'Pengasuh & Mustahiq Diniyah',
-      telepon: '081234567890',
+      tugas: 'Mustahiq Kelas 10-A & Guru Fiqih',
+      telepon: '08123456789',
       instansi: 'MADRASAH',
       tahun_ajaran: '2025/2026 (Ganjil)',
     },
     {
       id: '2',
-      nip: '199008232015022003',
+      nip: '199009182019031005',
       nama: 'Ustadz Ahmad Al-Farisi',
-      tugas: 'Guru Mapel Nahwu & Sorof',
-      telepon: '081987654321',
+      tugas: 'Pengajar Nahwu Alfiyyah',
+      telepon: '08198765432',
       instansi: 'MADRASAH',
       tahun_ajaran: '2025/2026 (Ganjil)',
     },
     {
       id: '3',
-      nip: '199503152020031005',
-      nama: 'Ustadzah Nurul Hidayah',
-      tugas: 'Guru Absensi MI',
-      telepon: '085712345678',
+      nip: '199208152018022003',
+      nama: 'Ustadzah Fatimah, S.Pd',
+      tugas: 'Guru MI Formal & Wali Kelas 4-A',
+      telepon: '08571234567',
       instansi: 'MI',
       tahun_ajaran: '2025/2026 (Ganjil)',
     },
@@ -169,11 +221,11 @@ class SimulationDatabaseStore {
   private suratList: SuratRecord[] = [
     {
       id: '1',
-      nomor: '001/PNDK/VIII/2026',
+      nomor: 'SURAT-001/DARSA/VIII/2026',
       jenis: 'IZIN PULANG',
-      perihal: 'Izin Pulang Keperluan Keluarga',
-      pengirim: 'Bapak Hendra (Wali)',
-      penerima: 'Sekretariat Utama',
+      perihal: 'Pengajuan Izin Pulang Santri: Ahmad Fauzi (Pernikahan Saudara)',
+      pengirim: 'Bapak Hendra (Wali Santri)',
+      penerima: 'Sekretariat Utama Pondok',
       tanggal: '3 Agt 2026',
       status: 'DISETUJUI',
       instansi: 'PONDOK',
@@ -189,10 +241,10 @@ class SimulationDatabaseStore {
     {
       id: '1',
       judul: 'Jadwal Libur Akhir Semester Diniyah & Pondok',
-      isi: 'Pengumuman resmi libur semester genap dimulai tanggal 20 Agustus 2026. Santri wajib menyelesaikan seluruh administrasi perizinan sebelum penutupan gerbang.',
+      isi: 'Pengumuman resmi libur akhir semester ganjil santri pesantren dan madrasah diniyah Lirboyo Kediri.',
       target: 'SEMUA',
-      instansi: 'PONDOK',
-      tanggal: '3 Agt 2026',
+      instansi: 'SEMUA',
+      tanggal: '1 Agt 2026',
       penulis: 'Sekretariat Utama',
       penting: true,
     },
@@ -231,6 +283,13 @@ class SimulationDatabaseStore {
     };
     this.santriList.unshift(newRecord);
     return newRecord;
+  }
+
+  updateSantri(id: string, updates: Partial<SantriRecord>): SantriRecord | null {
+    const idx = this.santriList.findIndex((s) => s.id === id);
+    if (idx === -1) return null;
+    this.santriList[idx] = { ...this.santriList[idx], ...updates };
+    return this.santriList[idx];
   }
 
   deleteSantri(id: string): boolean {
