@@ -405,13 +405,13 @@ export default function LoginPage() {
 
             {/* BAB V - Self-Registration Button for Wali Santri */}
             <div className="pt-2 text-center border-t border-slate-200">
-              <button
-                type="button"
-                onClick={() => setIsWaliRegisterModalOpen(true)}
-                className="text-xs font-bold text-emerald-800 hover:text-emerald-900 hover:underline flex items-center justify-center gap-1 mx-auto"
+              <Link
+                href="/register/wali"
+                className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-black shadow-sm transition-all duration-200"
               >
-                <span>👨‍👩‍👧</span> Pendaftaran Akun Wali Santri Baru (Verifikasi NIK Automatis) →
-              </button>
+                <span>👨‍👩‍👧</span>
+                <span>Belum Punya Akun? Daftar Wali Santri (OTP WA & NIK) →</span>
+              </Link>
             </div>
           </div>
         </div>

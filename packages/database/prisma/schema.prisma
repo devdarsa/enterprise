@@ -700,3 +700,23 @@ model Alumni {
   @@map("alumni")
 }
 
+// ----------------------------------------------------
+// 14. OTP VERIFICATION (WALI SANTRI & WHATSAPP FONNTE)
+// ----------------------------------------------------
+
+model OtpVerification {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nik          String
+  phone        String
+  otp_hash     String
+  attempts     Int      @default(0)
+  resend_count Int      @default(0)
+  status       String   @default("PENDING") // PENDING | VERIFIED | EXPIRED | FAILED
+  expires_at   DateTime
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([nik, phone])
+  @@map("otp_verifications")
+}
+
