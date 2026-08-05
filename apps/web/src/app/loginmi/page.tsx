@@ -11,6 +11,7 @@ export default function LoginMIPage() {
       roleTitle="Madrasah Ibtida'iyyah Darussa'adah"
       roleSub="PENDIDIKAN FORMAL MI LIRBOYO KOTA KEDIRI"
       allowedRoles={['ADMIN_INSTANSI', 'GURU_MI', 'SEKRETARIAT']}
+      defaultEmail="sekretariat.mi@darsa.my.id"
       accentGradient="from-emerald-950 via-teal-900 to-emerald-900"
       logoUrl="/logo-mi.png"
       showInstansiTabs={false}

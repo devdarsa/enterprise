@@ -26,6 +26,7 @@ export interface RoleLoginPageProps {
   roleTitle: string;
   roleSub: string;
   allowedRoles?: string[];
+  defaultEmail?: string;
   accentGradient?: string;
   logoUrl?: string;
   portalType: 'pondok' | 'madrasah' | 'mi' | 'keamanan' | 'gurumi' | 'general' | 'wali';
@@ -38,6 +39,7 @@ export default function RoleLoginPage({
   roleTitle,
   roleSub,
   allowedRoles,
+  defaultEmail = '',
   accentGradient,
   logoUrl,
   portalType,
@@ -46,8 +48,8 @@ export default function RoleLoginPage({
   const router = useRouter();
   const [instansi, setInstansi] = useState<InstansiKey>(defaultInstansi);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('email');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(defaultEmail);
+  const [password, setPassword] = useState('darsa25');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
