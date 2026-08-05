@@ -156,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <DesktopOnlyGuard>
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row relative">
+      <div className="h-screen w-full bg-slate-50 text-slate-900 flex flex-col md:flex-row overflow-hidden relative">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -166,16 +166,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* ============================================================
-          SIDEBAR
+          SIDEBAR (Fixed / Sticky on Desktop)
           ============================================================ */}
       <aside
         className={`
-          fixed md:relative inset-y-0 left-0 z-40 md:z-auto
+          fixed md:sticky top-0 h-screen z-40 md:z-30
           w-72 md:w-64 bg-white border-r border-slate-200/80
           flex flex-col shadow-xl md:shadow-none
           transform transition-transform duration-300 ease-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          shrink-0
+          shrink-0 overflow-y-auto
         `}
       >
         {/* Header card: Tahun Ajaran + Instansi switcher */}
@@ -291,9 +291,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* ============================================================
-          MAIN CONTENT
+          MAIN CONTENT (Independently Scrollable)
           ============================================================ */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Header */}
         <header className="h-14 border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
           {/* Left: Hamburger + Breadcrumb */}
