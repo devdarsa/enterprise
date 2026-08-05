@@ -1,35 +1,81 @@
 # Spesifikasi Lengkap Darsa Enterprise (Official Master Document)
 
 **Status:** Approved Official Standard  
-**Versi:** 3.0.0  
+**Versi:** 4.0.0  
 **Tanggal:** 5 Agustus 2026  
 **Lembaga:** Ma'had Darussa'adah Lirboyo Kota Kediri  
 
 ---
 
-## 1. Structure Navigasi Menu Darsa Enterprise
+## 1. Standar Isi Navigasi & 19 Modul Menu Darsa Enterprise
 
-### DASHBOARD
-- Overview Dashboard (Dinamis per Role & Instansi Aktif)
+### 1. DASHBOARD
+- **Cards**: Total Santri Aktif, Total Guru, Total Pengurus, Total Perizinan Hari Ini, Total Pelanggaran Hari Ini, Total Kehadiran Guru Hari Ini.
+- **Grafik**: Statistik Santri, Kehadiran, Pelanggaran, Perizinan.
+- **Aktivitas Terbaru**: Santri Baru, Guru Baru, Login Terakhir, Aktivitas Sistem.
 
-### DATABASE PONDOK
-- Data Santri & Wali Santri
-- Data Asrama & Pembina Asrama
-- Data Pengurus (Pondok, Madrasah, MI)
-- Data Pengajar (Madrasah & MI)
-- Alumni
+### 2. DATA SANTRI (DATABASE PONDOK)
+- **Header**: Data Santri Pondok (Single Source of Truth).
+- **Tombol**: Tambah Santri, Import, Export, Cetak, Filter, Refresh.
+- **Filter**: Tahun Ajaran, Status, Asrama, Pendidikan, Kelas, Jenis Kelamin.
+- **Pencarian**: Stambuk, Nama, NIK Wali, HP, Alamat.
+- **Kolom Tabel**: Foto, Stambuk, Nama Lengkap, Gender, Pendidikan, Kelas, Asrama, Status, Aksi.
+- **Detail Santri Tab-Multi**: Tab Identitas, Tab Orang Tua, Tab Alamat, Tab Pendidikan, Tab Asrama, Tab Perizinan, Tab Pelanggaran, Tab Riwayat Akademik, Tab Dokumen.
 
-### KEAMANAN
-- Perizinan Santri
-- Pelanggaran & Kedisiplinan
+### 3. DATA WALI SANTRI
+- NIK, Nama, Hubungan, Nomor HP, Jumlah Anak, Status Akun, Login Terakhir.
 
-### SISTEM & UTILITAS
-- Arsip Historis
-- Tahun Ajaran & Semester
-- Manajemen Akun & Role RBAC
-- Audit Log & Recycle Bin
-- Panduan & SOP Sistem
-- Konfigurasi Sistem
+### 4. DATA ASRAMA
+- Nama Asrama, Pembina, Jumlah Kamar, Kapasitas, Jumlah Penghuni.
+
+### 5. DATA PENGURUS
+- Nama, Jabatan, Unit, Nomor HP, Status.
+
+### 6. DATA PENGAJAR
+- Nama Guru, Jenis Guru, Unit, Mata Pelajaran, Wali Kelas, Status.
+
+### 7. ALUMNI
+- Tahun Lulus, Nama, Stambuk, Pendidikan Terakhir, Status Alumni.
+
+### 8. PERIZINAN (KEAMANAN)
+- Nomor Izin, Nama Santri, Jenis Izin, Tanggal Keluar, Tanggal Kembali, Status, Disetujui Oleh.
+
+### 9. PELANGGARAN (KEAMANAN)
+- Nama Santri, Jenis Pelanggaran, Poin, Tanggal, Petugas.
+
+### 10. DATA KELAS (AKADEMIK MADRASAH)
+- Nama Kelas, Tingkat, Mustahiq, Jumlah Santri.
+
+### 11. MATA PELAJARAN (AKADEMIK MADRASAH)
+- Nama Mapel, Munawwib, Jumlah Kelas.
+
+### 12. JADWAL PELAJARAN
+- Hari, Jam, Mata Pelajaran, Guru, Kelas.
+
+### 13. NILAI AKADEMIK
+- Nama Santri, Mata Pelajaran, Nilai, Semester, Tahun Ajaran.
+
+### 14. ABSENSI SANTRI
+- Nama Santri, Tanggal, Status, Mata Pelajaran, Guru.
+
+### 15. GURU MI
+- Nama Guru, Jadwal Mengajar, Status Kehadiran.
+
+### 16. REKAP ABSENSI GURU
+- Nama Guru, Masuk, Pulang, Total Hadir, Total Terlambat.
+
+### 17. QR CODE GURU
+- Tombol Scan QR, Status Kehadiran Hari Ini, Riwayat Scan, Jam Masuk, Jam Pulang.
+
+### 18. MANAJEMEN AKUN
+- Nama, Username/Email, Role, Status, Login Terakhir.
+
+### 19. AUDIT LOG & RECYCLE BIN
+- Audit Log: Waktu, Pengguna, Modul, Aktivitas, IP Address, Device, Status.
+- Recycle Bin: Nama Data, Jenis Data, Dihapus Oleh, Waktu Hapus, Pulihkan, Hapus Permanen.
+
+### 20. KONFIGURASI SISTEM
+- Profil Pondok, Tahun Ajaran, Konfigurasi QR Code, Pengaturan Role, API, Backup, Restore, Sinkronisasi Master Wilayah.
 
 ---
 
