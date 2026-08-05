@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     // 6. Generate 6-Digit Numeric OTP
     const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = crypto.createHash('sha256').update(rawOtp).digest('hex');
-    const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 Menit (BAB VII & XIV)
+    const expiresAt = new Date(Date.now() + 60 * 1000); // 1 Menit / 60 Detik
 
     // 7. Simpan OTP Hash di DB
     const otpRecord = await prisma.otpVerification.create({
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 8. Kirim OTP via WhatsApp Provider (Fonnte API)
-    const sendResult = await waProvider.sendOtp(cleanPhone, rawOtp, 3);
+    const sendResult = await waProvider.sendOtp(cleanPhone, rawOtp, 1);
 
     if (!sendResult.success) {
       // Mark OTP record as failed
@@ -136,9 +136,9 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess({
       sent: true,
-      message: 'Kode OTP verifikasi telah dikirim ke nomor WhatsApp Anda.',
-      expires_in: 180, // 3 menit
-      cooldown: 60,   // 60 detik
+      message: 'Kode OTP verifikasi telah dikirim ke nomor WhatsApp Anda (berlaku 1 menit / 60 detik).',
+      expires_in: 60, // 1 menit (60s)
+      cooldown: 60,   // 60s cooldown
     });
 
   } catch (err: any) {

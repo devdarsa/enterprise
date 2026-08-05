@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         userAgent: req.headers.get('user-agent') || undefined,
       });
 
-      return apiError('Kode OTP sudah kedaluwarsa (berlaku 3 menit). Silakan minta OTP baru.', 400);
+      return apiError('Kode OTP sudah kedaluwarsa (berlaku 1 menit / 60 detik). Silakan minta OTP baru.', 400);
     }
 
     // 4. Cek Maksimal Percobaan (Max 5x Percobaan Salah sesuai BAB XI)

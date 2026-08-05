@@ -35,7 +35,7 @@ export default function RegisterWaliPage() {
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
   // Timer & Cooldown State
-  const [expirySeconds, setExpirySeconds] = useState(180); // 3 menit (180s)
+  const [expirySeconds, setExpirySeconds] = useState(60); // 1 menit (60s)
   const [cooldownSeconds, setCooldownSeconds] = useState(60); // 60s resend cooldown
   const [canResend, setCanResend] = useState(false);
 
@@ -146,11 +146,11 @@ export default function RegisterWaliPage() {
       setLoading(false);
 
       if (json.success) {
-        setExpirySeconds(json.data.expires_in || 180);
+        setExpirySeconds(json.data.expires_in || 60);
         setCooldownSeconds(json.data.cooldown || 60);
         setCanResend(false);
         setStep(3);
-        showToast('info', 'OTP Terkirim!', 'Kode verifikasi WhatsApp 6-digit telah dikirimkan ke nomor WhatsApp Anda.');
+        showToast('info', 'OTP Terkirim!', 'Kode verifikasi WhatsApp 6-digit (berlaku 1 menit / 60 detik) telah dikirimkan ke nomor WhatsApp Anda.');
       } else {
         setError(json.error || 'Gagal mengirimkan OTP WhatsApp.');
       }

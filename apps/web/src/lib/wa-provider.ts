@@ -25,10 +25,9 @@ export class FonnteWaProvider implements WaProvider {
     this.apiUrl = apiUrl || 'https://api.fonnte.com/send';
   }
 
-  async sendOtp(to: string, otp: string, durationMinutes: number = 3): Promise<SendOtpResult> {
+  async sendOtp(to: string, otp: string, durationMinutes: number = 1): Promise<SendOtpResult> {
     if (!this.token) {
       console.warn('⚠️ [WA Provider Fonnte]: FONNTE_TOKEN tidak terkonfigurasi pada Environment Variable.');
-      // Returning simulated success in dev if token is missing so system degrades gracefully
       return {
         success: false,
         error: 'Server error: FONNTE_TOKEN belum dikonfigurasi pada environment variable server.',
@@ -41,8 +40,8 @@ export class FonnteWaProvider implements WaProvider {
       formattedPhone = '62' + formattedPhone.slice(1);
     }
 
-    // Template Pesan Sesuai BAB VII Spesifikasi
-    const message = `Darsa Enterprise\n\nKode Verifikasi Anda:\n\n${otp}\n\nKode berlaku selama ${durationMinutes} menit.\n\nJangan berikan kode ini kepada siapa pun, termasuk petugas Darsa Enterprise.`;
+    // Template Pesan OTP (Berlaku 1 Menit / 60 Detik)
+    const message = `Darsa Enterprise\n\nKode Verifikasi Anda:\n\n${otp}\n\nKode berlaku selama ${durationMinutes} menit (60 detik).\n\nJangan berikan kode ini kepada siapa pun, termasuk petugas Darsa Enterprise.`;
 
     try {
       const response = await fetch(this.apiUrl, {
