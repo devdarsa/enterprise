@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
+import { SkeletonTable } from '@/components/Loading';
 import { ImportExportToolbar } from '@/components/TableActions';
 
 interface AuditItem {
@@ -21,33 +22,71 @@ interface RecycleBinItem {
   detail: string;
 }
 
-const INITIAL_AUDIT: AuditItem[] = [
-  { id: '1', waktu: '05 Agt 2026 17:05', user: 'admin@darsa.id', aktivitas: 'Registrasi Santri Baru: Muhammad Raihan', modul: 'SANTRI', ipAddress: '182.253.12.9' },
-  { id: '2', waktu: '05 Agt 2026 16:30', user: 'guru.madrasah@darsa.id', aktivitas: 'Input Nilai Ujian Syafahi Kitab Kuning', modul: 'AKADEMIK', ipAddress: '182.253.12.15' },
-  { id: '3', waktu: '05 Agt 2026 15:10', user: 'admin@darsa.id', aktivitas: 'Perubahan Instansi Aktif ke PONDOK', modul: 'SYSTEM', ipAddress: '182.253.12.9' },
-];
-
-const INITIAL_RECYCLE: RecycleBinItem[] = [
-  { id: '1', waktuHapus: '04 Agt 2026 10:12', dihapusOleh: 'admin@darsa.id', tipeData: 'Data Santri', detail: 'Santri: Moh. Al-Farizi (NISP: PNDK-00123499)' },
-];
-
 export default function AuditLogRecycleBinPage() {
   const [activeTab, setActiveTab] = useState<'audit' | 'recycle'>('audit');
-  const [auditList] = useState<AuditItem[]>(INITIAL_AUDIT);
-  const [recycleList, setRecycleList] = useState<RecycleBinItem[]>(INITIAL_RECYCLE);
+  const [auditList, setAuditList] = useState<AuditItem[]>([]);
+  const [recycleList, setRecycleList] = useState<RecycleBinItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
 
-  const handleRestore = (id: string, detail: string) => {
-    setRecycleList((prev) => prev.filter((item) => item.id !== id));
-    showToast('success', 'Data Dipulihkan (Restore)', `${detail} berhasil dipulihkan dari Recycle Bin.`);
+  useEffect(() => {
+    fetchData();
+  }, [activeTab]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'audit') {
+        const res = await fetch('/api/v1/simulation/data?type=audit_log');
+        const json = await res.json();
+        if (json.success) setAuditList(json.data);
+      } else {
+        const res = await fetch('/api/v1/simulation/data?type=recycle_bin');
+        const json = await res.json();
+        if (json.success) setRecycleList(json.data);
+      }
+    } catch {
+      showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data dari database API.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePermanentDelete = (id: string, detail: string) => {
-    setRecycleList((prev) => prev.filter((item) => item.id !== id));
-    showToast('warning', 'Hapus Permanen', `${detail} telah dihapus permanen dari sistem.`);
+  const handleRestore = async (id: string, detail: string) => {
+    try {
+      const res = await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore_recycle_bin', id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchData();
+        showToast('success', 'Data Dipulihkan (Restore)', `${detail} berhasil dipulihkan dari Recycle Bin.`);
+      }
+    } catch {
+      showToast('error', 'Gagal Dipulihkan', 'Terjadi kesalahan sistem.');
+    }
+  };
+
+  const handlePermanentDelete = async (id: string, detail: string) => {
+    try {
+      const res = await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'permanent_delete_recycle_bin', id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchData();
+        showToast('warning', 'Hapus Permanen', `${detail} telah dihapus permanen dari sistem.`);
+      }
+    } catch {
+      showToast('error', 'Gagal Menghapus', 'Terjadi kesalahan sistem.');
+    }
   };
 
   return (
@@ -62,7 +101,7 @@ export default function AuditLogRecycleBinPage() {
           </span>
           <h1 className="text-xl font-black text-slate-900">Audit Log System & Recycle Bin</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Jejak Rekam Aktivitas Perubahan Data (Immutable) & Pemulihan Berkas Terhapus
+            Jejak Rekam Aktivitas Perubahan Data Real-Time (Immutable) & Pemulihan Berkas Terhapus
           </p>
         </div>
 
@@ -70,6 +109,7 @@ export default function AuditLogRecycleBinPage() {
           <ImportExportToolbar
             onExport={() => showToast('info', 'Export Audit Log', 'Mengeksport rekap audit log.')}
             onPrint={() => showToast('info', 'Cetak Audit Log', 'Mencetak laporan audit log.')}
+            onRefresh={fetchData}
           />
           <div className="flex gap-1.5 shrink-0">
             <button
@@ -78,7 +118,7 @@ export default function AuditLogRecycleBinPage() {
                 activeTab === 'audit' ? 'bg-slate-900 text-white shadow' : 'bg-slate-100 text-slate-700'
               }`}
             >
-              📋 Audit Log
+              📋 Audit Log ({auditList.length})
             </button>
             <button
               onClick={() => setActiveTab('recycle')}
@@ -86,16 +126,20 @@ export default function AuditLogRecycleBinPage() {
                 activeTab === 'recycle' ? 'bg-rose-700 text-white shadow' : 'bg-slate-100 text-slate-700'
               }`}
             >
-              🗑️ Recycle Bin
+              🗑️ Recycle Bin ({recycleList.length})
             </button>
           </div>
         </div>
       </div>
 
-      {activeTab === 'audit' ? (
+      {loading ? (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <SkeletonTable rows={4} cols={5} />
+        </div>
+      ) : activeTab === 'audit' ? (
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-3 bg-amber-50/80 border-b border-amber-200 text-amber-900 text-xs font-bold flex items-center justify-between">
-            <span>🛡️ AUDIT LOG IMMUTABLE STANDARD: Audit log dicatat secara otomatis oleh sistem & TIDAK DAPAT diubah maupun dihapus.</span>
+            <span>🛡️ AUDIT LOG IMMUTABLE STANDARD: Audit log dicatat secara otomatis dari database & TIDAK DAPAT diubah maupun dihapus.</span>
           </div>
           <table className="table-premium">
             <thead>

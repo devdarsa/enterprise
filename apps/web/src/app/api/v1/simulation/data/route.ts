@@ -14,7 +14,6 @@ export async function GET(request: Request) {
   }
 
   if (type === 'wali_santri') {
-    // Penyambungan Akun Wali Santri berbasis NIK Kependudukan Wali
     const data = simulationDb.getSantriByNikWali(nik || '3571012304850001');
     return NextResponse.json({ success: true, data });
   }
@@ -29,24 +28,49 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, data });
   }
 
+  if (type === 'asrama') {
+    const data = simulationDb.getAsrama();
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'pengurus') {
+    const data = simulationDb.getPengurus();
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'alumni') {
+    const data = simulationDb.getAlumni();
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'pelanggaran') {
+    const data = simulationDb.getPelanggaran();
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'tahun_ajaran') {
+    const data = simulationDb.getTahunAjaran();
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'audit_log') {
+    const data = simulationDb.getAuditLog();
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'recycle_bin') {
+    const data = simulationDb.getRecycleBin();
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'konfigurasi') {
+    const data = simulationDb.getKonfigurasi();
+    return NextResponse.json({ success: true, data });
+  }
+
   if (type === 'pengumuman') {
     const target = searchParams.get('target') || undefined;
     const data = simulationDb.getPengumuman(instansi, target);
-    return NextResponse.json({ success: true, data });
-  }
-
-  if (type === 'transaksi') {
-    const data = simulationDb.getTransaksi(instansi, tahunAjaran);
-    return NextResponse.json({ success: true, data });
-  }
-
-  if (type === 'jadwal') {
-    const data = simulationDb.getJadwal(instansi);
-    return NextResponse.json({ success: true, data });
-  }
-
-  if (type === 'setoran') {
-    const data = simulationDb.getSetoran(instansi);
     return NextResponse.json({ success: true, data });
   }
 
@@ -60,22 +84,27 @@ export async function POST(request: Request) {
 
     if (action === 'add_santri') {
       const record = simulationDb.addSantri(payload);
-      return NextResponse.json({ success: true, message: 'Data Santri Berhasil Disimpan ke Database Lokal', data: record });
+      return NextResponse.json({ success: true, message: 'Data Santri Berhasil Disimpan ke Database', data: record });
+    }
+
+    if (action === 'update_santri') {
+      const record = simulationDb.updateSantri(id, payload);
+      return NextResponse.json({ success: true, message: 'Data Santri Berhasil Diperbarui', data: record });
     }
 
     if (action === 'delete_santri') {
       simulationDb.deleteSantri(id);
-      return NextResponse.json({ success: true, message: 'Data Santri Berhasil Dihapus' });
+      return NextResponse.json({ success: true, message: 'Data Santri Berhasil Dipindahkan ke Recycle Bin (Soft Delete)' });
     }
 
     if (action === 'add_guru') {
       const record = simulationDb.addGuru(payload);
-      return NextResponse.json({ success: true, message: 'Data Guru Berhasil Disimpan ke Database Lokal', data: record });
+      return NextResponse.json({ success: true, message: 'Data Guru Berhasil Disimpan ke Database', data: record });
     }
 
     if (action === 'delete_guru') {
       simulationDb.deleteGuru(id);
-      return NextResponse.json({ success: true, message: 'Data Guru Berhasil Dihapus' });
+      return NextResponse.json({ success: true, message: 'Data Guru Berhasil Dipindahkan ke Recycle Bin (Soft Delete)' });
     }
 
     if (action === 'add_surat') {
@@ -85,36 +114,46 @@ export async function POST(request: Request) {
 
     if (action === 'delete_surat') {
       simulationDb.deleteSurat(id);
-      return NextResponse.json({ success: true, message: 'Surat Berhasil Dihapus' });
+      return NextResponse.json({ success: true, message: 'Surat Berhasil Dipindahkan ke Recycle Bin (Soft Delete)' });
     }
 
-    if (action === 'add_pengumuman') {
-      const record = simulationDb.addPengumuman(payload);
-      return NextResponse.json({ success: true, message: 'Pengumuman Berhasil Diterbitkan & Broadcast Live', data: record });
+    if (action === 'add_asrama') {
+      const record = simulationDb.addAsrama(payload);
+      return NextResponse.json({ success: true, message: 'Data Kamar Asrama Berhasil Disimpan', data: record });
     }
 
-    if (action === 'add_transaksi') {
-      const record = simulationDb.addTransaksi(payload);
-      return NextResponse.json({ success: true, message: 'Transaksi SPP Berhasil Disimpan', data: record });
+    if (action === 'add_pengurus') {
+      const record = simulationDb.addPengurus(payload);
+      return NextResponse.json({ success: true, message: 'Data Pengurus Berhasil Disimpan', data: record });
     }
 
-    if (action === 'add_jadwal') {
-      const record = simulationDb.addJadwal(payload);
-      return NextResponse.json({ success: true, message: 'Slot Jadwal Berhasil Disimpan', data: record });
+    if (action === 'add_alumni') {
+      const record = simulationDb.addAlumni(payload);
+      return NextResponse.json({ success: true, message: 'Data Alumni Berhasil Disimpan', data: record });
     }
 
-    if (action === 'delete_jadwal') {
-      simulationDb.deleteJadwal(id);
-      return NextResponse.json({ success: true, message: 'Slot Jadwal Berhasil Dihapus' });
+    if (action === 'add_pelanggaran') {
+      const record = simulationDb.addPelanggaran(payload);
+      return NextResponse.json({ success: true, message: 'Pencatatan Pelanggaran Berhasil Disimpan', data: record });
     }
 
-    if (action === 'add_setoran') {
-      const record = simulationDb.addSetoran(payload);
-      return NextResponse.json({ success: true, message: 'Setoran Tahfidz Berhasil Diriwayatkan', data: record });
+    if (action === 'restore_recycle_bin') {
+      simulationDb.restoreRecycleBin(id);
+      return NextResponse.json({ success: true, message: 'Data Berhasil Dipulihkan dari Recycle Bin' });
+    }
+
+    if (action === 'permanent_delete_recycle_bin') {
+      simulationDb.permanentDeleteRecycleBin(id);
+      return NextResponse.json({ success: true, message: 'Data Berhasil Dihapus Permanen' });
+    }
+
+    if (action === 'update_konfigurasi') {
+      const record = simulationDb.updateKonfigurasi(payload);
+      return NextResponse.json({ success: true, message: 'Konfigurasi Sistem Berhasil Diperbarui', data: record });
     }
 
     return NextResponse.json({ success: false, error: 'Aksi simulasi tidak dikenali' }, { status: 400 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: 'Internal Server Error pada API Simulasi' }, { status: 500 });
   }
 }

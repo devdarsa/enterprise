@@ -57,6 +57,7 @@ export interface GuruRecord {
   telepon: string;
   instansi: 'PONDOK' | 'MADRASAH' | 'MI';
   tahun_ajaran: string;
+  status?: 'AKTIF' | 'NON_AKTIF';
 }
 
 export interface SuratRecord {
@@ -67,7 +68,7 @@ export interface SuratRecord {
   pengirim: string;
   penerima: string;
   tanggal: string;
-  status: 'DISETUJUI' | 'PENDING' | 'ARSIP';
+  status: 'DISETUJUI' | 'PENDING' | 'ARSIP' | 'DITOLAK';
   instansi: 'PONDOK' | 'MADRASAH' | 'MI';
   tahun_ajaran: string;
 }
@@ -119,6 +120,91 @@ export interface PengumumanRecord {
   penting: boolean;
 }
 
+export interface KamarAsramaRecord {
+  id: string;
+  gedung: string;
+  nomorKamar: string;
+  kapasitas: number;
+  terisi: number;
+  waliKamar: string;
+  status: 'TERSEDIA' | 'PENUH' | 'PERBAIKAN';
+}
+
+export interface PengurusRecord {
+  id: string;
+  nik: string;
+  nama: string;
+  jabatan: string;
+  unit: 'PONDOK' | 'MADRASAH' | 'MI';
+  telepon: string;
+  status: 'AKTIF' | 'NON_AKTIF';
+}
+
+export interface AlumniRecord {
+  id: string;
+  nisp: string;
+  nama: string;
+  tahunLulus: number;
+  jenjangTerakhir: string;
+  statusAlumni: 'KULIAH' | 'KHIDMAH' | 'BEKERJA' | 'WIRAUSAHA';
+  lokasiKhidmah?: string;
+  telepon: string;
+}
+
+export interface PelanggaranRecord {
+  id: string;
+  tanggal: string;
+  santriNama: string;
+  nisp: string;
+  jenis: string;
+  tingkat: 'RINGAN' | 'SEDANG' | 'BERAT';
+  tindakan: string;
+  petugas: string;
+}
+
+export interface TahunAjaranRecord {
+  id: string;
+  nama: string;
+  semester: 'Ganjil' | 'Genap';
+  status: 'AKTIF' | 'NON_AKTIF';
+  tglMulai: string;
+  tglSelesai: string;
+}
+
+export interface UserAccountRecord {
+  id: string;
+  nama: string;
+  email: string;
+  role: string;
+  instansi: string;
+  status: 'AKTIF' | 'NON_AKTIF' | 'SUSPENDED';
+}
+
+export interface AuditLogRecord {
+  id: string;
+  waktu: string;
+  user: string;
+  aktivitas: string;
+  modul: string;
+  ipAddress: string;
+}
+
+export interface RecycleBinRecord {
+  id: string;
+  waktuHapus: string;
+  dihapusOleh: string;
+  tipeData: string;
+  detail: string;
+  originalPayload: any;
+}
+
+export interface KonfigurasiRecord {
+  namaPondok: string;
+  alamatPondok: string;
+  radiusQr: number;
+  notifWa: boolean;
+}
+
 // Database Store Class
 class SimulationDatabaseStore {
   private santriList: SantriRecord[] = [
@@ -135,7 +221,7 @@ class SimulationDatabaseStore {
       tanggal_lahir: '2008-08-15',
       anak_ke: 1,
       jumlah_saudara: 3,
-      alamat: 'Jl. KH. Abdul Karim No. 12, Lirboyo, Kota Kediri',
+      alamat: 'Jl. KH. Abdul Karim No. 12 RT 02/RW 03, Desa/Kel. LIRBOYO, Kec. MOJOROTO, KOTA KEDIRI, Prov. JAWA TIMUR, Kode Pos 64117',
       telepon: '081234567890',
       jenjang: 'Tsanawiyyah',
       kelas: '10-A (Tahfidz & Diniyah)',
@@ -176,7 +262,7 @@ class SimulationDatabaseStore {
       tahun_ajaran: '2025/2026 (Ganjil)',
       status: 'AKTIF',
       hafalan_juz: 12,
-      nik_wali: '3571012304850001', // Wali sama (Penyambungan 2 santri dalam 1 akun NIK Wali)
+      nik_wali: '3571012304850001', // Wali sama (Multi-Santri 1 NIK Wali)
       nama_wali: 'Bapak Hendra',
       telepon_wali: '081399887766',
       hubungan_wali: 'AYAH',
@@ -223,48 +309,13 @@ class SimulationDatabaseStore {
   ];
 
   private guruList: GuruRecord[] = [
-    {
-      id: '1',
-      nip: '198504122015031002',
-      nama: 'Dr. KH. Abdullah Ridwan',
-      tugas: 'Mustahiq Kelas 10-A & Guru Fiqih',
-      telepon: '08123456789',
-      instansi: 'MADRASAH',
-      tahun_ajaran: '2025/2026 (Ganjil)',
-    },
-    {
-      id: '2',
-      nip: '199009182019031005',
-      nama: 'Ustadz Ahmad Al-Farisi',
-      tugas: 'Pengajar Nahwu Alfiyyah',
-      telepon: '08198765432',
-      instansi: 'MADRASAH',
-      tahun_ajaran: '2025/2026 (Ganjil)',
-    },
-    {
-      id: '3',
-      nip: '199208152018022003',
-      nama: 'Ustadzah Fatimah, S.Pd',
-      tugas: 'Guru MI Formal & Wali Kelas 4-A',
-      telepon: '08571234567',
-      instansi: 'MI',
-      tahun_ajaran: '2025/2026 (Ganjil)',
-    },
+    { id: '1', nip: '198504122015031002', nama: 'Dr. KH. Abdullah Ridwan', tugas: 'Mustahiq Kelas 10-A & Guru Fiqih', telepon: '08123456789', instansi: 'MADRASAH', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF' },
+    { id: '2', nip: '199009182019031005', nama: 'Ustadz Ahmad Al-Farisi', tugas: 'Pengajar Nahwu Alfiyyah', telepon: '08198765432', instansi: 'MADRASAH', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF' },
+    { id: '3', nip: '199208152018022003', nama: 'Ustadzah Fatimah, S.Pd', tugas: 'Guru MI Formal & Wali Kelas 4-A', telepon: '08571234567', instansi: 'MI', tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF' },
   ];
 
   private suratList: SuratRecord[] = [
-    {
-      id: '1',
-      nomor: 'SURAT-001/DARSA/VIII/2026',
-      jenis: 'IZIN PULANG',
-      perihal: 'Pengajuan Izin Pulang Santri: Ahmad Fauzi (Pernikahan Saudara)',
-      pengirim: 'Bapak Hendra (Wali Santri)',
-      penerima: 'Sekretariat Utama Pondok',
-      tanggal: '3 Agt 2026',
-      status: 'DISETUJUI',
-      instansi: 'PONDOK',
-      tahun_ajaran: '2025/2026 (Ganjil)',
-    },
+    { id: '1', nomor: 'SURAT-001/DARSA/VIII/2026', jenis: 'IZIN PULANG', perihal: 'Pengajuan Izin Pulang Santri: Ahmad Fauzi (Pernikahan Saudara)', pengirim: 'Bapak Hendra (Wali Santri)', penerima: 'Sekretariat Utama Pondok', tanggal: '3 Agt 2026', status: 'DISETUJUI', instansi: 'PONDOK', tahun_ajaran: '2025/2026 (Ganjil)' },
   ];
 
   private transaksiList: TransaksiRecord[] = [];
@@ -272,42 +323,96 @@ class SimulationDatabaseStore {
   private setoranList: SetoranRecord[] = [];
 
   private pengumumanList: PengumumanRecord[] = [
-    {
-      id: '1',
-      judul: 'Jadwal Libur Akhir Semester Diniyah & Pondok',
-      isi: 'Pengumuman resmi libur akhir semester ganjil santri pesantren dan madrasah diniyah Lirboyo Kediri.',
-      target: 'SEMUA',
-      instansi: 'SEMUA',
-      tanggal: '1 Agt 2026',
-      penulis: 'Sekretariat Utama',
-      penting: true,
-    },
-    {
-      id: '2',
-      judul: 'Pelaksanaan Ujian Syafahi (Lisan) Kitab Kuning',
-      isi: 'Ujian syafahi hafalan Fathul Qarib dan Imrithy akan dilaksanakan serentak mulai Senin pekan depan.',
-      target: 'WALI_SANTRI',
-      instansi: 'MADRASAH',
-      tanggal: '28 Jul 2026',
-      penulis: 'Sekretariat Diniyah',
-      penting: false,
-    },
+    { id: '1', judul: 'Jadwal Libur Akhir Semester Diniyah & Pondok', isi: 'Pengumuman resmi libur akhir semester ganjil santri pesantren dan madrasah diniyah Lirboyo Kediri.', target: 'SEMUA', instansi: 'SEMUA', tanggal: '1 Agt 2026', penulis: 'Sekretariat Utama', penting: true },
   ];
 
-  // 1. Santri Queries & Mutations (BAB I & BAB VII: Single Source of Truth + Unit Placement Reference)
+  private asramaList: KamarAsramaRecord[] = [
+    { id: '1', gedung: 'Gedung A (Al-Farabi)', nomorKamar: 'A-101', kapasitas: 8, terisi: 8, waliKamar: 'Ustadz Ahmad Fauzan', status: 'PENUH' },
+    { id: '2', gedung: 'Gedung A (Al-Farabi)', nomorKamar: 'A-102', kapasitas: 8, terisi: 6, waliKamar: 'Ustadz Ahmad Fauzan', status: 'TERSEDIA' },
+  ];
+
+  private pengurusList: PengurusRecord[] = [
+    { id: '1', nik: '3571011205800001', nama: 'Ust. H. Abdul Hamid, M.Pd', jabatan: 'Ketua Umum Pengurus Pondok', unit: 'PONDOK', telepon: '081234567890', status: 'AKTIF' },
+    { id: '2', nik: '3571011809850002', nama: 'Ust. Moh. Kholil', jabatan: 'Kepala Sekretariat Diniyyah', unit: 'MADRASAH', telepon: '085712345678', status: 'AKTIF' },
+  ];
+
+  private alumniList: AlumniRecord[] = [
+    { id: '1', nisp: 'PNDK-2022001', nama: 'Ust. Moh. Hilmi Mubarak', tahunLulus: 2024, jenjangTerakhir: 'Aliyah Diniyah', statusAlumni: 'KHIDMAH', lokasiKhidmah: 'Pondok Cabang Kediri', telepon: '081233445566' },
+  ];
+
+  private pelanggaranList: PelanggaranRecord[] = [
+    { id: '1', tanggal: '4 Agt 2026', santriNama: 'Ahmad Fauzi', nisp: 'PNDK-0012345679', jenis: 'Terlambat Berjamaah Subuh', tingkat: 'RINGAN', tindakan: 'Tazir Membaca Al-Qur\'an 1 Juz', petugas: 'Keamanan Asrama' },
+  ];
+
+  private tahunAjaranList: TahunAjaranRecord[] = [
+    { id: '1', nama: '2025/2026', semester: 'Ganjil', status: 'AKTIF', tglMulai: '15 Jul 2025', tglSelesai: '20 Des 2025' },
+    { id: '2', nama: '2025/2026', semester: 'Genap', status: 'NON_AKTIF', tglMulai: '05 Jan 2026', tglSelesai: '20 Jun 2026' },
+  ];
+
+  private akunList: UserAccountRecord[] = [
+    { id: '1', nama: 'Sekretariat Utama Darsa', email: 'admin@darsa.id', role: 'SEKRETARIAT', instansi: 'PONDOK', status: 'AKTIF' },
+    { id: '2', nama: 'Dr. KH. Abdullah Ridwan', email: 'guru.madrasah@darsa.id', role: 'GURU_MADRASAH', instansi: 'MADRASAH', status: 'AKTIF' },
+  ];
+
+  private auditLogList: AuditLogRecord[] = [
+    { id: '1', waktu: '05 Agt 2026 17:05', user: 'admin@darsa.id', aktivitas: 'Registrasi Santri Baru: Muhammad Raihan', modul: 'SANTRI', ipAddress: '182.253.12.9' },
+  ];
+
+  private recycleBinList: RecycleBinRecord[] = [];
+
+  private konfigurasi: KonfigurasiRecord = {
+    namaPondok: "Ma'had Darussa'adah Lirboyo",
+    alamatPondok: "Jl. KH. Abdul Karim No. 12, Lirboyo, Kota Kediri",
+    radiusQr: 200,
+    notifWa: true,
+  };
+
+  // Helper Audit Logging
+  public logAudit(user: string, aktivitas: string, modul: string) {
+    const newRecord: AuditLogRecord = {
+      id: String(this.auditLogList.length + 1),
+      waktu: new Date().toLocaleString('id-ID'),
+      user: user || 'admin@darsa.id',
+      aktivitas,
+      modul,
+      ipAddress: '182.253.12.9',
+    };
+    this.auditLogList.unshift(newRecord);
+  }
+
+  pullSyncSantri(targetInstansi: 'MADRASAH' | 'MI', santriIds: string[], tahunAjaran: string): number {
+    let synced = 0;
+    for (const nisn of santriIds) {
+      const pondokSantri = this.santriList.find((s) => s.nisn === nisn && s.instansi === 'PONDOK');
+      if (pondokSantri) {
+        const alreadyExists = this.santriList.some((s) => s.nisn === nisn && s.instansi === targetInstansi);
+        if (!alreadyExists) {
+          this.santriList.push({
+            ...pondokSantri,
+            id: String(this.santriList.length + 1),
+            instansi: targetInstansi,
+            tahun_ajaran: tahunAjaran,
+          });
+          synced++;
+        }
+      }
+    }
+    this.logAudit('admin@darsa.id', `Pull-Sync Data Santri ke ${targetInstansi}: ${synced} santri`, 'PULL_SYNC');
+    return synced;
+  }
+
+  // 1. Santri Queries & Mutations
   getSantri(instansi?: string, tahunAjaran?: string): SantriRecord[] {
     const targetInst = instansi?.toUpperCase() || 'PONDOK';
 
     return this.santriList
       .filter((s) => {
         if (targetInst === 'PONDOK') return true;
-        // Referensi Penempatan Pendidikan per Unit (BAB VII)
         return this.penempatanList.some(
           (p) => p.santri_id === s.id && p.unit === targetInst && p.status === 'AKTIF'
         );
       })
       .map((s) => {
-        // Enriched with Dual-Enrollment Educational Placements (BAB VI)
         const santriPenempatan = this.penempatanList.filter((p) => p.santri_id === s.id);
         return {
           ...s,
@@ -333,6 +438,7 @@ class SimulationDatabaseStore {
       nisp: data.nisp || `PNDK-${data.nisn}`,
     };
     this.santriList.unshift(newRecord);
+    this.logAudit('admin@darsa.id', `Tambah Santri: ${newRecord.nama} (${newRecord.nisp})`, 'SANTRI');
     return newRecord;
   }
 
@@ -340,33 +446,26 @@ class SimulationDatabaseStore {
     const idx = this.santriList.findIndex((s) => s.id === id);
     if (idx === -1) return null;
     this.santriList[idx] = { ...this.santriList[idx], ...updates };
+    this.logAudit('admin@darsa.id', `Update Santri: ${this.santriList[idx].nama}`, 'SANTRI');
     return this.santriList[idx];
   }
 
   deleteSantri(id: string): boolean {
-    const initialLen = this.santriList.length;
-    this.santriList = this.santriList.filter((s) => s.id !== id);
-    return this.santriList.length < initialLen;
-  }
-
-  pullSyncSantri(targetInstansi: 'MADRASAH' | 'MI', santriIds: string[], tahunAjaran: string): number {
-    let synced = 0;
-    for (const nisn of santriIds) {
-      const pondokSantri = this.santriList.find((s) => s.nisn === nisn && s.instansi === 'PONDOK');
-      if (pondokSantri) {
-        const alreadyExists = this.santriList.some((s) => s.nisn === nisn && s.instansi === targetInstansi);
-        if (!alreadyExists) {
-          this.santriList.push({
-            ...pondokSantri,
-            id: String(this.santriList.length + 1),
-            instansi: targetInstansi,
-            tahun_ajaran: tahunAjaran,
-          });
-          synced++;
-        }
-      }
+    const target = this.santriList.find((s) => s.id === id);
+    if (target) {
+      this.recycleBinList.unshift({
+        id: Date.now().toString(),
+        waktuHapus: new Date().toLocaleString('id-ID'),
+        dihapusOleh: 'admin@darsa.id',
+        tipeData: 'Data Santri',
+        detail: `Santri: ${target.nama} (${target.nisp})`,
+        originalPayload: target,
+      });
+      this.santriList = this.santriList.filter((s) => s.id !== id);
+      this.logAudit('admin@darsa.id', `Soft Delete Santri: ${target.nama}`, 'SANTRI');
+      return true;
     }
-    return synced;
+    return false;
   }
 
   // 2. Guru Queries & Mutations
@@ -384,16 +483,29 @@ class SimulationDatabaseStore {
       id: String(this.guruList.length + 1),
     };
     this.guruList.unshift(newRecord);
+    this.logAudit('admin@darsa.id', `Tambah Pengajar: ${newRecord.nama}`, 'GURU');
     return newRecord;
   }
 
   deleteGuru(id: string): boolean {
-    const initialLen = this.guruList.length;
-    this.guruList = this.guruList.filter((g) => g.id !== id);
-    return this.guruList.length < initialLen;
+    const target = this.guruList.find((g) => g.id === id);
+    if (target) {
+      this.recycleBinList.unshift({
+        id: Date.now().toString(),
+        waktuHapus: new Date().toLocaleString('id-ID'),
+        dihapusOleh: 'admin@darsa.id',
+        tipeData: 'Data Guru',
+        detail: `Guru: ${target.nama}`,
+        originalPayload: target,
+      });
+      this.guruList = this.guruList.filter((g) => g.id !== id);
+      this.logAudit('admin@darsa.id', `Soft Delete Guru: ${target.nama}`, 'GURU');
+      return true;
+    }
+    return false;
   }
 
-  // 3. Surat Queries & Mutations
+  // 3. Surat / Perizinan Queries & Mutations
   getSurat(instansi?: string, tahunAjaran?: string): SuratRecord[] {
     return this.suratList.filter((s) => {
       const matchInstansi = !instansi || s.instansi === instansi.toUpperCase();
@@ -408,16 +520,129 @@ class SimulationDatabaseStore {
       id: String(this.suratList.length + 1),
     };
     this.suratList.unshift(newRecord);
+    this.logAudit('admin@darsa.id', `Penerbitan Surat: ${newRecord.nomor}`, 'KEAMANAN');
     return newRecord;
   }
 
   deleteSurat(id: string): boolean {
-    const initialLen = this.suratList.length;
-    this.suratList = this.suratList.filter((s) => s.id !== id);
-    return this.suratList.length < initialLen;
+    const target = this.suratList.find((s) => s.id === id);
+    if (target) {
+      this.recycleBinList.unshift({
+        id: Date.now().toString(),
+        waktuHapus: new Date().toLocaleString('id-ID'),
+        dihapusOleh: 'admin@darsa.id',
+        tipeData: 'Data Perizinan',
+        detail: `Surat: ${target.nomor}`,
+        originalPayload: target,
+      });
+      this.suratList = this.suratList.filter((s) => s.id !== id);
+      this.logAudit('admin@darsa.id', `Soft Delete Surat: ${target.nomor}`, 'KEAMANAN');
+      return true;
+    }
+    return false;
   }
 
-  // 4. Pengumuman Queries & Mutations
+  // 4. Asrama Queries & Mutations
+  getAsrama(): KamarAsramaRecord[] {
+    return this.asramaList;
+  }
+
+  addAsrama(data: Omit<KamarAsramaRecord, 'id'>): KamarAsramaRecord {
+    const record: KamarAsramaRecord = { ...data, id: String(this.asramaList.length + 1) };
+    this.asramaList.unshift(record);
+    this.logAudit('admin@darsa.id', `Tambah Kamar Asrama: ${record.nomorKamar}`, 'ASRAMA');
+    return record;
+  }
+
+  // 5. Pengurus Queries & Mutations
+  getPengurus(): PengurusRecord[] {
+    return this.pengurusList;
+  }
+
+  addPengurus(data: Omit<PengurusRecord, 'id'>): PengurusRecord {
+    const record: PengurusRecord = { ...data, id: String(this.pengurusList.length + 1) };
+    this.pengurusList.unshift(record);
+    this.logAudit('admin@darsa.id', `Tambah Pengurus: ${record.nama}`, 'PENGURUS');
+    return record;
+  }
+
+  // 6. Alumni Queries & Mutations
+  getAlumni(): AlumniRecord[] {
+    return this.alumniList;
+  }
+
+  addAlumni(data: Omit<AlumniRecord, 'id'>): AlumniRecord {
+    const record: AlumniRecord = { ...data, id: String(this.alumniList.length + 1) };
+    this.alumniList.unshift(record);
+    this.logAudit('admin@darsa.id', `Pendataan Alumni: ${record.nama}`, 'ALUMNI');
+    return record;
+  }
+
+  // 7. Pelanggaran Queries & Mutations
+  getPelanggaran(): PelanggaranRecord[] {
+    return this.pelanggaranList;
+  }
+
+  addPelanggaran(data: Omit<PelanggaranRecord, 'id'>): PelanggaranRecord {
+    const record: PelanggaranRecord = { ...data, id: String(this.pelanggaranList.length + 1) };
+    this.pelanggaranList.unshift(record);
+    this.logAudit('admin@darsa.id', `Catat Pelanggaran: ${record.santriNama}`, 'KEAMANAN');
+    return record;
+  }
+
+  // 8. Tahun Ajaran Queries & Mutations
+  getTahunAjaran(): TahunAjaranRecord[] {
+    return this.tahunAjaranList;
+  }
+
+  // 9. Audit Log & Recycle Bin
+  getAuditLog(): AuditLogRecord[] {
+    return this.auditLogList;
+  }
+
+  getRecycleBin(): RecycleBinRecord[] {
+    return this.recycleBinList;
+  }
+
+  restoreRecycleBin(id: string): boolean {
+    const target = this.recycleBinList.find((r) => r.id === id);
+    if (target) {
+      if (target.tipeData === 'Data Santri') {
+        this.santriList.unshift(target.originalPayload);
+      } else if (target.tipeData === 'Data Guru') {
+        this.guruList.unshift(target.originalPayload);
+      } else if (target.tipeData === 'Data Perizinan') {
+        this.suratList.unshift(target.originalPayload);
+      }
+      this.recycleBinList = this.recycleBinList.filter((r) => r.id !== id);
+      this.logAudit('admin@darsa.id', `Restore Data: ${target.detail}`, 'RECYCLE_BIN');
+      return true;
+    }
+    return false;
+  }
+
+  permanentDeleteRecycleBin(id: string): boolean {
+    const target = this.recycleBinList.find((r) => r.id === id);
+    if (target) {
+      this.recycleBinList = this.recycleBinList.filter((r) => r.id !== id);
+      this.logAudit('admin@darsa.id', `Hapus Permanen: ${target.detail}`, 'RECYCLE_BIN');
+      return true;
+    }
+    return false;
+  }
+
+  // 10. Konfigurasi Sistem
+  getKonfigurasi(): KonfigurasiRecord {
+    return this.konfigurasi;
+  }
+
+  updateKonfigurasi(updates: Partial<KonfigurasiRecord>): KonfigurasiRecord {
+    this.konfigurasi = { ...this.konfigurasi, ...updates };
+    this.logAudit('admin@darsa.id', 'Perubahan Konfigurasi Sistem', 'CONFIG');
+    return this.konfigurasi;
+  }
+
+  // 11. Broadcast Pengumuman, Transaksi, Jadwal, & Setoran
   getPengumuman(instansi?: string, target?: string): PengumumanRecord[] {
     return this.pengumumanList.filter((p) => {
       const matchInstansi = !instansi || p.instansi === 'SEMUA' || p.instansi === instansi.toUpperCase();
@@ -432,10 +657,10 @@ class SimulationDatabaseStore {
       id: String(this.pengumumanList.length + 1),
     };
     this.pengumumanList.unshift(newRecord);
+    this.logAudit('admin@darsa.id', `Broadcast Pengumuman: ${newRecord.judul}`, 'PENGUMUMAN');
     return newRecord;
   }
 
-  // 5. Transaksi Queries & Mutations
   getTransaksi(instansi?: string, tahunAjaran?: string): TransaksiRecord[] {
     return this.transaksiList.filter((t) => {
       const matchInstansi = !instansi || t.instansi === instansi.toUpperCase();
@@ -445,28 +670,21 @@ class SimulationDatabaseStore {
   }
 
   addTransaksi(data: Omit<TransaksiRecord, 'id'>): TransaksiRecord {
-    const newRecord: TransaksiRecord = {
-      ...data,
-      id: `TRX-${String(this.transaksiList.length + 1).padStart(3, '0')}`,
-    };
-    this.transaksiList.push(newRecord);
-    return newRecord;
+    const record: TransaksiRecord = { ...data, id: String(this.transaksiList.length + 1) };
+    this.transaksiList.unshift(record);
+    this.logAudit('admin@darsa.id', `Transaksi SPP: ${record.santri_nama}`, 'TRANSAKSI');
+    return record;
   }
 
-  // 7. Jadwal Queries & Mutations
   getJadwal(instansi?: string): JadwalRecord[] {
-    return this.jadwalList.filter((j) => {
-      return !instansi || j.instansi === instansi.toUpperCase();
-    });
+    return this.jadwalList.filter((j) => !instansi || j.instansi === instansi.toUpperCase());
   }
 
   addJadwal(data: Omit<JadwalRecord, 'id'>): JadwalRecord {
-    const newRecord: JadwalRecord = {
-      ...data,
-      id: String(this.jadwalList.length + 1),
-    };
-    this.jadwalList.push(newRecord);
-    return newRecord;
+    const record: JadwalRecord = { ...data, id: String(this.jadwalList.length + 1) };
+    this.jadwalList.unshift(record);
+    this.logAudit('admin@darsa.id', `Tambah Slot Jadwal: ${record.mapel} (${record.kelas})`, 'JADWAL');
+    return record;
   }
 
   deleteJadwal(id: string): boolean {
@@ -475,20 +693,15 @@ class SimulationDatabaseStore {
     return this.jadwalList.length < initialLen;
   }
 
-  // 8. Setoran Tahfidz Queries & Mutations
   getSetoran(instansi?: string): SetoranRecord[] {
-    return this.setoranList.filter((s) => {
-      return !instansi || s.instansi === instansi.toUpperCase();
-    });
+    return this.setoranList.filter((s) => !instansi || s.instansi === instansi.toUpperCase());
   }
 
   addSetoran(data: Omit<SetoranRecord, 'id'>): SetoranRecord {
-    const newRecord: SetoranRecord = {
-      ...data,
-      id: String(this.setoranList.length + 1),
-    };
-    this.setoranList.unshift(newRecord);
-    return newRecord;
+    const record: SetoranRecord = { ...data, id: String(this.setoranList.length + 1) };
+    this.setoranList.unshift(record);
+    this.logAudit('admin@darsa.id', `Setoran Tahfidz: ${record.santri_nama} - Juz ${record.juz}`, 'SETORAN');
+    return record;
   }
 }
 
