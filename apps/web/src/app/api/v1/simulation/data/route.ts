@@ -40,11 +40,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, data });
   }
 
-  if (type === 'inventaris') {
-    const data = simulationDb.getInventaris(instansi);
-    return NextResponse.json({ success: true, data });
-  }
-
   if (type === 'jadwal') {
     const data = simulationDb.getJadwal(instansi);
     return NextResponse.json({ success: true, data });
@@ -101,16 +96,6 @@ export async function POST(request: Request) {
     if (action === 'add_transaksi') {
       const record = simulationDb.addTransaksi(payload);
       return NextResponse.json({ success: true, message: 'Transaksi SPP Berhasil Disimpan', data: record });
-    }
-
-    if (action === 'add_inventaris') {
-      const record = simulationDb.addInventaris(payload);
-      return NextResponse.json({ success: true, message: 'Data Inventaris Berhasil Disimpan', data: record });
-    }
-
-    if (action === 'delete_inventaris') {
-      simulationDb.deleteInventaris(id);
-      return NextResponse.json({ success: true, message: 'Data Inventaris Berhasil Dihapus' });
     }
 
     if (action === 'add_jadwal') {

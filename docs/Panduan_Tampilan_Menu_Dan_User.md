@@ -50,4 +50,3 @@ $$\text{Tahun Ajaran} \longrightarrow \text{Instansi} \longrightarrow \text{Role
 - 📥 **Santri MI (Penarikan Data):** Data Santri MI hasil sinkronisasi dari Pondok.
 - 👨‍🏫 **Guru & Pegawai MI:** Tenaga Pendidik & Kependidikan MI.
 - 📅 **Jadwal & Rapor Kurikulum MI:** Penjadwalan & Rapor Formal MI.
-- 📦 **Inventaris Aset MI:** Pengelolaan Barang & Aset Sekolah MI.

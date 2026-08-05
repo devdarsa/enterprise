@@ -54,19 +54,6 @@ export interface TransaksiRecord {
   tahun_ajaran: string;
 }
 
-export interface InventarisRecord {
-  id: string;
-  kode: string;
-  nama: string;
-  kategori: string;
-  jumlah: number;
-  kondisi: 'BAIK' | 'PERBAIKAN' | 'RUSAK';
-  lokasi: string;
-  tahun_pengadaan: string;
-  nilai_satuan: number;
-  instansi: 'PONDOK' | 'MADRASAH' | 'MI';
-}
-
 export interface JadwalRecord {
   id: string;
   hari: string;
@@ -195,7 +182,6 @@ class SimulationDatabaseStore {
   ];
 
   private transaksiList: TransaksiRecord[] = [];
-  private inventarisList: InventarisRecord[] = [];
   private jadwalList: JadwalRecord[] = [];
   private setoranList: SetoranRecord[] = [];
 
@@ -355,28 +341,6 @@ class SimulationDatabaseStore {
     };
     this.transaksiList.push(newRecord);
     return newRecord;
-  }
-
-  // 6. Inventaris Queries & Mutations
-  getInventaris(instansi?: string): InventarisRecord[] {
-    return this.inventarisList.filter((i) => {
-      return !instansi || i.instansi === instansi.toUpperCase();
-    });
-  }
-
-  addInventaris(data: Omit<InventarisRecord, 'id'>): InventarisRecord {
-    const newRecord: InventarisRecord = {
-      ...data,
-      id: String(this.inventarisList.length + 1),
-    };
-    this.inventarisList.unshift(newRecord);
-    return newRecord;
-  }
-
-  deleteInventaris(id: string): boolean {
-    const initialLen = this.inventarisList.length;
-    this.inventarisList = this.inventarisList.filter((i) => i.id !== id);
-    return this.inventarisList.length < initialLen;
   }
 
   // 7. Jadwal Queries & Mutations
