@@ -25,7 +25,7 @@ const DEFAULT_ACCOUNTS = [
     email: 'keamanan@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Tim Keamanan & Perizinan',
-    role: 'PEGAWAI' as RoleType,
+    role: 'KEAMANAN' as RoleType,
   },
   {
     email: 'guru.mi@darsa.my.id',
@@ -37,13 +37,13 @@ const DEFAULT_ACCOUNTS = [
     email: 'mustahiq@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Ustadz Mustahiq Diniyah',
-    role: 'GURU_MADRASAH' as RoleType,
+    role: 'MUSTAHIQ' as RoleType,
   },
   {
     email: 'munawwib@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Ustadz Munawwib Diniyah',
-    role: 'GURU_MADRASAH' as RoleType,
+    role: 'MUNAWWIB' as RoleType,
   },
   {
     email: 'wali@darsa.my.id',
@@ -77,7 +77,7 @@ async function seedAuthAccounts() {
       } else {
         // Check if Account record with credential exists
         const existingAccount = await prisma.account.findFirst({
-          where: { userId: existingUser.id, providerId: 'credential' },
+          where: { user_id: existingUser.id, provider: 'credential' },
         });
 
         if (!existingAccount) {
