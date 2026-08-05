@@ -74,12 +74,19 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
   const [postcode, setPostcode] = useState('');
   const [detailStreet, setDetailStreet] = useState('');
 
-  // 1. Fetch Provinces on mount (API Cahyadsn / Emsifa)
+  // 1. Fetch Provinces on mount (Primary Cahyadsn API)
   useEffect(() => {
     async function fetchProvinces() {
       setLoading(true);
       try {
-        const res = await fetch('https://emsifa.github.io/api-wilayah-indonesia/api/provinces.json');
+        let res = await fetch('/wilayah/provinces.json');
+        if (!res.ok) {
+          res = await fetch('https://cahyadsn.github.io/api-wilayah-indonesia/api/provinces.json');
+        }
+        if (!res.ok) {
+          res = await fetch('https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/provinces.json');
+        }
+
         if (res.ok) {
           const data = await res.json();
           setProvinces(data || []);
@@ -95,14 +102,21 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     fetchProvinces();
   }, []);
 
-  // 2. Fetch Regencies
+  // 2. Fetch Regencies (Cahyadsn API)
   useEffect(() => {
     if (!selectedProvince) return;
     async function fetchRegencies() {
       setLoading(true);
       try {
         const cleanProv = selectedProvince.replace(/\./g, '');
-        const res = await fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/regencies/${cleanProv}.json`);
+        let res = await fetch(`/wilayah/regencies/${cleanProv}.json`);
+        if (!res.ok) {
+          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/regencies/${cleanProv}.json`);
+        }
+        if (!res.ok) {
+          res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/regencies/${cleanProv}.json`);
+        }
+
         if (res.ok) {
           const data = await res.json();
           setRegencies(data || []);
@@ -118,14 +132,21 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     fetchRegencies();
   }, [selectedProvince]);
 
-  // 3. Fetch Districts
+  // 3. Fetch Districts (Cahyadsn API)
   useEffect(() => {
     if (!selectedRegency) return;
     async function fetchDistricts() {
       setLoading(true);
       try {
         const cleanReg = selectedRegency.replace(/\./g, '');
-        const res = await fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/districts/${cleanReg}.json`);
+        let res = await fetch(`/wilayah/districts/${cleanReg}.json`);
+        if (!res.ok) {
+          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/districts/${cleanReg}.json`);
+        }
+        if (!res.ok) {
+          res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/districts/${cleanReg}.json`);
+        }
+
         if (res.ok) {
           const data = await res.json();
           setDistricts(data || []);
@@ -141,14 +162,21 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     fetchDistricts();
   }, [selectedRegency]);
 
-  // 4. Fetch Villages
+  // 4. Fetch Villages (Cahyadsn API)
   useEffect(() => {
     if (!selectedDistrict) return;
     async function fetchVillages() {
       setLoading(true);
       try {
         const cleanDist = selectedDistrict.replace(/\./g, '');
-        const res = await fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/villages/${cleanDist}.json`);
+        let res = await fetch(`/wilayah/villages/${cleanDist}.json`);
+        if (!res.ok) {
+          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/villages/${cleanDist}.json`);
+        }
+        if (!res.ok) {
+          res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/villages/${cleanDist}.json`);
+        }
+
         if (res.ok) {
           const data = await res.json();
           setVillages(data || []);
@@ -188,9 +216,9 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
       <div className="flex justify-between items-center">
         <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-          📍 Alamat Kependudukan (API Wilayah Indonesia Cahyadsn/Emsifa)
+          📍 Alamat Kependudukan (Cahyadsn API Wilayah Indonesia)
         </label>
-        {loading && <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Data Wilayah...</span>}
+        {loading && <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Data Cahyadsn API...</span>}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
