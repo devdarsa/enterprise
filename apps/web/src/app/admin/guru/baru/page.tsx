@@ -14,39 +14,61 @@ export default function TambahGuruPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nama.trim()) {
+      setMessage('Nama Guru wajib diisi.');
+      return;
+    }
     setLoading(true);
     setMessage(null);
 
     try {
-      const res = await fetch('/api/v1/simulation/data', {
+      // Pertama, buat user baru terlebih dahulu
+      const userRes = await fetch('/api/v1/akun', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_guru',
-          payload: {
-            nip,
-            nama,
-            tugas,
-            telepon,
-            instansi,
-            tahun_ajaran: '2025/2026 (Ganjil)',
-          },
+          email: `${(nip || nama).toLowerCase().replace(/\s+/g, '.')}@darsa.guru.id`,
+          nama_lengkap: nama.trim(),
+          role: instansi === 'MI' ? 'GURU_MI' : 'GURU_MADRASAH',
+          password: 'DarsaGuru2026!',
+        }),
+      });
+      const userJson = await userRes.json();
+
+      if (!userJson.success) {
+        setMessage(userJson.error || 'Gagal membuat akun user untuk guru.');
+        setLoading(false);
+        return;
+      }
+
+      // Kemudian buat profil guru
+      const guruRes = await fetch('/api/v1/guru', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userJson.data.id,
+          nama_lengkap: nama.trim(),
+          nip: nip.trim() || undefined,
+          telepon: telepon.trim() || undefined,
         }),
       });
 
-      const json = await res.json();
+      const guruJson = await guruRes.json();
       setLoading(false);
-      if (json.success) {
-        setMessage(json.message);
+      if (guruJson.success) {
+        setMessage(`✅ Guru ${nama} berhasil didaftarkan. Akun: ${userJson.data.email} | Password: DarsaGuru2026!`);
         setTimeout(() => {
           window.location.href = '/admin/guru';
-        }, 1500);
+        }, 2000);
+      } else {
+        setMessage(guruJson.error || 'Gagal menyimpan data guru.');
       }
     } catch (err) {
       setLoading(false);
-      setMessage('Gagal menyimpan guru ke database lokal.');
+      setMessage('Gagal terhubung ke database.');
     }
   };
+
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

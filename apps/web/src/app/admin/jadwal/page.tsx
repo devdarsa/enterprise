@@ -75,9 +75,24 @@ export default function JadwalKBMPage() {
   const fetchJadwal = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/simulation/data?type=jadwal&instansi=${instansiFilter.toUpperCase()}`);
+      const res = await fetch(`/api/v1/jadwal?limit=100`);
       const json = await res.json();
-      if (json.success) setJadwalList(json.data);
+      if (json.success) {
+        setJadwalList(
+          json.data.map((j: any) => ({
+            id: j.id,
+            hari: j.hari,
+            jam: j.jam_mulai ? `${j.jam_mulai} - ${j.jam_selesai}` : '-',
+            mapel: j.mata_pelajaran?.nama_mapel || '-',
+            guru: j.guru?.nama_lengkap || '-',
+            ruang: j.ruang || '-',
+            kelas: j.kelas?.nama_kelas || '-',
+            jenis: j.jenis || 'WAJIB',
+          }))
+        );
+      } else {
+        showToast('error', 'Gagal Memuat', json.error || 'Tidak dapat mengambil data jadwal.');
+      }
     } catch {
       showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
     } finally {
@@ -94,21 +109,19 @@ export default function JadwalKBMPage() {
 
     setSubmitting(true);
     try {
-      const payload = {
-        hari: form.hari,
-        jam: form.jam,
-        mapel: form.mapel.trim(),
-        guru: form.guru.trim(),
-        ruang: form.ruang.trim(),
-        kelas: form.kelas,
-        jenis: form.jenis,
-        instansi: instansiFilter.toUpperCase(),
-      };
-
-      const res = await fetch('/api/v1/simulation/data', {
+      const res = await fetch('/api/v1/jadwal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add_jadwal', payload }),
+        body: JSON.stringify({
+          hari: form.hari,
+          jam_mulai: form.jam.split(' - ')[0] || form.jam,
+          jam_selesai: form.jam.split(' - ')[1] || form.jam,
+          nama_mapel: form.mapel.trim(),
+          nama_guru: form.guru.trim(),
+          ruang: form.ruang.trim(),
+          nama_kelas: form.kelas,
+          jenis: form.jenis,
+        }),
       });
       const json = await res.json();
       if (json.success) {
@@ -117,7 +130,7 @@ export default function JadwalKBMPage() {
         setIsModalOpen(false);
         setForm({ hari: 'Senin', jam: '07:30 - 09:00', mapel: '', guru: '', ruang: '', kelas: KELAS_LIST[0], jenis: 'WAJIB' });
       } else {
-        showToast('error', 'Gagal Simpan', json.message || 'Coba lagi.');
+        showToast('error', 'Gagal Simpan', json.error || 'Coba lagi.');
       }
     } catch {
       showToast('error', 'Kesalahan Sistem', 'Tidak dapat terhubung ke database.');
@@ -130,15 +143,13 @@ export default function JadwalKBMPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await fetch('/api/v1/simulation/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_jadwal', id: deleteTarget.id }),
-      });
+      const res = await fetch(`/api/v1/jadwal/${deleteTarget.id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         setJadwalList(prev => prev.filter(j => j.id !== deleteTarget.id));
         showToast('info', 'Jadwal Dihapus', `Slot jadwal ${deleteTarget.mapel} telah dihapus dari Database.`);
+      } else {
+        showToast('error', 'Gagal Hapus', json.error);
       }
     } catch {
       showToast('error', 'Gagal Hapus', 'Tidak dapat terhubung ke database.');

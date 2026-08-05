@@ -65,15 +65,17 @@ export default function PersuratanDigitalPage() {
   const fetchSurat = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/simulation/data?type=surat&instansi=${instansiFilter.toUpperCase()}`);
+      const res = await fetch(`/api/v1/surat?limit=50`);
       const json = await res.json();
       setLoading(false);
       if (json.success) {
         setSuratList(json.data);
+      } else {
+        showToast('error', 'Gagal Memuat Surat', json.error || 'Terjadi kesalahan database.');
       }
     } catch {
       setLoading(false);
-      showToast('error', 'Gagal Memuat Surat', 'Terjadi kesalahan koneksi database lokal.');
+      showToast('error', 'Gagal Memuat Surat', 'Terjadi kesalahan koneksi database.');
     }
   };
 
@@ -82,22 +84,15 @@ export default function PersuratanDigitalPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/v1/simulation/data', {
+      const res = await fetch('/api/v1/surat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_surat',
-          payload: {
-            nomor,
-            jenis: 'SURAT_IZIN_SANTRI',
-            perihal: keperluan,
-            pengirim: `Wali Santri ${santri}`,
-            penerima: 'Pengasuh Pondok',
-            tanggal: '03 Ags 2026',
-            status: 'DISETUJUI',
-            instansi: instansiFilter.toUpperCase(),
-            tahun_ajaran: '2025/2026 (Ganjil)',
-          },
+          nomor_surat: nomor || `SRT-${Date.now()}`,
+          jenis_surat: 'SURAT_IZIN_SANTRI',
+          perihal: keperluan,
+          pengirim: santri ? `Wali Santri ${santri}` : 'Wali Santri',
+          penerima: 'Pengasuh Pondok',
         }),
       });
 
@@ -109,7 +104,7 @@ export default function PersuratanDigitalPage() {
         fetchSurat();
         showToast('success', 'Surat Izin Berhasil Dibuat', `Nomor ${nomor} berhasil diterbitkan di database.`);
       } else {
-        showToast('error', 'Gagal Membuat Surat', 'Respons API gagal.');
+        showToast('error', 'Gagal Membuat Surat', json.error || 'Respons API gagal.');
       }
     } catch {
       setSubmitting(false);

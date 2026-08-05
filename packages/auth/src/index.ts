@@ -24,4 +24,5 @@ export const auth = betterAuth({
 export const authHandlers = toNextJsHandler(auth);
 
 export type Session = typeof auth.$Infer.Session;
-export * from './client';
+// NOTE: Do NOT re-export client here — client uses React hooks and breaks middleware/server bundles.
+// Import client functions directly from '@darsa/auth/client'

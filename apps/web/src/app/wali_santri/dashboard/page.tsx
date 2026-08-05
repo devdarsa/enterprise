@@ -18,6 +18,8 @@ interface ConnectedSantri {
   hafalan_juz: number;
   nik_wali?: string;
   nama_wali?: string;
+  perizinan?: Array<{ status: string; jenis: string; alasan: string; tanggal_mulai: string }>;
+  nilai?: Array<{ mapel: string; nilai: number; predikat: string; ustadz?: string }>;
 }
 
 interface Pengumuman {
@@ -74,15 +76,28 @@ export default function WaliSantriDashboardPage() {
 
   const fetchData = async () => {
     try {
-      // 1. Fetch connected children via NIK Wali
-      const resWali = await fetch(`/api/v1/simulation/data?type=wali_santri&nik=3571012304850001`);
+      // 1. Fetch anak-anak yang terhubung dengan wali yang login
+      const resWali = await fetch('/api/v1/wali/anak');
       const jsonWali = await resWali.json();
-      if (jsonWali.success && jsonWali.data.length > 0) {
-        setConnectedChildren(jsonWali.data);
+      if (jsonWali.success && jsonWali.data?.length > 0) {
+        const mapped = jsonWali.data.map((item: any) => ({
+          id: item.santri.id,
+          nisp: item.santri.nisp,
+          nisn: item.santri.nisn,
+          nama: item.santri.nama_lengkap,
+          kelas: item.santri.kelas?.nama_kelas || '-',
+          instansi: 'PONDOK',
+          status: item.santri.status || 'AKTIF',
+          hafalan_juz: item.santri.hafalan_juz || 0,
+          nilai: item.santri.nilai || [],
+          pelanggaran: item.santri.pelanggaran || [],
+          perizinan: item.santri.perizinan || [],
+        }));
+        setConnectedChildren(mapped);
       }
 
-      // 2. Fetch live broadcast pengumuman
-      const resP = await fetch(`/api/v1/simulation/data?type=pengumuman&target=WALI_SANTRI`);
+      // 2. Fetch pengumuman untuk wali santri
+      const resP = await fetch('/api/v1/pengumuman?target=WALI_SANTRI&limit=5');
       const jsonP = await resP.json();
       if (jsonP.success) {
         setPengumumanList(jsonP.data);
@@ -92,27 +107,24 @@ export default function WaliSantriDashboardPage() {
     }
   };
 
-  const activeSantri = connectedChildren[activeChildIndex] || {
-    id: '1',
-    nisp: 'PNDK-0012345678',
-    nisn: '0012345678',
-    nama: 'Muhammad Raihan',
-    kelas: '10-A (Tahfidz & Diniyah)',
-    instansi: 'PONDOK',
-    status: 'AKTIF',
-    hafalan_juz: 15,
-  };
+  const activeSantri = connectedChildren[activeChildIndex];
 
-  const rekapAbsensi = [
-    { bulan: 'Agustus 2026', hadir: 22, izin: 1, sakit: 0, alpha: 0, persentase: '95.6%' },
-    { bulan: 'Juli 2026', hadir: 24, izin: 0, sakit: 1, alpha: 0, persentase: '96.0%' },
-  ];
+  // Rekapitulasi absensi: dari data perizinan santri yang aktif
+  const rekapAbsensi = activeSantri?.perizinan
+    ? [
+        {
+          bulan: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+          hadir: '-',
+          izin: activeSantri.perizinan.filter((p: any) => p.status === 'DISETUJUI').length,
+          sakit: 0,
+          alpha: 0,
+          persentase: '-',
+        },
+      ]
+    : [];
 
-  const nilaiTerakhir = [
-    { mapel: 'Fiqih Fathul Qarib', nilai: 88, predikat: 'A', ustadz: 'Dr. KH. Abdullah Ridwan' },
-    { mapel: 'Nahwu Alfiyyah', nilai: 85, predikat: 'A', ustadz: 'Ustadz Ahmad Al-Farisi' },
-    { mapel: 'Tahfidz', nilai: 92, predikat: 'Mumtaz', ustadz: 'Dr. KH. Abdullah Ridwan' },
-  ];
+  // Nilai terakhir dari API santri
+  const nilaiTerakhir = activeSantri?.nilai?.slice(0, 5) || [];
 
   const handleKirimIzin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,22 +135,20 @@ export default function WaliSantriDashboardPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/v1/simulation/data', {
+      if (!activeSantri?.id) {
+        showToast('error', 'Data Santri Kosong', 'Tidak ada data anak yang terhubung.');
+        setSubmitting(false);
+        return;
+      }
+      const res = await fetch('/api/v1/perizinan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_surat',
-          payload: {
-            nomor: `SURAT-${Date.now().toString().slice(-4)}`,
-            jenis: `IZIN ${formIzin.jenis}`,
-            perihal: `Pengajuan Izin Santri: ${activeSantri.nama} (${formIzin.alasan.trim()})`,
-            pengirim: `${user.nama} (Wali of ${activeSantri.nama})`,
-            penerima: 'Sekretariat Utama',
-            tanggal: 'Hari Ini (5 Agt 2026)',
-            status: 'PENDING',
-            instansi: 'PONDOK',
-            tahun_ajaran: '2025/2026 (Ganjil)',
-          },
+          santri_id: activeSantri.id,
+          jenis: formIzin.jenis,
+          alasan: formIzin.alasan.trim(),
+          tanggal_mulai: formIzin.tanggalMulai,
+          tanggal_kembali: formIzin.tanggalSelesai || formIzin.tanggalMulai,
         }),
       });
 
@@ -292,7 +302,7 @@ export default function WaliSantriDashboardPage() {
           <span>📜</span> Nilai Akademik & Progres Hafalan
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {nilaiTerakhir.map((n, idx) => (
+          {(nilaiTerakhir as Array<{ mapel: string; nilai: number; predikat: string; ustadz?: string }>).map((n, idx: number) => (
             <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
               <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">{n.mapel}</span>
               <div className="flex justify-between items-baseline mt-2">

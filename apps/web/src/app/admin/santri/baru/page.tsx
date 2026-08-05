@@ -88,14 +88,30 @@ export default function RegistrasiSantriBaruPage() {
     if (!pondokSearchQuery.trim()) return;
     setIsSearchingPondok(true);
     try {
-      const res = await fetch(`/api/v1/simulation/data?type=santri&instansi=PONDOK`);
+      const params = new URLSearchParams({ search: pondokSearchQuery, limit: '20' });
+      const res = await fetch(`/api/v1/santri?${params}`);
       const json = await res.json();
       if (json.success) {
-        const query = pondokSearchQuery.toLowerCase();
-        const filtered = (json.data as SantriPondokCandidate[]).filter(
-          (s) => s.nama.toLowerCase().includes(query) || s.nisn.includes(query) || s.nisp.includes(query)
-        );
-        setPondokCandidates(filtered);
+        const candidates = json.data.map((s: any) => ({
+          id: s.id,
+          nisp: s.nisp,
+          nisn: s.nisn,
+          nama: s.nama_lengkap,
+          nik: s.nik,
+          jenis_kelamin: s.jenis_kelamin,
+          tempat_lahir: s.tempat_lahir,
+          tanggal_lahir: s.tanggal_lahir,
+          telepon: s.telepon,
+          alamat: s.alamat,
+          nama_wali: s.nama_wali,
+          nik_wali: s.nik_wali,
+          telepon_wali: s.telepon_wali,
+          hubungan_wali: s.hubungan_wali,
+          no_kk: s.no_kk,
+        }));
+        setPondokCandidates(candidates);
+      } else {
+        showToast('error', 'Gagal Cari', json.error || 'Tidak dapat mengambil data santri.');
       }
     } catch {
       showToast('error', 'Gagal Cari', 'Tidak dapat mengambil data santri pondok.');
@@ -126,46 +142,40 @@ export default function RegistrasiSantriBaruPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nama.trim() || !nisn.trim() || !nikWali.trim()) {
-      showToast('warning', 'Form Belum Lengkap', 'Nama Santri, NISN, dan NIK Wali wajib diisi.');
+    if (!nama.trim() || !nisn.trim()) {
+      showToast('warning', 'Form Belum Lengkap', 'Nama Santri dan NISN wajib diisi.');
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
-        nisp: nisp.trim() || `PNDK-${nisn.trim()}`,
-        nisn: nisn.trim(),
-        nis: nis.trim() || undefined,
-        nik: nik.trim() || undefined,
-        nama: nama.trim(),
-        jenis_kelamin: jenisKelamin,
-        tempat_lahir: tempatLahir.trim(),
-        tanggal_lahir: tanggalLahir,
-        alamat: alamatLengkap.trim(),
-        telepon: telepon.trim(),
-        avatar_url: avatarUrl.trim() || undefined,
-        jenjang,
-        kelas,
-        kamar,
-        status_tempat_tinggal: statusTempatTinggal,
-        instansi,
-        tahun_ajaran: '2025/2026 (Ganjil)',
-        status: 'AKTIF',
-        hafalan_juz: hafalanJuz,
-        nik_wali: nikWali.trim(),
-        nama_wali: namaWali.trim(),
-        telepon_wali: teleponWali.trim(),
-        hubungan_wali: hubunganWali,
-        no_kk: noKk.trim(),
-      };
-
-      const res = await fetch('/api/v1/simulation/data', {
+      const res = await fetch('/api/v1/santri', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_santri',
-          payload,
+          nisp: nisp.trim() || `PNDK-${Date.now()}`,
+          nisn: nisn.trim(),
+          nis: nis.trim() || undefined,
+          nik: nik.trim() || undefined,
+          nama_lengkap: nama.trim(),
+          jenis_kelamin: jenisKelamin,
+          tempat_lahir: tempatLahir.trim() || undefined,
+          tanggal_lahir: tanggalLahir || undefined,
+          alamat: alamatLengkap.trim() || undefined,
+          telepon: telepon.trim() || undefined,
+          avatar_url: avatarUrl.trim() || undefined,
+          jenjang,
+          kamar,
+          status_tempat_tinggal: statusTempatTinggal,
+          status: 'AKTIF',
+          hafalan_juz: hafalanJuz,
+          nik_wali: nikWali.trim() || undefined,
+          nama_wali: namaWali.trim() || undefined,
+          telepon_wali: teleponWali.trim() || undefined,
+          hubungan_wali: hubunganWali,
+          no_kk: noKk.trim() || undefined,
+          pondok_id: process.env.NEXT_PUBLIC_PONDOK_ID || '',
+          kelas_id: '',
         }),
       });
 
@@ -175,6 +185,8 @@ export default function RegistrasiSantriBaruPage() {
         setTimeout(() => {
           window.location.href = '/admin/santri';
         }, 1200);
+      } else {
+        showToast('error', 'Gagal Mendaftar', json.error || 'Terjadi kesalahan sistem.');
       }
     } catch {
       showToast('error', 'Gagal', 'Terjadi kesalahan sistem.');

@@ -40,10 +40,12 @@ export default function PusatPengumumanPage() {
   const fetchPengumuman = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/simulation/data?type=pengumuman');
+      const res = await fetch('/api/v1/pengumuman?limit=50');
       const json = await res.json();
       if (json.success) {
         setPengumumanList(json.data);
+      } else {
+        showToast('error', 'Gagal Memuat Data', json.error || 'Tidak dapat mengambil pengumuman dari database.');
       }
     } catch {
       showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil pengumuman dari database.');
@@ -61,20 +63,15 @@ export default function PusatPengumumanPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/v1/simulation/data', {
+      const res = await fetch('/api/v1/pengumuman', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_pengumuman',
-          payload: {
-            judul: form.judul.trim(),
-            isi: form.isi.trim(),
-            target: form.target,
-            instansi: form.instansi,
-            tanggal: 'Hari Ini (5 Agt 2026)',
-            penulis: 'Sekretariat Utama Darsa',
-            penting: form.penting,
-          },
+          judul: form.judul.trim(),
+          isi: form.isi.trim(),
+          target: form.target,
+          instansi: form.instansi,
+          penting: form.penting,
         }),
       });
 
@@ -83,7 +80,7 @@ export default function PusatPengumumanPage() {
         setIsModalOpen(false);
         setForm({ judul: '', isi: '', target: 'SEMUA', instansi: 'PONDOK', penting: false });
         fetchPengumuman();
-        showToast('success', 'Pengumuman Diterbitkan!', 'Pengumuman resmi berhasil tersimpan di Database dan di-broadcast ke Portal Wali/Guru secara real-time.');
+        showToast('success', 'Pengumuman Diterbitkan!', 'Pengumuman tersimpan di Database dan di-broadcast ke portal Wali/Guru.');
       } else {
         showToast('error', 'Gagal Menyiarkan', json.error || 'Terjadi kesalahan sistem.');
       }

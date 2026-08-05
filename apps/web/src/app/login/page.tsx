@@ -3,28 +3,26 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/Loading';
+import { signIn } from '@darsa/auth/client';
 
 type InstansiKey = 'pondok' | 'madrasah' | 'mi';
 type AuthMethod = 'email' | 'passkey';
-type RoleKey = 'SEKRETARIAT' | 'ADMIN_INSTANSI' | 'GURU_MADRASAH' | 'GURU_MI' | 'WALI_SANTRI';
 
-const DEMO_USERS: Record<string, { password: string; role: RoleKey; nama: string }> = {
-  'admin@darsa.id':   { password: 'admin123',  role: 'SEKRETARIAT',    nama: 'Sekretariat Utama Darsa' },
-  'guru@darsa.id':    { password: 'guru123',   role: 'GURU_MADRASAH',  nama: 'Dr. KH. Abdullah Ridwan' },
-  'guru.mi@darsa.id': { password: 'guru123',   role: 'GURU_MI',        nama: 'Ustadzah Fatimah, S.Pd' },
-  'wali@darsa.id':    { password: 'wali123',   role: 'WALI_SANTRI',   nama: 'Bapak Hendra' },
-};
-
-const ROLE_REDIRECT: Record<RoleKey, string> = {
-  SEKRETARIAT:    '/admin/dashboard',
+// Role → Dashboard redirect map (diisi setelah session diambil)
+const ROLE_REDIRECT: Record<string, string> = {
+  SEKRETARIAT: '/admin/dashboard',
   ADMIN_INSTANSI: '/admin/dashboard',
-  GURU_MADRASAH:  '/guru_madrasah/dashboard',
-  GURU_MI:        '/guru_mi/dashboard',
-  WALI_SANTRI:    '/wali_santri/dashboard',
+  GURU_MADRASAH: '/guru_madrasah/dashboard',
+  GURU_MI: '/guru_mi/dashboard',
+  GURU: '/guru_madrasah/dashboard',
+  WALI_SANTRI: '/wali_santri/dashboard',
+  SANTRI: '/santri/dashboard',
 };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [instansi, setInstansi] = useState<InstansiKey>('pondok');
   const [authMethod, setAuthMethod] = useState<AuthMethod>('email');
   const [email, setEmail] = useState('');
@@ -34,43 +32,16 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'idle' | 'verifying' | 'redirecting'>('idle');
 
-  // BAB V - Wali Santri Self-Registration State
+  // Wali Santri Self-Registration State
   const [isWaliRegisterModalOpen, setIsWaliRegisterModalOpen] = useState(false);
   const [regNik, setRegNik] = useState('');
   const [regHp, setRegHp] = useState('');
   const [regEmail, setRegEmail] = useState('');
-  const [regUsername, setRegUsername] = useState('');
+  const [regNama, setRegNama] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
-
-  const handleWaliRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (regPassword !== regConfirmPassword) {
-      alert('Password dan Konfirmasi Password tidak cocok!');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/v1/simulation/data?type=santri_wali&nik=${regNik}`);
-      const json = await res.json();
-
-      if (json.success && json.data && json.data.length > 0) {
-        const anakList = json.data;
-        const anakNames = anakList.map((a: any) => a.nama).join(', ');
-        alert(`Verifikasi NIK Berhasil!\n\nNIK ${regNik} terhubung dengan ${anakList.length} anak:\n${anakNames}\n\nAkun Wali Santri telah dibuat. Silakan login.`);
-        setIsWaliRegisterModalOpen(false);
-        setEmail('wali@darsa.id');
-        setPassword('wali123');
-      } else {
-        alert(`Verifikasi NIK Gagal!\n\nNIK ${regNik} tidak ditemukan pada Database Pondok. Pendaftaran tidak dapat dilanjutkan.`);
-      }
-    } catch {
-      alert('Terjadi kesalahan saat memverifikasi NIK Kependudukan.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [regError, setRegError] = useState<string | null>(null);
+  const [regSuccess, setRegSuccess] = useState<string | null>(null);
 
   const instansiData = {
     pondok: {
@@ -104,68 +75,120 @@ export default function LoginPage() {
     setLoading(true);
     setStep('verifying');
 
-    await new Promise((res) => setTimeout(res, 1000));
+    try {
+      const result = await signIn.email({
+        email: email.toLowerCase().trim(),
+        password,
+        callbackURL: '/admin/dashboard', // fallback, middleware akan handle redirect
+      });
 
-    const user = DEMO_USERS[email.toLowerCase()];
-    if (!user || user.password !== password) {
-      setLoading(false);
+      if (result.error) {
+        setError(result.error.message || 'Email atau kata sandi salah.');
+        setStep('idle');
+        setLoading(false);
+        return;
+      }
+
+      // Login berhasil — fetch session untuk ambil role
+      setStep('redirecting');
+      const sessionRes = await fetch('/api/auth/get-session');
+      const sessionData = sessionRes.ok ? await sessionRes.json() : null;
+      const role = sessionData?.user?.role || 'SEKRETARIAT';
+      const redirectTo = ROLE_REDIRECT[role] || '/admin/dashboard';
+      router.push(redirectTo);
+    } catch (err: any) {
+      setError(err?.message || 'Terjadi kesalahan. Coba lagi.');
       setStep('idle');
-      setError('Email atau kata sandi salah. Periksa kembali kredensial Anda.');
-      return;
+      setLoading(false);
     }
-
-    // Set session cookie
-    const sessionData = {
-      email,
-      nama: user.nama,
-      role: user.role,
-      instansi: instansi.toUpperCase(),
-      loginAt: new Date().toISOString(),
-    };
-    document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax`;
-
-    setStep('redirecting');
-    await new Promise((res) => setTimeout(res, 600));
-
-    window.location.href = ROLE_REDIRECT[user.role];
   };
 
   const handlePasskeyLogin = async () => {
     setLoading(true);
     setStep('verifying');
-    await new Promise((res) => setTimeout(res, 1600));
-
-    const sessionData = {
-      email: 'admin@darsa.id',
-      nama: 'Ahmad Al-Farisi (Passkey)',
-      role: 'ADMIN_INSTANSI',
-      instansi: instansi.toUpperCase(),
-      loginAt: new Date().toISOString(),
-    };
-    document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax`;
-
-    setStep('redirecting');
-    await new Promise((res) => setTimeout(res, 500));
-    window.location.href = '/admin/dashboard';
+    setError(null);
+    try {
+      // Note: Passkey requires better-auth passkey plugin to be configured
+      // For now redirect to email login
+      setError('Fitur Passkey belum dikonfigurasi. Gunakan Email & Kata Sandi.');
+      setAuthMethod('email');
+      setStep('idle');
+    } catch {
+      setError('Perangkat tidak mendukung Passkey atau belum terdaftar.');
+      setStep('idle');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setStep('verifying');
-    await new Promise((res) => setTimeout(res, 1400));
+    try {
+      await signIn.social({ provider: 'google', callbackURL: '/admin/dashboard' });
+    } catch {
+      setError('Login Google gagal. Coba lagi.');
+      setStep('idle');
+      setLoading(false);
+    }
+  };
 
-    const sessionData = {
-      email: 'admin.google@darsa.id',
-      nama: 'Ahmad (Google OAuth)',
-      role: 'ADMIN_INSTANSI',
-      instansi: instansi.toUpperCase(),
-      loginAt: new Date().toISOString(),
-    };
-    document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax`;
+  const handleWaliRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError(null);
+    setRegSuccess(null);
 
-    setStep('redirecting');
-    await new Promise((res) => setTimeout(res, 500));
-    window.location.href = '/admin/dashboard';
+    if (regPassword !== regConfirmPassword) {
+      setRegError('Password dan Konfirmasi Password tidak cocok!');
+      return;
+    }
+    if (regPassword.length < 8) {
+      setRegError('Password minimal 8 karakter.');
+      return;
+    }
+    if (!regEmail || !regNama || !regNik) {
+      setRegError('Semua field wajib diisi.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Verifikasi NIK pada database santri
+      const verifyRes = await fetch(`/api/v1/wali/verifikasi-nik?nik=${encodeURIComponent(regNik)}`);
+      const verifyJson = await verifyRes.json();
+
+      if (!verifyJson.success || !verifyJson.data?.length) {
+        setRegError(`NIK ${regNik} tidak ditemukan di Database Pondok. Hubungi Sekretariat.`);
+        setLoading(false);
+        return;
+      }
+
+      // Buat akun via Better Auth
+      const { authClient } = await import('@darsa/auth/client');
+      const signUpResult = await authClient.signUp.email({
+        email: regEmail,
+        password: regPassword,
+        name: regNama,
+      });
+
+      if (signUpResult?.error) {
+        setRegError(signUpResult.error.message || 'Gagal membuat akun.');
+        setLoading(false);
+        return;
+      }
+
+      const anakNames = verifyJson.data.map((a: any) => a.nama_lengkap).join(', ');
+      setRegSuccess(`Akun berhasil dibuat! NIK Anda terhubung dengan ${verifyJson.data.length} santri: ${anakNames}. Silakan login.`);
+      setRegNik('');
+      setRegEmail('');
+      setRegNama('');
+      setRegPassword('');
+      setRegConfirmPassword('');
+    } catch (err: any) {
+      setRegError(err?.message || 'Terjadi kesalahan saat mendaftar.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -380,17 +403,6 @@ export default function LoginPage() {
               Masuk dengan Google OAuth
             </button>
 
-            {/* Demo Hint */}
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <p className="text-[10px] font-bold text-amber-700 mb-1.5 uppercase tracking-wider">💡 Akun Demo Tersedia:</p>
-              <div className="space-y-0.5 text-[10px] text-amber-800 font-mono">
-                <p>admin@darsa.id / admin123 (Sekretariat)</p>
-                <p>guru@darsa.id / guru123 (Guru Madrasah)</p>
-                <p>guru.mi@darsa.id / guru123 (Guru MI Absensi)</p>
-                <p>wali@darsa.id / wali123 (Wali Santri)</p>
-              </div>
-            </div>
-
             {/* BAB V - Self-Registration Button for Wali Santri */}
             <div className="pt-2 text-center border-t border-slate-200">
               <button
@@ -405,112 +417,134 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Modal Pendaftaran Akun Wali Santri (BAB V) */}
+      {/* Modal Pendaftaran Akun Wali Santri */}
       {isWaliRegisterModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b border-slate-200 pb-3">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <span>👨‍👩‍👧</span> Pendaftaran Akun Wali Santri (BAB V)
+                <span>👨‍👩‍👧</span> Pendaftaran Akun Wali Santri
               </h3>
               <button onClick={() => setIsWaliRegisterModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
-            <form onSubmit={handleWaliRegisterSubmit} className="space-y-3 text-xs">
-              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900">
-                <p className="font-bold">ℹ️ Verifikasi Automatis NIK Master Pondok:</p>
-                <p className="mt-0.5">Sistem akan mencocokkan NIK Kependudukan dengan Master Database Pondok. Seluruh anak yang terhubung dengan NIK tersebut akan otomatis muncul pada portal anda.</p>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">NIK Ayah / Ibu / Wali *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="3571012304850001"
-                  value={regNik}
-                  onChange={(e) => setRegNik(e.target.value)}
-                  className="input-premium font-mono"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Nomor HP / WhatsApp *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="081399887766"
-                    value={regHp}
-                    onChange={(e) => setRegHp(e.target.value)}
-                    className="input-premium"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Email (Opsional)</label>
-                  <input
-                    type="email"
-                    placeholder="wali@gmail.com"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="input-premium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Username Akun *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="hendra_wali"
-                  value={regUsername}
-                  onChange={(e) => setRegUsername(e.target.value)}
-                  className="input-premium font-mono"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Password *</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    className="input-premium"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Konfirmasi Password *</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={regConfirmPassword}
-                    onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    className="input-premium"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+            {regSuccess ? (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
+                <p className="font-bold text-sm mb-1">✅ Pendaftaran Berhasil!</p>
+                <p className="text-xs">{regSuccess}</p>
                 <button
-                  type="button"
-                  onClick={() => setIsWaliRegisterModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                  onClick={() => { setIsWaliRegisterModalOpen(false); setRegSuccess(null); }}
+                  className="mt-3 px-4 py-2 rounded-xl bg-emerald-800 text-white font-bold text-xs"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold shadow-md"
-                >
-                  🚀 Verifikasi NIK & Buat Akun
+                  Tutup & Login
                 </button>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleWaliRegisterSubmit} className="space-y-3 text-xs">
+                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900">
+                  <p className="font-bold">ℹ️ Verifikasi Automatis NIK Master Pondok:</p>
+                  <p className="mt-0.5">Sistem akan mencocokkan NIK Kependudukan dengan Database Pondok. Seluruh anak yang terhubung akan otomatis muncul di portal Anda.</p>
+                </div>
+
+                {regError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
+                    <p className="font-semibold">{regError}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">NIK Ayah / Ibu / Wali *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="3571012304850001"
+                    value={regNik}
+                    onChange={(e) => setRegNik(e.target.value)}
+                    className="input-premium font-mono"
+                    maxLength={16}
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Lengkap *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Bapak / Ibu Hendra"
+                    value={regNama}
+                    onChange={(e) => setRegNama(e.target.value)}
+                    className="input-premium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Nomor HP *</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="081399887766"
+                      value={regHp}
+                      onChange={(e) => setRegHp(e.target.value)}
+                      className="input-premium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Email Akun *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="wali@gmail.com"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      className="input-premium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Password *</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Min. 8 karakter"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      className="input-premium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Konfirmasi Password *</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      className="input-premium"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setIsWaliRegisterModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold shadow-md disabled:opacity-60"
+                  >
+                    {loading ? <LoadingSpinner size="sm" variant="white" /> : '🚀 Verifikasi NIK & Buat Akun'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

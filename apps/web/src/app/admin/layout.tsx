@@ -39,21 +39,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setToast({ isOpen: true, type, title, message });
   };
 
-  // Read session cookie
+  // Fetch session from Better Auth
   useEffect(() => {
-    try {
-      const match = document.cookie.match(/darsa_session=([^;]+)/);
-      if (match) {
-        const parsed = JSON.parse(decodeURIComponent(match[1])) as SessionUser;
-        setUser(parsed);
-        const inst = parsed.instansi?.toLowerCase() as 'pondok' | 'madrasah' | 'mi';
-        if (['pondok', 'madrasah', 'mi'].includes(inst)) {
-          setInstansiActive(inst);
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/get-session');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) {
+            const u = data.user;
+            setUser({
+              email: u.email,
+              nama: u.name || u.nama_lengkap || u.email,
+              role: u.role || 'ADMIN_INSTANSI',
+              instansi: u.instansi || 'PONDOK',
+              loginAt: u.createdAt || new Date().toISOString(),
+            });
+          }
         }
+      } catch {
+        // Session tidak tersedia
       }
-    } catch {
-      // No valid session
-    }
+    };
+    fetchSession();
   }, []);
 
   // Close notif on outside click
@@ -67,22 +75,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const handleLogout = () => {
-    document.cookie = 'darsa_session=; path=/; max-age=0';
+  const handleLogout = async () => {
+    try {
+      const { signOut } = await import('@darsa/auth/client');
+      await signOut();
+    } catch {}
     showToast('info', 'Sesi Berakhir', 'Anda telah berhasil keluar dari sistem.');
     setTimeout(() => router.push('/login'), 1200);
   };
 
   const handleSwitchInstansi = (inst: 'pondok' | 'madrasah' | 'mi') => {
     setInstansiActive(inst);
-    if (user) {
-      const updatedUser = { ...user, instansi: inst.toUpperCase() };
-      setUser(updatedUser);
-      document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax`;
-    } else {
-      const defaultUser = { email: 'admin@darsa.id', nama: 'Sekretariat Utama Darsa', role: 'ADMIN_INSTANSI', instansi: inst.toUpperCase(), loginAt: new Date().toISOString() };
-      document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(defaultUser))}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax`;
-    }
   };
 
   const instansiConfig = {

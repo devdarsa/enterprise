@@ -2,102 +2,83 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Darsa Enterprise — Auth Middleware Guard
- * Protects all role-specific routes from unauthenticated access.
- *
- * In simulation mode: checks for 'darsa_session' cookie (set on login).
- * In production: this would integrate with Better Auth JWT session verification.
+ * Darsa Enterprise — Auth Middleware Guard (Production)
+ * Menggunakan Better Auth session cookie verification (Edge-compatible).
+ * Better Auth menyimpan session di cookie 'better-auth.session_token'.
+ * Role diverifikasi di level API route menggunakan server-side session check.
+ * Middleware hanya melakukan redirect jika tidak ada session token sama sekali.
  */
 
-const PROTECTED_ROUTES = [
+const PUBLIC_PREFIXES = ['/_next', '/favicon', '/login', '/api/auth', '/docs'];
+const PUBLIC_EXACT = ['/'];
+
+// Route → Role yang diizinkan (enforced di API level, middleware hanya cek presence)
+const PROTECTED_PREFIXES = [
   '/admin',
   '/sekretariat',
-  '/guru',
   '/guru_madrasah',
   '/guru_mi',
-  '/wali',
+  '/guru',
   '/wali_santri',
+  '/wali',
   '/santri',
 ];
 
-const PUBLIC_ROUTES = [
-  '/',
-  '/login',
-  '/docs',
-  '/api/auth',
+// Nama cookie yang digunakan Better Auth (default)
+const SESSION_COOKIE_NAMES = [
+  'better-auth.session_token',
+  '__Secure-better-auth.session_token',
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow all public routes & API routes through
-  const isPublic = PUBLIC_ROUTES.some((p) => pathname.startsWith(p));
-  if (isPublic) return NextResponse.next();
-
-  // Allow Next.js static assets
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.endsWith('.png') ||
-    pathname.endsWith('.jpg') ||
-    pathname.endsWith('.svg') ||
-    pathname.endsWith('.ico')
-  ) {
+  // 1. Izinkan static assets & Next.js internals
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Check if this is a protected route
-  const isProtected = PROTECTED_ROUTES.some((p) => pathname.startsWith(p));
-  if (!isProtected) return NextResponse.next();
+  // 2. Izinkan exact public routes
+  if (PUBLIC_EXACT.includes(pathname)) {
+    return NextResponse.next();
+  }
 
-  // Check for simulation session cookie
-  const sessionCookie = request.cookies.get('darsa_session');
-  const sessionValue = sessionCookie?.value;
+  // 3. Izinkan file extension assets
+  if (/\.(png|jpg|jpeg|svg|ico|webp|gif|css|js|woff|woff2)$/.test(pathname)) {
+    return NextResponse.next();
+  }
 
-  if (!sessionValue) {
-    // Redirect to login, preserving the target URL
+  // 4. Izinkan API routes non-auth (mereka punya withAuth() guard sendiri)
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
+    return NextResponse.next();
+  }
+
+  // 5. Cek apakah route perlu proteksi
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  if (!isProtected) {
+    return NextResponse.next();
+  }
+
+  // 6. Cek keberadaan session cookie Better Auth (Edge-compatible)
+  const cookies = request.cookies;
+  const hasSession = SESSION_COOKIE_NAMES.some((name) => {
+    const cookie = cookies.get(name);
+    return cookie && cookie.value && cookie.value.length > 10;
+  });
+
+  if (!hasSession) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Parse session and check route permission
-  try {
-    const session = JSON.parse(decodeURIComponent(sessionValue));
-    const userRole: string = session.role || '';
-
-    // Route-level role guards
-    if ((pathname.startsWith('/admin') || pathname.startsWith('/sekretariat')) && !['SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    if ((pathname.startsWith('/guru') || pathname.startsWith('/guru_madrasah')) && !['GURU_MADRASAH', 'GURU', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    if (pathname.startsWith('/guru_mi') && !['GURU_MI', 'GURU', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    if ((pathname.startsWith('/wali') || pathname.startsWith('/wali_santri')) && !['WALI_SANTRI', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    if (pathname.startsWith('/santri') && !['SANTRI', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    return NextResponse.next();
-  } catch {
-    // Invalid session — clear and redirect
-    const response = NextResponse.redirect(new URL('/login', request.url));
-    response.cookies.delete('darsa_session');
+    const response = NextResponse.redirect(loginUrl);
     return response;
   }
+
+  // 7. Session ada — izinkan akses (role check dilakukan di API & layout level)
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 };

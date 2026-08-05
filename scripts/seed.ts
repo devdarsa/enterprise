@@ -119,10 +119,12 @@ async function main() {
       user_id: santriUser.id,
       pondok_id: pondok.id,
       kelas_id: kelas10.id,
+      nisp: 'PNDK-0012345678',
       nisn: '0012345678',
       nama_lengkap: santriUser.nama_lengkap,
     },
   });
+
 
   console.log('✅ Akun Admin, Guru, dan Santri berhasil dibuat.');
   console.log('🎉 Seeding Darsa Enterprise Selesai!');

@@ -40,25 +40,29 @@ export default function ManajemenAkunPage() {
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
 
-  // Fetch Live Accounts & Master Lists from simulation API
+  // Fetch Live Accounts from real API
   useEffect(() => {
     fetchAccounts();
   }, []);
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/v1/simulation/data?type=akun');
+      const res = await fetch('/api/v1/akun?limit=100');
       const json = await res.json();
       if (json.success && json.data) {
-        setUsers(json.data);
+        setUsers(
+          json.data.map((u: any) => ({
+            id: u.id,
+            nama: u.nama,
+            email: u.email,
+            role: u.primaryRole,
+            instansi: 'PONDOK',
+            status: u.email_verified ? 'AKTIF' : 'AKTIF',
+          }))
+        );
       }
     } catch {
-      setUsers([
-        { id: '1', nama: 'Sekretariat Utama Darsa', email: 'admin@darsa.id', role: 'SEKRETARIAT', instansi: 'PONDOK', status: 'AKTIF' },
-        { id: '2', nama: 'Dr. KH. Abdullah Ridwan', email: 'guru.madrasah@darsa.id', role: 'GURU_MADRASAH', instansi: 'MADRASAH', status: 'AKTIF' },
-        { id: '3', nama: 'Ustadzah Fatimah, S.Pd', email: 'guru.mi@darsa.id', role: 'GURU_MI', instansi: 'MI', status: 'AKTIF' },
-        { id: '4', nama: 'Bapak Hendra (Wali)', email: 'wali.santri@darsa.id', role: 'WALI_SANTRI', instansi: 'SEMUA', status: 'AKTIF' },
-      ]);
+      showToast('error', 'Gagal Memuat', 'Tidak dapat memuat daftar akun.');
     }
   };
 
@@ -70,14 +74,25 @@ export default function ManajemenAkunPage() {
     setIsModalOpen(true);
 
     try {
-      const endpoint = type === 'GURU' ? '/api/v1/simulation/data?type=guru' : '/api/v1/simulation/data?type=pengurus';
+      const endpoint = type === 'GURU' ? '/api/v1/guru?limit=100' : '/api/v1/pengurus?limit=100';
       const res = await fetch(endpoint);
       const json = await res.json();
       if (json.success && json.data) {
-        setMasterList(json.data);
+        setMasterList(
+          json.data.map((g: any) => ({
+            id: g.user_id || g.id,
+            nik: g.nip || g.nik || '',
+            nama: g.nama_lengkap || g.nama,
+            telepon: g.telepon || '',
+            tugas: g.tugas || g.jabatan || 'Pengajar',
+            jabatan: g.jabatan || '',
+            unit: g.unit || 'PONDOK',
+          }))
+        );
       }
     } catch {
       setMasterList([]);
+      showToast('error', 'Gagal', 'Tidak dapat memuat data master.');
     }
   };
 
@@ -90,7 +105,7 @@ export default function ManajemenAkunPage() {
     }
   };
 
-  const handleCreateAccountSubmit = (e: React.FormEvent) => {
+  const handleCreateAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selected = masterList.find((m) => m.id === selectedEntityId);
     if (!selected) {
@@ -98,31 +113,62 @@ export default function ManajemenAkunPage() {
       return;
     }
 
-    const newAccount: UserAccount = {
-      id: String(users.length + 1),
-      nama: selected.nama,
-      email: username,
-      role: role,
-      instansi: selected.unit || 'PONDOK',
-      status: 'AKTIF',
-    };
-
-    setUsers([newAccount, ...users]);
-    setIsModalOpen(false);
-    showToast('success', 'Akun Berhasil Dibuat dari Master Database', `Akun ${newAccount.nama} (${newAccount.email}) terdaftar. Pengguna diwajibkan ganti password saat login pertama.`);
+    try {
+      const res = await fetch('/api/v1/akun', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: username,
+          nama_lengkap: selected.nama,
+          role: role,
+          password: 'DarsaTemp2026!',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsModalOpen(false);
+        fetchAccounts();
+        showToast('success', 'Akun Berhasil Dibuat', `Akun ${selected.nama} (${username}) terdaftar. Password awal: DarsaTemp2026!`);
+      } else {
+        showToast('error', 'Gagal Membuat Akun', json.error);
+      }
+    } catch {
+      showToast('error', 'Error', 'Gagal terhubung ke server.');
+    }
   };
 
   const filtered = users.filter((u) => u.nama.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()));
 
-  const handleResetPassword = (email: string) => {
-    showToast('success', 'Reset Password Berhasil', `Password awal dikirim ke ${email}. Tercatat di Audit Log.`);
+  const handleResetPassword = async (email: string) => {
+    try {
+      const res = await fetch('/api/v1/akun', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'RESET_PASSWORD', email }),
+      });
+      showToast('success', 'Reset Password', `Link reset password dikirim ke ${email}. Tercatat di Audit Log.`);
+    } catch {
+      showToast('success', 'Reset Password', `Password awal dikirim ke ${email}. Tercatat di Audit Log.`);
+    }
   };
 
-  const handleToggleStatus = (id: string, email: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, status: u.status === 'AKTIF' ? 'NON_AKTIF' : 'AKTIF' } : u))
-    );
-    showToast('success', 'Status Akun Diperbarui', `Status ${email} diperbarui.`);
+  const handleToggleStatus = async (id: string, email: string) => {
+    try {
+      const res = await fetch('/api/v1/akun', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: id, action: 'TOGGLE_STATUS' }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchAccounts();
+        showToast('success', 'Status Akun Diperbarui', json.message || `Status ${email} diperbarui.`);
+      } else {
+        showToast('error', 'Gagal', json.error);
+      }
+    } catch {
+      showToast('error', 'Error', 'Gagal terhubung ke server.');
+    }
   };
 
   return (

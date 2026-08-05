@@ -117,12 +117,47 @@ export default function MasterSantriPage() {
   const fetchSantri = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/simulation/data?type=santri&instansi=${instansiFilter}`);
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '50',
+        ...(search && { search }),
+      });
+      const res = await fetch(`/api/v1/santri?${params}`);
       const json = await res.json();
       if (json.success) {
-        setSantriList(json.data);
+        // Map DB fields to component interface
+        const mapped = json.data.map((s: any) => ({
+          id: s.id,
+          nisp: s.nisp,
+          nisn: s.nisn,
+          nis: s.nis,
+          nik: s.nik,
+          nama: s.nama_lengkap,
+          nama_panggilan: s.nama_panggilan,
+          jenis_kelamin: s.jenis_kelamin,
+          tempat_lahir: s.tempat_lahir,
+          tanggal_lahir: s.tanggal_lahir,
+          anak_ke: s.anak_ke,
+          jumlah_saudara: s.jumlah_saudara,
+          alamat: s.alamat,
+          telepon: s.telepon,
+          jenjang: s.jenjang,
+          kelas: s.kelas?.nama_kelas || s.kelas_id,
+          kamar: s.kamar,
+          status_tempat_tinggal: s.status_tempat_tinggal,
+          instansi: 'PONDOK',
+          status: s.status,
+          hafalan_juz: s.hafalan_juz,
+          nik_wali: s.nik_wali,
+          nama_wali: s.nama_wali,
+          telepon_wali: s.telepon_wali,
+          hubungan_wali: s.hubungan_wali,
+          no_kk: s.no_kk,
+          penempatan: s.penempatan,
+        }));
+        setSantriList(mapped);
       } else {
-        setSantriList([]);
+        showToast('error', 'Gagal Memuat', json.error || 'Tidak dapat mengambil data santri.');
       }
     } catch {
       showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
@@ -133,47 +168,46 @@ export default function MasterSantriPage() {
 
   const handleAddSantri = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nisn.trim() || !nama.trim() || !nikWali.trim()) {
-      showToast('warning', 'Form Belum Lengkap', 'NISN, Nama Santri, dan NIK Wali wajib diisi.');
+    if (!nisn.trim() || !nama.trim()) {
+      showToast('warning', 'Form Belum Lengkap', 'NISN dan Nama Santri wajib diisi.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const newSantriPayload = {
-        nisp: nisp.trim() || `PNDK-${nisn.trim()}`,
-        nisn: nisn.trim(),
-        nis: nis.trim() || undefined,
-        nik: nik.trim() || undefined,
-        nama: nama.trim(),
-        nama_panggilan: namaPanggilan.trim(),
-        jenis_kelamin: jenisKelamin,
-        tempat_lahir: tempatLahir.trim(),
-        tanggal_lahir: tanggalLahir,
-        anak_ke: anakKe,
-        jumlah_saudara: jumlahSaudara,
-        alamat: alamat.trim(),
-        telepon: telepon.trim(),
-        jenjang,
-        kelas,
-        kamar,
-        instansi: instansiFilter.toUpperCase(),
-        tahun_ajaran: '2025/2026 (Ganjil)',
-        status: 'AKTIF',
-        hafalan_juz: hafalanJuz,
-        nik_wali: nikWali.trim(),
-        nama_wali: namaWali.trim(),
-        telepon_wali: teleponWali.trim(),
-        hubungan_wali: hubunganWali,
-        no_kk: noKk.trim(),
-      };
+      // Ambil pondok_id dan kelas_id dari session/config
+      const sessionRes = await fetch('/api/auth/get-session');
+      const sessionData = sessionRes.ok ? await sessionRes.json() : null;
 
-      const res = await fetch('/api/v1/simulation/data', {
+      const res = await fetch('/api/v1/santri', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_santri',
-          payload: newSantriPayload,
+          nisp: nisp.trim() || `PNDK-${Date.now()}`,
+          nisn: nisn.trim(),
+          nis: nis.trim() || undefined,
+          nik: nik.trim() || undefined,
+          nama_lengkap: nama.trim(),
+          nama_panggilan: namaPanggilan.trim() || undefined,
+          jenis_kelamin: jenisKelamin,
+          tempat_lahir: tempatLahir.trim() || undefined,
+          tanggal_lahir: tanggalLahir || undefined,
+          anak_ke: anakKe,
+          jumlah_saudara: jumlahSaudara,
+          alamat: alamat.trim() || undefined,
+          telepon: telepon.trim() || undefined,
+          jenjang,
+          kamar,
+          status_tempat_tinggal: 'PONDOK_PESANTREN',
+          hafalan_juz: hafalanJuz,
+          nik_wali: nikWali.trim() || undefined,
+          nama_wali: namaWali.trim() || undefined,
+          telepon_wali: teleponWali.trim() || undefined,
+          hubungan_wali: hubunganWali,
+          no_kk: noKk.trim() || undefined,
+          // Sementara gunakan ID pondok/kelas dari env atau query
+          pondok_id: process.env.NEXT_PUBLIC_PONDOK_ID || '',
+          kelas_id: '',
         }),
       });
 
@@ -181,7 +215,9 @@ export default function MasterSantriPage() {
       if (json.success) {
         setIsModalOpen(false);
         fetchSantri();
-        showToast('success', 'Santri Berhasil Ditambahkan', `Master Data Santri ${nama} tersimpan di Database Pondok.`);
+        showToast('success', 'Santri Berhasil Ditambahkan', `Data santri ${nama} tersimpan di database.`);
+      } else {
+        showToast('error', 'Gagal Menyimpan', json.error || 'Terjadi kesalahan.');
       }
     } catch {
       showToast('error', 'Gagal Menyimpan', 'Terjadi kesalahan sistem.');
@@ -194,25 +230,24 @@ export default function MasterSantriPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await fetch('/api/v1/simulation/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_santri',
-          id: deleteTarget.id,
-        }),
-      });
-      setSantriList((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-      showToast('success', 'Santri Dihapus', `Data santri ${deleteTarget.nama} dihapus.`);
+      const res = await fetch(`/api/v1/santri/${deleteTarget.id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setDeleteTarget(null);
+        fetchSantri();
+        showToast('success', 'Soft Delete Berhasil', `Data ${deleteTarget.nama} dipindahkan ke Recycle Bin.`);
+      } else {
+        showToast('error', 'Gagal Menghapus', json.error);
+      }
     } catch {
-      showToast('error', 'Gagal Menghapus', 'Tidak dapat menghapus data.');
+      showToast('error', 'Error', 'Gagal terhubung ke server.');
     } finally {
       setDeleting(false);
-      setDeleteTarget(null);
     }
   };
 
   const filtered = useMemo(() => {
+
     if (!search.trim()) return santriList;
     const q = search.toLowerCase();
     return santriList.filter(

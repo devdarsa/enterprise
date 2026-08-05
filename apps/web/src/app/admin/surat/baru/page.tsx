@@ -17,38 +17,34 @@ export default function GeneratorSuratPage() {
     setMessage(null);
 
     try {
-      const res = await fetch('/api/v1/simulation/data', {
+      const res = await fetch('/api/v1/surat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_surat',
-          payload: {
-            nomor,
-            jenis: 'SURAT_IZIN_SANTRI',
-            perihal: keperluan,
-            pengirim: `Wali Santri ${santri}`,
-            penerima: 'Pengasuh Pondok',
-            tanggal: '03 Ags 2026',
-            status: 'DISETUJUI',
-            instansi,
-            tahun_ajaran: '2025/2026 (Ganjil)',
-          },
+          nomor_surat: nomor || `SRT-${Date.now()}`,
+          jenis_surat: 'SURAT_IZIN_SANTRI',
+          perihal: keperluan,
+          pengirim: santri ? `Wali Santri ${santri}` : 'Wali Santri',
+          penerima: 'Pengasuh Pondok',
         }),
       });
 
       const json = await res.json();
       setLoading(false);
       if (json.success) {
-        setMessage(json.message);
+        setMessage(`✅ Surat berhasil diterbitkan! Nomor: ${nomor}`);
         setTimeout(() => {
           window.location.href = '/admin/surat';
         }, 1500);
+      } else {
+        setMessage(json.error || 'Gagal menerbitkan surat.');
       }
     } catch (err) {
       setLoading(false);
-      setMessage('Gagal menerbitkan surat.');
+      setMessage('Gagal terhubung ke database.');
     }
   };
+
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

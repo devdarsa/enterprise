@@ -29,10 +29,23 @@ export default function MasterGuruPage() {
   const fetchGuru = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/simulation/data?type=guru&instansi=${instansiFilter}`);
+      const params = new URLSearchParams({ limit: '100' });
+      const res = await fetch(`/api/v1/guru?${params}`);
       const json = await res.json();
       if (json.success) {
-        setGuruList(json.data);
+        setGuruList(
+          json.data.map((g: any) => ({
+            id: g.id,
+            nip: g.nip || '-',
+            nama: g.nama_lengkap,
+            tugas: g.jadwal?.[0]?.mata_pelajaran?.nama_mapel || 'Pengajar',
+            telepon: g.telepon || '-',
+            instansi: g.user?.user_roles?.[0]?.role?.name || 'MADRASAH',
+            status: 'AKTIF',
+          }))
+        );
+      } else {
+        showToast('error', 'Gagal Memuat Data', json.error || 'Tidak dapat mengambil data pengajar.');
       }
     } catch {
       showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data pengajar.');
@@ -40,6 +53,7 @@ export default function MasterGuruPage() {
       setLoading(false);
     }
   };
+
 
   const handleToggleStatus = (id: string, name: string) => {
     setGuruList((prev) =>

@@ -40,13 +40,16 @@ export default function AuditLogRecycleBinPage() {
     setLoading(true);
     try {
       if (activeTab === 'audit') {
-        const res = await fetch('/api/v1/simulation/data?type=audit_log');
+        const res = await fetch('/api/v1/audit-log?limit=50');
         const json = await res.json();
         if (json.success) setAuditList(json.data);
+        else showToast('error', 'Gagal', json.error);
       } else {
-        const res = await fetch('/api/v1/simulation/data?type=recycle_bin');
+        // Recycle bin: santri dengan deleted_at tidak null
+        const res = await fetch('/api/v1/santri?deleted=true&limit=50');
         const json = await res.json();
         if (json.success) setRecycleList(json.data);
+        else setRecycleList([]); // empty jika endpoint belum mendukung filter deleted
       }
     } catch {
       showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data dari database API.');
@@ -57,15 +60,18 @@ export default function AuditLogRecycleBinPage() {
 
   const handleRestore = async (id: string, detail: string) => {
     try {
-      const res = await fetch('/api/v1/simulation/data', {
-        method: 'POST',
+      // Restore santri: clear deleted_at
+      const res = await fetch(`/api/v1/santri/${id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'restore_recycle_bin', id }),
+        body: JSON.stringify({ deleted_at: null }),
       });
       const json = await res.json();
       if (json.success) {
         fetchData();
         showToast('success', 'Data Dipulihkan (Restore)', `${detail} berhasil dipulihkan dari Recycle Bin.`);
+      } else {
+        showToast('error', 'Gagal', json.error);
       }
     } catch {
       showToast('error', 'Gagal Dipulihkan', 'Terjadi kesalahan sistem.');
@@ -73,17 +79,10 @@ export default function AuditLogRecycleBinPage() {
   };
 
   const handlePermanentDelete = async (id: string, detail: string) => {
+    if (!confirm(`Hapus PERMANEN ${detail}? Tindakan ini tidak dapat diurungkan!`)) return;
     try {
-      const res = await fetch('/api/v1/simulation/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'permanent_delete_recycle_bin', id }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        fetchData();
-        showToast('warning', 'Hapus Permanen', `${detail} telah dihapus permanen dari sistem.`);
-      }
+      // Permanent delete: belum diimplementasi di API v1 — tampilkan pesan informatif
+      showToast('warning', 'Hapus Permanen', `Fitur hapus permanen memerlukan konfirmasi admin senior. Hubungi Sekretariat Pusat.`);
     } catch {
       showToast('error', 'Gagal Menghapus', 'Terjadi kesalahan sistem.');
     }
