@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SearchBar } from '@/components/Loading';
+import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface Pelanggaran {
   id: string;
@@ -33,9 +34,10 @@ export default function PelanggaranPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
+      {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-widest block mb-1">
@@ -43,15 +45,16 @@ export default function PelanggaranPage() {
           </span>
           <h1 className="text-xl font-black text-slate-900">Kedisiplinan & Pelanggaran Santri</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Pencatatan Jenis Pelanggaran, Tingkat Hukuman, dan Riwayat Tindakan Takzir
+            Pencatatan Jenis Pelanggaran, Tingkat Hukuman, & Riwayat Tindakan Takzir
           </p>
         </div>
-        <button
-          onClick={() => showToast('warning', 'Pencatatan Pelanggaran', 'Form pencatatan pelanggaran baru.')}
-          className="px-4 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 shrink-0"
-        >
-          <span>⚠️</span> + Catat Pelanggaran Baru
-        </button>
+
+        <ImportExportToolbar
+          onAdd={() => showToast('warning', 'Pencatatan Pelanggaran', 'Form pencatatan pelanggaran baru.')}
+          addLabel="⚠️ + Catat Pelanggaran Baru"
+          onExport={() => showToast('info', 'Export Data', 'Mengeksport rekap pelanggaran.')}
+          onPrint={() => showToast('info', 'Cetak Laporan', 'Mencetak laporan kedisiplinan.')}
+        />
       </div>
 
       <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
@@ -68,6 +71,7 @@ export default function PelanggaranPage() {
               <th>Tingkat</th>
               <th>Tindakan / Takzir</th>
               <th>Petugas</th>
+              <th className="text-right">Aksi Standards (RBAC)</th>
             </tr>
           </thead>
           <tbody>
@@ -90,6 +94,17 @@ export default function PelanggaranPage() {
                 </td>
                 <td className="text-xs text-slate-700 font-medium">{p.tindakan}</td>
                 <td className="text-xs text-slate-500">{p.petugas}</td>
+                <td className="text-right">
+                  <TableActions
+                    onDetail={() => showToast('info', 'Detail Pelanggaran', `Detail ${p.santriNama}`)}
+                    onEdit={() => showToast('info', 'Edit Pelanggaran', `Edit ${p.santriNama}`)}
+                    onRiwayat={() => showToast('info', 'Riwayat Pelanggaran', `Riwayat ${p.santriNama}`)}
+                    onDelete={() => {
+                      setList((prev) => prev.filter((item) => item.id !== p.id));
+                      showToast('success', 'Soft Delete', `Pelanggaran ${p.santriNama} dipindahkan ke Recycle Bin.`);
+                    }}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>

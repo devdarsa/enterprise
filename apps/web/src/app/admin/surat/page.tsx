@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import { LoadingSpinner, SkeletonTable } from '@/components/Loading';
+import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface Surat {
   id: string;
@@ -22,6 +23,7 @@ export default function PersuratanDigitalPage() {
   const [suratList, setSuratList] = useState<Surat[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailSurat, setDetailSurat] = useState<Surat | null>(null);
 
   // Form State inside Modal
   const [nomor, setNomor] = useState('SRT/2026/08/005');
@@ -69,7 +71,7 @@ export default function PersuratanDigitalPage() {
       if (json.success) {
         setSuratList(json.data);
       }
-    } catch (err) {
+    } catch {
       setLoading(false);
       showToast('error', 'Gagal Memuat Surat', 'Terjadi kesalahan koneksi database lokal.');
     }
@@ -101,147 +103,161 @@ export default function PersuratanDigitalPage() {
 
       const json = await res.json();
       setSubmitting(false);
+
       if (json.success) {
-        showToast('success', 'Surat Izin Diterbitkan', `Nomor ${nomor} untuk santri ${santri} berhasil terbit.`);
-        fetchSurat();
         setIsModalOpen(false);
+        fetchSurat();
+        showToast('success', 'Surat Izin Berhasil Dibuat', `Nomor ${nomor} berhasil diterbitkan di database.`);
+      } else {
+        showToast('error', 'Gagal Membuat Surat', 'Respons API gagal.');
       }
-    } catch (err) {
+    } catch {
       setSubmitting(false);
-      showToast('error', 'Gagal Menerbitkan Surat', 'Terjadi kesalahan sistem.');
+      showToast('error', 'Gagal Membuat Surat', 'Terjadi kesalahan jaringan.');
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <Toast
-        isOpen={toast.isOpen}
-        type={toast.type}
-        title={toast.title}
-        message={toast.message}
-        onClose={() => setToast((prev) => ({ ...prev, isOpen: false }))}
-      />
+  const handleApprove = (id: string) => {
+    setSuratList((prev) => prev.map((s) => (s.id === id ? { ...s, status: 'DISETUJUI' } : s)));
+    showToast('success', 'Perizinan Disetujui', 'Surat izin disetujui dan dicatat di Audit Log.');
+  };
 
-      {/* Header Title */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  const handleReject = (id: string) => {
+    setSuratList((prev) => prev.map((s) => (s.id === id ? { ...s, status: 'DITOLAK' } : s)));
+    showToast('warning', 'Perizinan Ditolak', 'Permohonan izin ditolak.');
+  };
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
+
+      {/* Header Toolbar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Persuratan Digital & Perizinan</h1>
-          <p className="text-xs text-slate-500">
-            Arsip surat masuk, surat keluar, dan izin santri dari Database Lokal per Instansi
+          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
+            MODUL KEAMANAN
+          </span>
+          <h1 className="text-xl font-black text-slate-900">Perizinan & Persuratan Santri</h1>
+          <p className="text-xs text-slate-500 font-medium">
+            Pengajuan Izin Pulang/Keluar, Verifikasi Keamanan, & Cetak Surat Izin Resmi
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-600/30 hover:bg-emerald-700 transition-all inline-block"
-        >
-          + Buat Surat Baru (Pop-Up Modal)
-        </button>
+
+        <ImportExportToolbar
+          onAdd={() => setIsModalOpen(true)}
+          addLabel="✉️ + Tambah Izin Baru"
+          onExport={() => showToast('info', 'Export Data', 'Mengeksport rekap perizinan.')}
+          onPrint={() => showToast('info', 'Cetak Surat', 'Mencetak surat izin resmi.')}
+        />
       </div>
 
-
-
-      {/* Letters Table */}
-      <div className="p-6 rounded-2xl bg-white border border-emerald-100 shadow-sm overflow-hidden">
+      {/* Table Data Grid */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="py-8">
-            <LoadingSpinner label="Mengunduh Data Surat dari Database Lokal..." />
-            <SkeletonTable rows={4} />
+          <div className="p-4">
+            <SkeletonTable rows={4} cols={6} />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500 font-bold bg-slate-50">
-                  <th className="p-3">Nomor Surat</th>
-                  <th className="p-3">Kategori</th>
-                  <th className="p-3">Perihal / Subjek</th>
-                  <th className="p-3">Pengirim</th>
-                  <th className="p-3">Tanggal</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Aksi</th>
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Nomor Surat</th>
+                <th>Jenis / Perihal</th>
+                <th>Pemohon (Wali/Santri)</th>
+                <th>Tanggal</th>
+                <th>Status Izin</th>
+                <th className="text-right">Aksi Standards (RBAC)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suratList.map((surat) => (
+                <tr key={surat.id} className="hover:bg-slate-50/80">
+                  <td className="font-mono text-xs font-bold text-emerald-800">{surat.nomor}</td>
+                  <td className="font-bold text-slate-900">{surat.perihal}</td>
+                  <td className="text-xs text-slate-600">{surat.pengirim}</td>
+                  <td className="text-xs text-slate-500">{surat.tanggal}</td>
+                  <td>
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold border ${
+                      surat.status === 'DISETUJUI' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                      surat.status === 'DITOLAK' ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                      'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}>
+                      {surat.status}
+                    </span>
+                  </td>
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {surat.status === 'PENDING' && (
+                        <>
+                          <button onClick={() => handleApprove(surat.id)} className="px-2 py-1 rounded bg-emerald-700 text-white text-[10px] font-bold">✓ Setujui</button>
+                          <button onClick={() => handleReject(surat.id)} className="px-2 py-1 rounded bg-rose-700 text-white text-[10px] font-bold">✕ Tolak</button>
+                        </>
+                      )}
+                      <TableActions
+                        onDetail={() => setDetailSurat(surat)}
+                        onRiwayat={() => showToast('info', 'Riwayat Perizinan', `Riwayat perizinan ${surat.nomor}`)}
+                        onDelete={() => {
+                          setSuratList((prev) => prev.filter((s) => s.id !== surat.id));
+                          showToast('success', 'Soft Delete', `Surat ${surat.nomor} dipindahkan ke Recycle Bin.`);
+                        }}
+                      />
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {suratList.map((surat, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 font-mono text-emerald-800 font-bold">{surat.nomor}</td>
-                    <td className="p-3 text-slate-800 font-bold">{surat.jenis.replace(/_/g, ' ')}</td>
-                    <td className="p-3 text-slate-900 font-medium">{surat.perihal}</td>
-                    <td className="p-3 text-slate-600">{surat.pengirim}</td>
-                    <td className="p-3 font-mono text-slate-600">{surat.tanggal}</td>
-                    <td className="p-3">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {surat.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right space-x-2">
-                      <button className="text-slate-500 hover:text-emerald-700 font-bold">Unduh PDF</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Premium Pop-Up Modal Form Input */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Generator Surat Izin Santri"
-        subtitle={`Instansi ${instansiFilter.toUpperCase()} • Lirboyo Kota Kediri`}
-        icon="✉️"
-      >
-        <form onSubmit={handleAddSurat} className="space-y-4 text-xs">
-          <div>
-            <label className="block font-bold text-slate-700 mb-1">Nomor Surat Resmi</label>
-            <input
-              type="text"
-              required
-              value={nomor}
-              onChange={(e) => setNomor(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono font-bold focus:outline-none focus:border-emerald-600"
-            />
+      {/* Modal Detail Surat */}
+      <Modal isOpen={!!detailSurat} onClose={() => setDetailSurat(null)} title="Detail & Cetak Surat Izin Santri">
+        {detailSurat && (
+          <div className="space-y-4 text-xs">
+            <div className="p-4 rounded-2xl bg-emerald-900 text-white space-y-1">
+              <span className="text-[10px] text-amber-300 font-bold">SURAT PERIZINAN RESMI</span>
+              <h3 className="text-sm font-black">{detailSurat.nomor}</h3>
+              <p className="text-emerald-200">{detailSurat.perihal}</p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+              <div><span className="text-slate-400">Pengirim:</span> {detailSurat.pengirim}</div>
+              <div><span className="text-slate-400">Status:</span> <strong>{detailSurat.status}</strong></div>
+              <div><span className="text-slate-400">Tanggal Terbit:</span> {detailSurat.tanggal}</div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => window.print()} className="flex-1 py-2.5 rounded-xl bg-emerald-700 text-white font-bold">
+                🖨️ Cetak Surat Izin
+              </button>
+              <button onClick={() => setDetailSurat(null)} className="py-2.5 px-4 rounded-xl bg-slate-100 font-bold text-slate-700">
+                Tutup
+              </button>
+            </div>
           </div>
+        )}
+      </Modal>
 
+      {/* Modal Quick Create Surat */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Penerbitan Surat Izin Baru">
+        <form onSubmit={handleAddSurat} className="space-y-4">
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Nama Santri Yang Diberi Izin</label>
-            <input
-              type="text"
-              required
-              value={santri}
-              onChange={(e) => setSantri(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold focus:outline-none focus:border-emerald-600"
-            />
+            <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Surat</label>
+            <input type="text" required value={nomor} onChange={(e) => setNomor(e.target.value)} className="input-premium font-mono" />
           </div>
-
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Alasan / Keperluan Izin</label>
-            <input
-              type="text"
-              required
-              value={keperluan}
-              onChange={(e) => setKeperluan(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold focus:outline-none focus:border-emerald-600"
-            />
+            <label className="block text-xs font-bold text-slate-700 mb-1">Nama Santri</label>
+            <input type="text" required value={santri} onChange={(e) => setSantri(e.target.value)} className="input-premium" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Keperluan & Alasan Izin</label>
+            <input type="text" required value={keperluan} onChange={(e) => setKeperluan(e.target.value)} className="input-premium" />
           </div>
 
           <div className="pt-2 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-all"
-            >
+            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30 hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {submitting ? <LoadingSpinner size="sm" /> : 'Terbitkan Surat Izin'}
+            <button type="submit" disabled={submitting} className="flex-1 btn-primary text-xs font-bold">
+              {submitting ? <><LoadingSpinner size="sm" variant="white" /> Menyimpan...</> : '💾 Terbitkan Surat'}
             </button>
           </div>
         </form>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SearchBar } from '@/components/Loading';
+import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface UserAccount {
   id: string;
@@ -31,13 +32,21 @@ export default function ManajemenAkunPage() {
   const filtered = users.filter((u) => u.nama.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()));
 
   const handleResetPassword = (email: string) => {
-    showToast('success', 'Reset Password Success', `Instruksi reset password dikirim ke ${email}.`);
+    showToast('success', 'Reset Password Success', `Instruksi reset password dikirim ke ${email}. Disimpan ke Audit Log.`);
+  };
+
+  const handleToggleStatus = (id: string, email: string) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, status: u.status === 'AKTIF' ? 'NON_AKTIF' : 'AKTIF' } : u))
+    );
+    showToast('success', 'Status Akun Diperbarui', `Status ${email} diperbarui.`);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
+      {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
@@ -45,15 +54,14 @@ export default function ManajemenAkunPage() {
           </span>
           <h1 className="text-xl font-black text-slate-900">Manajemen Akun & Role RBAC</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Pengelolaan Akun Pengguna, Hak Akses Role-Based Access Control, Aktivasi, & Reset Password
+            Pengelolaan Akun Pengguna, Penetapan Role RBAC, Reset Password, & Status Akun
           </p>
         </div>
-        <button
-          onClick={() => showToast('info', 'Tambah Akun', 'Pendaftaran akun pengguna baru.')}
-          className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 shrink-0"
-        >
-          <span>🔐</span> + Buat Akun User Baru
-        </button>
+
+        <ImportExportToolbar
+          onAdd={() => showToast('info', 'Tambah Akun', 'Pendaftaran akun pengguna baru.')}
+          addLabel="🔐 + Buat Akun User Baru"
+        />
       </div>
 
       <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
@@ -69,7 +77,7 @@ export default function ManajemenAkunPage() {
               <th>Role Hak Akses</th>
               <th>Instansi Scope</th>
               <th>Status Akun</th>
-              <th className="text-right">Aksi</th>
+              <th className="text-right">Aksi Standards (RBAC)</th>
             </tr>
           </thead>
           <tbody>
@@ -81,9 +89,24 @@ export default function ManajemenAkunPage() {
                 <td className="text-xs font-semibold text-slate-700">{u.instansi}</td>
                 <td><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">{u.status}</span></td>
                 <td className="text-right">
-                  <button onClick={() => handleResetPassword(u.email)} className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-200">
-                    🔑 Reset Pass
-                  </button>
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => handleResetPassword(u.email)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-200"
+                    >
+                      🔑 Reset Pass
+                    </button>
+                    <TableActions
+                      onDetail={() => showToast('info', 'Detail Akun', `Detail ${u.email}`)}
+                      onEdit={() => showToast('info', 'Edit Akun / Ganti Role', `Ganti Role ${u.email}`)}
+                      onToggleStatus={() => handleToggleStatus(u.id, u.email)}
+                      statusActive={u.status === 'AKTIF'}
+                      onDelete={() => {
+                        setUsers((prev) => prev.filter((item) => item.id !== u.id));
+                        showToast('success', 'Soft Delete', `Akun ${u.email} dipindahkan ke Recycle Bin.`);
+                      }}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}

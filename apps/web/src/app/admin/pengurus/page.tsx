@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SearchBar } from '@/components/Loading';
+import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface Pengurus {
   id: string;
+  nik: string;
   nama: string;
   jabatan: string;
   unit: 'PONDOK' | 'MADRASAH' | 'MI';
@@ -14,103 +16,102 @@ interface Pengurus {
 }
 
 const INITIAL_PENGURUS: Pengurus[] = [
-  { id: '1', nama: 'Ust. H. Ahmad Dahlan', jabatan: 'Ketua Pengurus Utama', unit: 'PONDOK', telepon: '081234567890', status: 'AKTIF' },
-  { id: '2', nama: 'Ust. Moh. Syafi\'i', jabatan: 'Sekretariat Diniyah', unit: 'MADRASAH', telepon: '081399887766', status: 'AKTIF' },
-  { id: '3', nama: 'Ustadzah Fatimah, S.Pd', jabatan: 'Kepala MI Formal', unit: 'MI', telepon: '085711223344', status: 'AKTIF' },
-  { id: '4', nama: 'Ust. Ridwan Bakri', jabatan: 'Kepala Keamanan & Ketertiban', unit: 'PONDOK', telepon: '081299887711', status: 'AKTIF' },
+  { id: '1', nik: '3571011205800001', nama: 'Ust. H. Abdul Hamid, M.Pd', jabatan: 'Ketua Umum Pengurus Pondok', unit: 'PONDOK', telepon: '081234567890', status: 'AKTIF' },
+  { id: '2', nik: '3571011809850002', nama: 'Ust. Moh. Kholil', jabatan: 'Kepala Sekretariat Diniyyah', unit: 'MADRASAH', telepon: '085712345678', status: 'AKTIF' },
+  { id: '3', nik: '3571012211880003', nama: 'Ahmad Subhan, S.T', jabatan: 'Kabid Sarpras MI Formal', unit: 'MI', telepon: '081900112233', status: 'AKTIF' },
 ];
 
 export default function DataPengurusPage() {
-  const [pengurusList, setPengurusList] = useState<Pengurus[]>(INITIAL_PENGURUS);
+  const [list, setList] = useState<Pengurus[]>(INITIAL_PENGURUS);
   const [search, setSearch] = useState('');
-  const [unitFilter, setUnitFilter] = useState<'ALL' | 'PONDOK' | 'MADRASAH' | 'MI'>('ALL');
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
 
-  const filtered = pengurusList.filter((p) => {
-    const matchUnit = unitFilter === 'ALL' || p.unit === unitFilter;
-    const matchSearch = p.nama.toLowerCase().includes(search.toLowerCase()) || p.jabatan.toLowerCase().includes(search.toLowerCase());
-    return matchUnit && matchSearch;
-  });
+  const filtered = list.filter(
+    (p) => p.nama.toLowerCase().includes(search.toLowerCase()) || p.jabatan.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleToggleStatus = (id: string, name: string) => {
+    setList((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: p.status === 'AKTIF' ? 'NON_AKTIF' : 'AKTIF' } : p))
+    );
+    showToast('success', 'Status Pengurus Diperbarui', `Status ${name} berhasil diubah.`);
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
+      {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
             DATABASE PONDOK
           </span>
-          <h1 className="text-xl font-black text-slate-900">Data Pengurus Lirboyo</h1>
+          <h1 className="text-xl font-black text-slate-900">Data Pengurus Pesantren & Unit</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Pengelolaan Data Struktur Pengurus Pondok, Madrasah Diniyah, dan MI Formal
+            Pengelolaan Struktural Pengurus Pondok, Madrasah Diniyyah, & MI Formal
           </p>
         </div>
-        <button
-          onClick={() => showToast('info', 'Tambah Pengurus', 'Fitur pendaftaran pengurus baru dibuka.')}
-          className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 shrink-0"
-        >
-          <span>👤</span> + Tambah Pengurus Baru
-        </button>
+
+        <ImportExportToolbar
+          onAdd={() => showToast('info', 'Tambah Pengurus', 'Form pendataan pengurus baru.')}
+          addLabel="+ Pendataan Pengurus Baru"
+          onExport={() => showToast('info', 'Export Data', 'Mengeksport data pengurus.')}
+          onPrint={() => showToast('info', 'Cetak Data', 'Mencetak struktur pengurus.')}
+        />
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="flex-1 w-full">
-          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama pengurus atau jabatan..." />
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          {(['ALL', 'PONDOK', 'MADRASAH', 'MI'] as const).map((u) => (
-            <button
-              key={u}
-              onClick={() => setUnitFilter(u)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                unitFilter === u ? 'bg-emerald-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {u === 'ALL' ? 'Semua Unit' : u}
-            </button>
-          ))}
-        </div>
+      <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <SearchBar value={search} onChange={setSearch} placeholder="Cari nama pengurus atau jabatan..." />
       </div>
 
+      {/* Data Grid Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <table className="table-premium">
           <thead>
             <tr>
+              <th>NIK Kependudukan</th>
               <th>Nama Pengurus</th>
-              <th>Jabatan</th>
-              <th>Unit Lembaga</th>
-              <th>No. Telepon / WA</th>
+              <th>Jabatan Struktural</th>
+              <th>Unit Instansi</th>
+              <th>No. WhatsApp</th>
               <th>Status</th>
-              <th className="text-right">Aksi</th>
+              <th className="text-right">Aksi Standards (RBAC)</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((p) => (
               <tr key={p.id} className="hover:bg-slate-50/80">
+                <td className="font-mono text-xs font-bold text-emerald-800">{p.nik}</td>
                 <td className="font-bold text-slate-900">{p.nama}</td>
-                <td className="text-slate-700 text-xs font-medium">{p.jabatan}</td>
+                <td className="text-xs text-slate-700 font-semibold">{p.jabatan}</td>
                 <td>
-                  <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold text-[10px] border border-emerald-200">
+                  <span className="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold text-[10px] border border-emerald-200">
                     {p.unit}
                   </span>
                 </td>
                 <td className="font-mono text-xs text-slate-600">{p.telepon}</td>
                 <td>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    p.status === 'AKTIF' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                  }`}>
                     {p.status}
                   </span>
                 </td>
                 <td className="text-right">
-                  <button
-                    onClick={() => showToast('info', 'Edit Pengurus', `Mengedit data ${p.nama}`)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                  >
-                    Edit
-                  </button>
+                  <TableActions
+                    onDetail={() => showToast('info', 'Detail Pengurus', `Detail ${p.nama}`)}
+                    onEdit={() => showToast('info', 'Edit Pengurus', `Edit ${p.nama}`)}
+                    onToggleStatus={() => handleToggleStatus(p.id, p.nama)}
+                    statusActive={p.status === 'AKTIF'}
+                    onDelete={() => {
+                      setList((prev) => prev.filter((item) => item.id !== p.id));
+                      showToast('success', 'Soft Delete', `Pengurus ${p.nama} dipindahkan ke Recycle Bin.`);
+                    }}
+                  />
                 </td>
               </tr>
             ))}

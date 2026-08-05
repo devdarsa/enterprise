@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
+import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface TahunAjaran {
   id: string;
@@ -36,9 +37,10 @@ export default function TahunAjaranPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
+      {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
@@ -46,15 +48,14 @@ export default function TahunAjaranPage() {
           </span>
           <h1 className="text-xl font-black text-slate-900">Manajemen Tahun Ajaran & Semester</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Pengaturan Periode Akademik Aktif dan Riwayat Tahun Ajaran
+            Pengaturan Periode Akademik Aktif, Tutup Tahun Ajaran, & Riwayat Periode
           </p>
         </div>
-        <button
-          onClick={() => showToast('info', 'Tambah Tahun Ajaran', 'Membuka form tahun ajaran baru.')}
-          className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 shrink-0"
-        >
-          <span>📅</span> + Tambah Tahun Ajaran Baru
-        </button>
+
+        <ImportExportToolbar
+          onAdd={() => showToast('info', 'Tambah Tahun Ajaran', 'Form tahun ajaran baru.')}
+          addLabel="📅 + Tambah Tahun Ajaran Baru"
+        />
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -65,7 +66,7 @@ export default function TahunAjaranPage() {
               <th>Semester</th>
               <th>Periode Pelaksanaan</th>
               <th>Status Aktif</th>
-              <th className="text-right">Aksi</th>
+              <th className="text-right">Aksi Standards (RBAC)</th>
             </tr>
           </thead>
           <tbody>
@@ -84,14 +85,12 @@ export default function TahunAjaranPage() {
                   )}
                 </td>
                 <td className="text-right">
-                  {item.status !== 'AKTIF' && (
-                    <button
-                      onClick={() => handleSetAktif(item.id)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm"
-                    >
-                      Set Aktif
-                    </button>
-                  )}
+                  <TableActions
+                    onEdit={() => showToast('info', 'Edit Tahun Ajaran', `Edit ${item.nama}`)}
+                    onRiwayat={() => showToast('info', 'Riwayat Tahun Ajaran', `Riwayat ${item.nama}`)}
+                    onToggleStatus={() => handleSetAktif(item.id)}
+                    statusActive={item.status === 'AKTIF'}
+                  />
                 </td>
               </tr>
             ))}

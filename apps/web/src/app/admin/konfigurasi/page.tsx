@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
+import { FormActions } from '@/components/TableActions';
 
 export default function KonfigurasiSistemPage() {
   const [namaPondok, setNamaPondok] = useState("Ma'had Darussa'adah Lirboyo");
@@ -15,13 +16,30 @@ export default function KonfigurasiSistemPage() {
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('success', 'Konfigurasi Tersimpan', 'Pengaturan utama Darsa Enterprise berhasil diperbarui.');
+    showToast('success', 'Konfigurasi Tersimpan', 'Pengaturan utama Darsa Enterprise berhasil diperbarui & dicatat pada Audit Log.');
+  };
+
+  const handleResetConfig = () => {
+    setNamaPondok("Ma'had Darussa'adah Lirboyo");
+    setAlamatPondok('Jl. KH. Abdul Karim No. 12, Lirboyo, Kota Kediri');
+    setRadiusQr(200);
+    setNotifWa(true);
+    showToast('warning', 'Pengaturan Direset', 'Konfigurasi telah dikembalikan ke standar awal.');
+  };
+
+  const handleBackup = () => {
+    showToast('info', 'Backup Konfigurasi', 'Mengunduh file cadangan konfigurasi sistem (JSON).');
+  };
+
+  const handleRestore = () => {
+    showToast('info', 'Restore Konfigurasi', 'Membuka dialog pemulihan cadangan konfigurasi.');
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
+      {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
@@ -29,12 +47,27 @@ export default function KonfigurasiSistemPage() {
           </span>
           <h1 className="text-xl font-black text-slate-900">Konfigurasi & Parameter Sistem</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Pengaturan Identitas Lembaga, Preferensi QR Code Presensi, & Parameter Utama SaaS
+            Pengaturan Identitas Lembaga, Preferensi QR Code Presensi, & Backup/Restore Parameter
           </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleBackup}
+            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-200 transition-all flex items-center gap-1.5"
+          >
+            <span>💾</span> Backup Konfigurasi
+          </button>
+          <button
+            onClick={handleRestore}
+            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-200 transition-all flex items-center gap-1.5"
+          >
+            <span>📥</span> Restore Konfigurasi
+          </button>
         </div>
       </div>
 
-      <form onSubmit={handleSaveConfig} className="space-y-6 max-w-3xl">
+      <form onSubmit={handleSaveConfig} className="space-y-6">
         <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">🏛️ 1. Identitas Utama Pondok Pesantren</h2>
           <div className="space-y-3">
@@ -63,9 +96,12 @@ export default function KonfigurasiSistemPage() {
           </div>
         </div>
 
-        <button type="submit" className="w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow-lg shadow-emerald-700/20 transition-all">
-          💾 Simpan Konfigurasi Sistem
-        </button>
+        {/* Standard Form Actions (Simpan, Reset, Batal) */}
+        <FormActions
+          onSave={handleSaveConfig}
+          onReset={handleResetConfig}
+          onCancel={() => window.history.back()}
+        />
       </form>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SearchBar } from '@/components/Loading';
+import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface Alumni {
   id: string;
@@ -34,9 +35,10 @@ export default function DataAlumniPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
+      {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
@@ -44,15 +46,16 @@ export default function DataAlumniPage() {
           </span>
           <h1 className="text-xl font-black text-slate-900">Data Alumni & Riwayat Kelulusan</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Master Arsip Data Kelulusan Santri, Status Khidmah, dan Riwayat Pendidikan
+            Master Arsip Data Kelulusan Santri, Status Khidmah, & Riwayat Pendidikan
           </p>
         </div>
-        <button
-          onClick={() => showToast('info', 'Tambah Alumni', 'Modul pencatatan alumni baru.')}
-          className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 shrink-0"
-        >
-          <span>🎓</span> + Pendataan Alumni Baru
-        </button>
+
+        <ImportExportToolbar
+          onAdd={() => showToast('info', 'Pendataan Alumni', 'Form alumni baru.')}
+          addLabel="🎓 + Pendataan Alumni Baru"
+          onExport={() => showToast('info', 'Export Data', 'Mengeksport data alumni.')}
+          onPrint={() => showToast('info', 'Cetak Data', 'Mencetak direktori alumni.')}
+        />
       </div>
 
       <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
@@ -69,7 +72,7 @@ export default function DataAlumniPage() {
               <th>Jenjang Terakhir</th>
               <th>Status Alumni</th>
               <th>Catatan / Lokasi</th>
-              <th className="text-right">Aksi</th>
+              <th className="text-right">Aksi Standards (RBAC)</th>
             </tr>
           </thead>
           <tbody>
@@ -86,12 +89,15 @@ export default function DataAlumniPage() {
                 </td>
                 <td className="text-xs text-slate-500">{a.lokasiKhidmah || '-'}</td>
                 <td className="text-right">
-                  <button
-                    onClick={() => showToast('info', 'Detail Alumni', `Melihat riwayat ${a.nama}`)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                  >
-                    Detail
-                  </button>
+                  <TableActions
+                    onDetail={() => showToast('info', 'Detail Alumni', `Detail ${a.nama}`)}
+                    onEdit={() => showToast('info', 'Edit Alumni', `Edit ${a.nama}`)}
+                    onArsip={() => showToast('info', 'Arsip Alumni', `Arsip ${a.nama}`)}
+                    onDelete={() => {
+                      setAlumniList((prev) => prev.filter((item) => item.id !== a.id));
+                      showToast('success', 'Soft Delete', `Data alumni ${a.nama} dipindahkan ke Recycle Bin.`);
+                    }}
+                  />
                 </td>
               </tr>
             ))}
