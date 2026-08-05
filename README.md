@@ -10,81 +10,73 @@ Ma'had Darussa'adah Lirboyo Kota Kediri
 
 ---
 
-## 🏛️ Ketentuan & Prinsip Arsitektur Utama
+## 🏛️ Ketentuan & Arsitektur Utama Darsa Enterprise
 
-### 1. Database Centric (Zero Hardcoded Data)
-* Seluruh data dalam Darsa Enterprise **bermuara pada Database** (`simulationDb` / Prisma).
-* **Tidak ada data hardcode** di dalam kode program, baik data pengguna, data master, konfigurasi operasional, maupun transaksi.
-* Seluruh data dibuat, diubah, dihapus, dan disajikan secara **live / real-time**.
-
-### 2. Single Source of Truth (SSOT) Pondok Pesantren
-* **Pondok Pesantren** merupakan **Master Database (Single Source of Truth)** seluruh Siswa/Siswi.
+### 1. Database Centric & Single Source of Truth (SSOT)
+* **Pondok Pesantren** merupakan **Master Database (Single Source of Truth)** seluruh Santri/Santriwati (BAB I - X).
 * Menggunakan **NISP (Nomor Induk Santri Pondok / Stambuk)** sebagai identitas utama unik.
-* Perubahan biodata siswa hanya diizinkan melalui modul Pondok Pesantren.
-* Modul **Madrasah Diniyah** dan **MI Formal** hanya melakukan **pemanggilan (import/referensi)** data dari Database Pondok via NISP tanpa membuat data siswa baru.
+* Identitas Master Santri hanya disimpan 1 kali dan **TIDAK menyimpan kelas**.
+* Data kelas disimpan di tabel khusus **`PenempatanPendidikan` (`penempatan_pendidikan`)** dengan dukungan **Dual-Enrollment** (Satu santri dapat bersekolah di Madrasah Diniyah, MI Formal, atau keduanya sekaligus di tahun ajaran yang sama).
+* Unit **Madrasah Diniyah** dan **MI Formal** tidak membuat data santri baru, hanya melakukan pemanggilan (import/referensi) data penempatan dari Database Pondok via API.
 
-### 3. Penyambungan Akun Wali Santri via NIK Orang Tua
+### 2. Penyambungan Akun Wali Santri via NIK Orang Tua
 * Akun Wali Santri terhubung otomatis dengan data santri menggunakan **NIK Kependudukan (`nik_wali`)** orang tua/wali di Database Pondok.
 * **Support Multi-Santri**: 1 Akun Wali Santri yang memiliki NIK sama dapat terhubung otomatis dengan 1 atau lebih santri (saudara/kakak-adik) dengan sakelar tab santri di portal.
 
-### 4. Interface Berdasarkan Role (Role-Based Interface)
-* **🖥️ Sekretariat (Desktop-Only Guard)**: Halaman administrasi (`/admin/*` & `/sekretariat/*`) khusus untuk perangkat berlayar besar ($\ge 1024\text{px}$). Akses dari smartphone diblokir otomatis demi integritas data.
-* **📱 Guru, Pengasuh, & Wali Santri (Mobile-First)**: Menggunakan antarmuka Native App dengan **Bottom Navigation Bar** (Beranda, QR Code, Absensi, Informasi, Akun) yang ramah penggunaan satu tangan.
+### 3. Master Wilayah Indonesia (Server Caching & API Wilayah)
+* Pengelolaan data wilayah bertahap (Provinsi ➔ Kab/Kota ➔ Kecamatan ➔ Desa/Kelurahan ➔ Dusun ➔ RT/RW ➔ Jalan ➔ Kode Pos) via server-side API `/api/v1/wilayah`.
+* Tersimpan di tabel `master_provinsi`, `master_kabupaten`, `master_kecamatan`, `master_desa` dengan toleransi **offline fallback** sehingga aplikasi tetap berjalan meskipun API luar tidak dapat diakses.
+* Pembentukan otomatis kolom **`alamat_lengkap`** terformat resmi.
 
-### 5. QR Code Khusus Absensi Guru
-* Fitur scan QR Code **hanya digunakan sebagai media presensi kehadiran Guru** (Guru Madrasah & Guru MI) untuk Absensi Masuk dan Pulang.
-* Fitur QR Code **TIDAK** digunakan oleh Wali Santri, Sekretariat, Pengasuh, maupun Santri.
-* Setiap scan mencatat `guru_id`, `nama_guru`, `unit_guru`, `timestamp`, dan geofencing radius (200m) ke database.
+### 4. Struktur Menu & Role-Based Access Control (RBAC 7-Role)
+Navigasi dikelompokkan secara konsisten ke dalam 4 kategori utama:
+- 📊 **DASHBOARD**: Overview Dashboard dinamis per role.
+- 🏛️ **DATABASE PONDOK**: Data Santri & Wali, Data Asrama & Pembina, Data Pengurus, Data Pengajar, Alumni.
+- 🛡️ **KEAMANAN**: Perizinan Santri, Pelanggaran & Kedisiplinan.
+- ⚙️ **SISTEM & UTILITAS**: Arsip Historis, Tahun Ajaran, Manajemen Akun, Audit Log & Recycle Bin, Panduan & SOP, Konfigurasi Sistem.
 
 ---
 
-## 👥 Hak Akses Role Pengguna
+## 👥 Matriks Role & Hak Akses (RBAC Matrix)
 
-| Role Pengguna | Akses Modul | Navigasi UI | Deskripsi Hak Akses |
-|---|---|---|---|
-| 🏛️ **Sekretariat** | `/admin/*`, `/sekretariat/*` | Desktop Sidebar | Administrasi Master Data Pondok, Madrasah, MI, Asrama, Pengumuman, Surat, Jadwal |
-| 👳 **Pengasuh** | `/pengasuh/*` | Mobile Bottom Nav | Monitoring Pesantren, Hafalan Tahfidz, & Kebijakan |
-| 👨‍🏫 **Guru Madrasah** | `/guru_madrasah/*` | Mobile Bottom Nav | Dual Mode: Mustahiq (Wali Kelas) & Munawwib (Input Nilai Diniyah) + Scan QR Presensi |
-| 🏫 **Guru MI** | `/guru_mi/*` | Mobile Bottom Nav | Presensi Guru MI via Scan QR Code & Jadwal Mengajar (Tanpa Input Nilai) |
-| 👨‍👩‍👧 **Wali Santri** | `/wali_santri/*` | Mobile Bottom Nav | Read-only informasi nilai, presensi, pengumuman, & Pengajuan Izin Santri Online |
+| Role Pengguna | Modul Utama | Scope & Ketentuan Akses |
+|---|---|---|
+| 🏛️ **Sekretariat Pondok** | `/admin/*` | Administrator Utama. Akses penuh ke seluruh menu (Dashboard, Database Pondok, Keamanan, Sistem & Utilitas). |
+| 📚 **Sekretariat Madrasah** | `/admin/*` | Admin Akademik Madrasah Diniyah. Data santri read-only, tanpa akses ke Konfigurasi Pondok. |
+| 🏫 **Sekretariat MI** | `/admin/*` | Admin Operasional MI Formal. Data santri read-only, tanpa menu Nilai Akademik MI. |
+| 🛡️ **Keamanan** | `/admin/surat`, `/admin/pelanggaran` | Akses khusus Perizinan, Pelanggaran, & SOP. Tanpa akses ke biodata/akademik santri. |
+| 👨‍🏫 **Mustahiq / Munawwib** | `/guru_madrasah/*` | Guru Diniyah: Mustahiq (Wali Kelas) & Munawwib. Input Nilai, Absensi Santri, Jadwal, QR Presensi. |
+| 🏫 **Guru MI** | `/guru_mi/*` | Presensi Guru MI via Dynamic QR Code & Jadwal Mengajar (Tanpa Menu Nilai). |
+| 👨‍👩‍👧 **Wali Santri** | `/wali_santri/*` | Read-only informasi santri, akademik, perizinan, pelanggaran, pengumuman (Multi-Santri NIK Link). |
+
+---
+
+## 🛠️ Standar Tombol Aksi & UI
+
+* **Data Grid Tabel**: `🔍 Detail`, `✏️ Edit`, `🗑️ Soft Delete` (ke Recycle Bin), `📜 Riwayat` (Audit Log), `🎓 Penempatan`, `⚡ Aktifkan/Nonaktifkan`, `📦 Arsip`.
+* **Toolbar Actions**: `➕ Tambah Data`, `📥 Import`, `📊 Export`, `🖨️ Cetak`, `🔄 Sync`.
+* **Form Actions**: `💾 Simpan`, `➕ Simpan & Tambah Baru`, `✅ Simpan & Tutup`, `🔄 Reset`, `❌ Batal`, `← Kembali`.
+* **Mobile Friendly**: Touch-friendly button sizes & Mobile Bottom Navigation Bar.
 
 ---
 
 ## 📂 Struktur Folder Proyek
 
 ```text
-users/
-├── sekretariat/       # Administrasi Pondok, Madrasah, & MI (Desktop Only)
-├── wali_santri/       # Portal Informasi Wali Santri (Mobile First)
-├── guru_madrasah/     # Portal Mustahiq & Munawwib (Mobile First)
-├── guru_mi/           # Portal Presensi Guru MI (Mobile First)
-└── shared/            # Utility & Shared Components
-```
-
----
-
-## 🏗️ Struktur Monorepo
-
-```text
 darsa_enterprise/
+├── docs/                      # Dokumentasi Spesifikasi Resmi & ADR
 ├── apps/
-│   └── web/               # Next.js 15 Web Application (App Router)
-│       ├── public/        # Manifest.json PWA & Static Assets
+│   └── web/                   # Next.js 15 Web Application (App Router)
 │       └── src/
 │           ├── app/
-│           │   ├── admin/             # Master Santri, Asrama, Guru, Pengumuman, Surat
-│           │   ├── guru_madrasah/     # Portal Guru Madrasah (Mustahiq & Munawwib)
+│           │   ├── admin/             # Master Santri, Asrama, Pengurus, Guru, Alumni, Surat, Pelanggaran, Akun, Audit Log, SOP, Konfigurasi
+│           │   ├── guru_madrasah/     # Portal Guru Diniyah (Mustahiq & Munawwib)
 │           │   ├── guru_mi/           # Portal Presensi Guru MI
-│           │   ├── wali_santri/       # Portal Wali Santri & Pengajuan Izin
-│           │   └── api/v1/            # Real-Time Simulation API Routes
-│           └── components/            # DesktopOnlyGuard, MobileBottomNav, Modal, Toast
-├── packages/
-│   ├── database/          # Prisma Schema + Simulation Database Engine Store
-│   ├── types/             # TypeScript Shared Types
-│   ├── ui/                # Shared UI Tokens
-│   └── utils/             # Haversine Distance & Response Utilities
-└── scripts/
-    └── seed.ts            # Database Seeder
+│           │   ├── wali_santri/       # Portal Wali Santri Multi-Santri
+│           │   └── api/v1/            # Simulation & Wilayah API Routes
+│           └── components/            # RegionSelector, TableActions, DesktopOnlyGuard, MobileBottomNav
+└── packages/
+    └── database/              # Prisma Schema (Master Wilayah, Santri, PenempatanPendidikan) + Simulation Database Store
 ```
 
 ---
@@ -108,11 +100,14 @@ Buka [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🎭 Akun Demo Login (Live Simulation Mode)
+## 🎭 Akun Demo Login (RBAC Live Mode)
 
-| Role Pengguna | Username / Email | Password | Direct Portal |
+| Role Pengguna | Email Login | Password | Scope / Instansi |
 |---|---|---|---|
-| 🏛️ **Sekretariat** | `admin@darsa.id` | `admin123` | `/admin/dashboard` |
-| 👨‍🏫 **Guru Madrasah** | `guru@darsa.id` | `guru123` | `/guru_madrasah/dashboard` |
-| 🏫 **Guru MI** | `gurumi@darsa.id` | `guru123` | `/guru_mi/dashboard` |
-| 👨‍👩‍👧 **Wali Santri** | `wali@darsa.id` | `wali123` | `/wali_santri/dashboard` |
+| 🏛️ **Sekretariat Pondok** | `admin@darsa.id` | `admin123` | Master Single Source of Truth |
+| 📚 **Sekretariat Madrasah** | `sek.madrasah@darsa.id` | `admin123` | Akademik Diniyah |
+| 🏫 **Sekretariat MI** | `sek.mi@darsa.id` | `admin123` | Operasional MI |
+| 🛡️ **Keamanan** | `keamanan@darsa.id` | `admin123` | Perizinan & Pelanggaran |
+| 👨‍🏫 **Guru Madrasah** | `guru@darsa.id` | `guru123` | Mustahiq & Munawwib |
+| 🏫 **Guru MI** | `guru.mi@darsa.id` | `guru123` | Guru MI Formal |
+| 👨‍👩‍👧 **Wali Santri** | `wali@darsa.id` | `wali123` | Multi-Santri NIK Link |
