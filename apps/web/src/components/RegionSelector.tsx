@@ -24,6 +24,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
   const [selectedVillage, setSelectedVillage] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [loadingPostcode, setLoadingPostcode] = useState(false);
   const [postcode, setPostcode] = useState('');
   const [detailStreet, setDetailStreet] = useState('');
 
@@ -137,7 +138,60 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     fetchVillages();
   }, [selectedDistrict]);
 
-  // Combined Address Output
+  // 5. Autocomplete Kode Pos Otomatis saat Desa / Kelurahan dipilih
+  useEffect(() => {
+    if (!selectedVillage) return;
+
+    const vilName = villages.find((v) => v.id === selectedVillage)?.name || '';
+    const distName = districts.find((d) => d.id === selectedDistrict)?.name || '';
+    const regName = regencies.find((r) => r.id === selectedRegency)?.name || '';
+
+    if (!vilName) return;
+
+    let active = true;
+
+    async function fetchPostcode() {
+      setLoadingPostcode(true);
+      try {
+        const res = await fetch(`https://kodepos.vercel.app/search?q=${encodeURIComponent(vilName)}`);
+        if (res.ok) {
+          const json = await res.json();
+          const cleanName = (str: string) =>
+            str.toLowerCase().replace(/(kabupaten|kab\.|kota|kecamatan|kec\.|kelurahan|desa|kel\.)/g, '').trim();
+
+          const cleanReg = cleanName(regName);
+          const cleanDist = cleanName(distName);
+          const cleanVil = cleanName(vilName);
+
+          const matches = json.data || json || [];
+          if (Array.isArray(matches) && active) {
+            const matchedRecord =
+              matches.find((m: { village?: string; district?: string; regency?: string; code?: string | number }) => {
+                const mReg = cleanName(m.regency || '');
+                const mDist = cleanName(m.district || '');
+                const mVil = cleanName(m.village || '');
+                return mVil === cleanVil && (mDist === cleanDist || mReg === cleanReg);
+              }) || matches[0];
+
+            if (matchedRecord && matchedRecord.code) {
+              setPostcode(String(matchedRecord.code));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Gagal mencari kode pos otomatis:', err);
+      } finally {
+        if (active) setLoadingPostcode(false);
+      }
+    }
+
+    fetchPostcode();
+    return () => {
+      active = false;
+    };
+  }, [selectedVillage, selectedDistrict, selectedRegency, villages, districts, regencies]);
+
+  // 6. Combined Address Output String Format MPHM_V.02
   useEffect(() => {
     const provName = provinces.find((p) => p.id === selectedProvince)?.name || '';
     const regName = regencies.find((r) => r.id === selectedRegency)?.name || '';
@@ -160,10 +214,14 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
   return (
     <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
       <div className="flex justify-between items-center">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-          📍 Alamat Kependudukan (Cahyadsn API Wilayah Indonesia 100%)
+        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+          <span>📍</span> Alamat Kependudukan (Cahyadsn API Wilayah & Auto Kode Pos)
         </label>
-        {loading && <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Data Cahyadsn API...</span>}
+        {loading ? (
+          <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Wilayah...</span>
+        ) : loadingPostcode ? (
+          <span className="text-[10px] text-amber-600 animate-pulse font-bold">✨ Mencari Kode Pos Otomatis...</span>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -177,6 +235,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
               setSelectedRegency('');
               setSelectedDistrict('');
               setSelectedVillage('');
+              setPostcode('');
             }}
             className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
           >
@@ -197,6 +256,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
               setSelectedRegency(e.target.value);
               setSelectedDistrict('');
               setSelectedVillage('');
+              setPostcode('');
             }}
             className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:opacity-50"
           >
@@ -216,6 +276,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
             onChange={(e) => {
               setSelectedDistrict(e.target.value);
               setSelectedVillage('');
+              setPostcode('');
             }}
             className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:opacity-50"
           >
@@ -232,7 +293,10 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
           <select
             value={selectedVillage}
             disabled={!selectedDistrict}
-            onChange={(e) => setSelectedVillage(e.target.value)}
+            onChange={(e) => {
+              setSelectedVillage(e.target.value);
+              setPostcode('');
+            }}
             className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:opacity-50"
           >
             <option value="">-- Pilih Desa/Kelurahan --</option>
@@ -255,13 +319,16 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
           />
         </div>
         <div>
-          <span className="text-[11px] font-bold text-slate-600 block mb-1">Kode Pos</span>
+          <span className="text-[11px] font-bold text-slate-600 block mb-1 flex items-center justify-between">
+            <span>Kode Pos</span>
+            {loadingPostcode && <span className="text-[9px] text-amber-600 font-bold">Auto...</span>}
+          </span>
           <input
             type="text"
             placeholder="64117"
             value={postcode}
             onChange={(e) => setPostcode(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 font-mono"
+            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 font-mono text-emerald-800"
           />
         </div>
       </div>
