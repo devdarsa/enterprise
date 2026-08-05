@@ -34,6 +34,44 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'idle' | 'verifying' | 'redirecting'>('idle');
 
+  // BAB V - Wali Santri Self-Registration State
+  const [isWaliRegisterModalOpen, setIsWaliRegisterModalOpen] = useState(false);
+  const [regNik, setRegNik] = useState('');
+  const [regHp, setRegHp] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regUsername, setRegUsername] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+
+  const handleWaliRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (regPassword !== regConfirmPassword) {
+      alert('Password dan Konfirmasi Password tidak cocok!');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/simulation/data?type=santri_wali&nik=${regNik}`);
+      const json = await res.json();
+
+      if (json.success && json.data && json.data.length > 0) {
+        const anakList = json.data;
+        const anakNames = anakList.map((a: any) => a.nama).join(', ');
+        alert(`Verifikasi NIK Berhasil!\n\nNIK ${regNik} terhubung dengan ${anakList.length} anak:\n${anakNames}\n\nAkun Wali Santri telah dibuat. Silakan login.`);
+        setIsWaliRegisterModalOpen(false);
+        setEmail('wali@darsa.id');
+        setPassword('wali123');
+      } else {
+        alert(`Verifikasi NIK Gagal!\n\nNIK ${regNik} tidak ditemukan pada Database Pondok. Pendaftaran tidak dapat dilanjutkan.`);
+      }
+    } catch {
+      alert('Terjadi kesalahan saat memverifikasi NIK Kependudukan.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const instansiData = {
     pondok: {
       nama: "Ma'had Darussa'adah Lirboyo",
@@ -352,9 +390,130 @@ export default function LoginPage() {
                 <p>wali@darsa.id / wali123 (Wali Santri)</p>
               </div>
             </div>
+
+            {/* BAB V - Self-Registration Button for Wali Santri */}
+            <div className="pt-2 text-center border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setIsWaliRegisterModalOpen(true)}
+                className="text-xs font-bold text-emerald-800 hover:text-emerald-900 hover:underline flex items-center justify-center gap-1 mx-auto"
+              >
+                <span>👨‍👩‍👧</span> Pendaftaran Akun Wali Santri Baru (Verifikasi NIK Automatis) →
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Modal Pendaftaran Akun Wali Santri (BAB V) */}
+      {isWaliRegisterModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <span>👨‍👩‍👧</span> Pendaftaran Akun Wali Santri (BAB V)
+              </h3>
+              <button onClick={() => setIsWaliRegisterModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleWaliRegisterSubmit} className="space-y-3 text-xs">
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900">
+                <p className="font-bold">ℹ️ Verifikasi Automatis NIK Master Pondok:</p>
+                <p className="mt-0.5">Sistem akan mencocokkan NIK Kependudukan dengan Master Database Pondok. Seluruh anak yang terhubung dengan NIK tersebut akan otomatis muncul pada portal anda.</p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">NIK Ayah / Ibu / Wali *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="3571012304850001"
+                  value={regNik}
+                  onChange={(e) => setRegNik(e.target.value)}
+                  className="input-premium font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nomor HP / WhatsApp *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="081399887766"
+                    value={regHp}
+                    onChange={(e) => setRegHp(e.target.value)}
+                    className="input-premium"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Email (Opsional)</label>
+                  <input
+                    type="email"
+                    placeholder="wali@gmail.com"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="input-premium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Username Akun *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="hendra_wali"
+                  value={regUsername}
+                  onChange={(e) => setRegUsername(e.target.value)}
+                  className="input-premium font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Password *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    className="input-premium"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Konfirmasi Password *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={regConfirmPassword}
+                    onChange={(e) => setRegConfirmPassword(e.target.value)}
+                    className="input-premium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsWaliRegisterModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold shadow-md"
+                >
+                  🚀 Verifikasi NIK & Buat Akun
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,15 +1,36 @@
 # Spesifikasi Lengkap Darsa Enterprise (Official Master Document)
 
 **Status:** Approved Official Standard  
-**Versi:** 5.0.0  
+**Versi:** 6.0.0  
 **Tanggal:** 5 Agustus 2026  
 **Lembaga:** Ma'had Darussa'adah Lirboyo Kota Kediri  
 
 ---
 
-## 1. Standar Penarikan Data & Integrasi API Database (BAB I - XIV)
+## 1. Standar Pembuatan Akun & Pendaftaran (BAB I - X)
 
-### A. Arsitektur Data Flow (BAB III)
+### A. Prinsip Utama Pembuatan Akun (BAB I & II)
+1. **Mandatori Master Database**: Seluruh akun (Guru, Pengurus, Wali Santri) **WAJIB BERASAL DARI MASTER DATABASE** (`Data Pengajar`, `Data Pengurus`, `Database Santri / NIK Wali`). Tidak diperbolehkan membuat akun tanpa data induk.
+2. **Satu Identitas Satu Akun**: Perubahan nama, HP, atau jabatan dilakukan pada Master Database, bukan pada tabel akun.
+3. **Audit Logging Automatic**: Seluruh proses pembuatan akun, registrasi, aktivasi, perubahan status, dan reset password dicatat ke Audit Log.
+
+### B. Pembuatan Akun Guru & Pengurus (BAB III & IV)
+- Sekretariat membuka `Manajemen Akun` ➔ Tambah Akun ➔ Pilih Guru / Pengurus dari dropdown Master Database yang belum berakun ➔ Sistem mengisi data otomatis ➔ Set Username & Role RBAC ➔ Pengguna **WAJIB mengganti password** pada login pertama.
+
+### C. Pendaftaran Akun Wali Santri (BAB V - Multi-Santri Automatic NIK Link)
+- Akun Wali Santri **TIDAK dibuat oleh Sekretariat**, melainkan didaftarkan sendiri oleh Wali Santri via form `Daftar Akun`.
+- Form mengisi NIK (Ayah / Ibu / Wali), Tgl Lahir, HP, Email, Username, Password.
+- Sistem mencocokkan NIK Kependudukan ke Database Pondok. Jika NIK ditemukan, sistem **secara otomatis menghubungkan SELURUH ANAK** yang terdaftar di bawah NIK tersebut (Multi-Santri: 1 NIK -> banyak anak). Jika NIK tidak ditemukan, pendaftaran ditolak.
+
+### D. Keamanan Kredensial & Reset Password (BAB VI - X)
+- Password wajib di-hash menggunakan Argon2 atau bcrypt (plain text dilarang).
+- Reset password oleh Admin atau Mandatori Reset tercatat di Audit Log.
+
+---
+
+## 2. Standar Penarikan Data & Integrasi API Database (BAB I - XIV)
+
+### A. Arsitektur Data Flow
 ```text
 Frontend (Web / Mobile) ──► REST API Backend (/api/v1/*) ──► Database Engine ──► Master Single Source of Truth
 ```
@@ -20,11 +41,10 @@ Frontend (Web / Mobile) ──► REST API Backend (/api/v1/*) ──► Databas
 3. **Zero Hardcoded Data**: Seluruh data disajikan, dibuat, diubah, dan dihapus secara **live / real-time**.
 4. **Operasi CRUD & Recovery**: Mendukung Create, Read, Update, Soft Delete (`recycle_bin`), dan Restore.
 5. **Cross-Module Sync**: Perubahan biodata santri di Pondok atau penempatan di kelas langsung tercermin secara real-time pada modul Madrasah, MI, dan Portal Wali Santri.
-6. **Keamanan API**: HTTPS, Session/Token Auth, Role-Based Access Control (RBAC), Input Validation, Rate Limiting, & Immutable Audit Logging.
 
 ---
 
-## 2. Navigasi & Standar Isi 19 Modul Menu Darsa Enterprise
+## 3. Navigasi & Standar Isi 19 Modul Menu Darsa Enterprise
 
 ### 1. DASHBOARD
 - **Cards**: Total Santri Aktif, Total Guru, Total Pengurus, Total Perizinan Hari Ini, Total Pelanggaran Hari Ini, Total Kehadiran Guru Hari Ini.
@@ -96,7 +116,7 @@ Frontend (Web / Mobile) ──► REST API Backend (/api/v1/*) ──► Databas
 
 ---
 
-## 3. Ketentuan Tampilan Menu Berdasarkan Role (UI/UX Standard BAB I - XIV)
+## 4. Ketentuan Tampilan Menu Berdasarkan Role (UI/UX Standard BAB I - XIV)
 
 1. **Sekretariat Pondok (BAB III)**: Desktop/Laptop Only (`DesktopOnlyGuard`). Menu: Dashboard, Database Pondok (Santri, Wali, Asrama, Pengurus, Pengajar, Alumni), Keamanan (Perizinan, Pelanggaran), Sistem (Tahun Ajaran, Manajemen Akun, Audit Log, Recycle Bin, Konfigurasi). Karakter: Profesional, administratif, banyak data & table.
 2. **Sekretariat Madrasah Diniyyah (BAB IV)**: Desktop/Laptop. Menu: Dashboard, Akademik (Kelas, Mapel, Mustahiq, Munawwib, Nilai, Absensi, Jadwal). Karakter: Fokus Akademik, cepat input nilai.
@@ -106,17 +126,6 @@ Frontend (Web / Mobile) ──► REST API Backend (/api/v1/*) ──► Databas
 6. **Munawwib (BAB VIII)**: Mobile First. Bottom Nav: 🏠 Beranda | 📚 Mapel | 📷 QR | 📅 Jadwal | 👤 Profil. Menu: Jadwal, Mapel, Input Nilai, Input Absensi, QR Code, Profil.
 7. **Guru MI (BAB IX)**: Mobile First. Bottom Nav: 🏠 Beranda | 📷 QR | 📅 Jadwal | 📋 Absensi | 👤 Profil. Menu: QR Code, Absensi, Jadwal, Profil (**TANPA MENU NILAI**).
 8. **Wali Santri (BAB X)**: Mobile First. Bottom Nav: 🏠 Beranda | 👨‍🎓 Anak | 📢 Informasi | 🔔 Notifikasi | 👤 Profil. Menu: Profil Anak, Nilai, Absensi, Perizinan, Pelanggaran, Pengumuman (Multi-Santri NIK Link).
-
----
-
-## 4. Ketentuan Database Santri (BAB I - X)
-
-1. **Single Source of Truth**: Pondok merupakan Master Database seluruh Santri/Santriwati.
-2. **Master Santri**: Hanya menyimpan identitas dasar permanen (NISP Stambuk, NISN, NIK, Nama Lengkap, Nama Panggilan, Gender, Tempat/Tgl Lahir, Anak Ke, Jumlah Saudara, Status Asrama, Foto).
-3. **Tanpa Kelas pada Master Santri**: Data kelas disimpan pada tabel `PenempatanPendidikan` (`penempatan_pendidikan`).
-4. **Dual-Enrollment**: Satu santri dapat bersekolah di Madrasah Diniyah, MI Formal, atau KEDUANYA sekaligus di tahun ajaran yang sama.
-5. **NIK Wali Link**: Akun Wali Santri terhubung menggunakan NIK Orang Tua/Wali, mendukung Multi-Santri (1 NIK Wali -> banyak anak).
-6. **Master Wilayah Indonesia**: Server-side API `/api/v1/wilayah` menyimpan `master_provinsi`, `master_kabupaten`, `master_kecamatan`, `master_desa` dengan offline fallback & auto-formatted `alamat_lengkap`.
 
 ---
 
