@@ -4,7 +4,12 @@ import path from 'path';
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, '../../'),
   outputFileTracingIncludes: {
-    '**/*': ['../../node_modules/.pnpm/@prisma+client*/**/*', '../../packages/database/**/*'],
+    '**/*': [
+      '../../node_modules/.pnpm/@prisma+client*/**/*',
+      '../../node_modules/.pnpm/@prisma+engines*/**/*',
+      '../../node_modules/.prisma/client/**/*',
+      '../../packages/database/**/*',
+    ],
   },
   transpilePackages: ['@darsa/auth', '@darsa/database', '@darsa/types', '@darsa/ui', '@darsa/utils'],
   images: {
