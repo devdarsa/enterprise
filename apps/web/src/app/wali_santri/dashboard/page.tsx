@@ -107,7 +107,18 @@ export default function WaliSantriDashboardPage() {
     }
   };
 
-  const activeSantri = connectedChildren[activeChildIndex];
+  const activeSantri = connectedChildren[activeChildIndex] || {
+    id: '',
+    nisp: '-',
+    nisn: '-',
+    nama: 'Santri',
+    kelas: '-',
+    instansi: 'PONDOK',
+    status: 'AKTIF',
+    hafalan_juz: 0,
+    perizinan: [],
+    nilai: [],
+  };
 
   // Rekapitulasi absensi: dari data perizinan santri yang aktif
   const rekapAbsensi = activeSantri?.perizinan
