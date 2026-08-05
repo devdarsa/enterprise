@@ -165,7 +165,54 @@ async function main() {
     });
   }
 
-  console.log('✅ Akun Admin, Guru, dan Santri berhasil diverifikasi/dibuat.');
+  // 7. Seed 8 Akun Portal Default
+  const DEFAULT_ACCOUNTS = [
+    { email: 'sekretariat.pondok@darsa.my.id', nama_lengkap: 'Sekretariat Pondok Pesantren', role: 'SEKRETARIAT' as const },
+    { email: 'sekretariat.madrasah@darsa.my.id', nama_lengkap: 'Sekretariat Madrasah Diniyah', role: 'ADMIN_INSTANSI' as const },
+    { email: 'sekretariat.mi@darsa.my.id', nama_lengkap: 'Sekretariat Formal MI', role: 'ADMIN_INSTANSI' as const },
+    { email: 'keamanan@darsa.my.id', nama_lengkap: 'Tim Keamanan & Perizinan', role: 'PEGAWAI' as const },
+    { email: 'guru.mi@darsa.my.id', nama_lengkap: 'Ustadzah Guru MI', role: 'GURU_MI' as const },
+    { email: 'mustahiq@darsa.my.id', nama_lengkap: 'Ustadz Mustahiq Diniyah', role: 'GURU_MADRASAH' as const },
+    { email: 'munawwib@darsa.my.id', nama_lengkap: 'Ustadz Munawwib Diniyah', role: 'GURU_MADRASAH' as const },
+    { email: 'wali@darsa.my.id', nama_lengkap: 'Wali Santri Lirboyo', role: 'WALI_SANTRI' as const },
+  ];
+
+  for (const acc of DEFAULT_ACCOUNTS) {
+    let accUser = await prisma.user.findUnique({ where: { email: acc.email } });
+    if (!accUser) {
+      accUser = await prisma.user.create({
+        data: {
+          email: acc.email,
+          nama_lengkap: acc.nama_lengkap,
+          email_verified: true,
+        },
+      });
+    }
+
+    let roleObj = await prisma.role.findFirst({ where: { name: acc.role as any } });
+    if (!roleObj) {
+      roleObj = await prisma.role.create({
+        data: {
+          name: acc.role as any,
+          description: `Role default ${acc.nama_lengkap}`,
+        },
+      });
+    }
+
+    const userRole = await prisma.userRole.findFirst({
+      where: { user_id: accUser.id, role_id: roleObj.id },
+    });
+    if (!userRole) {
+      await prisma.userRole.create({
+        data: {
+          user_id: accUser.id,
+          role_id: roleObj.id,
+        },
+      });
+    }
+  }
+
+  console.log('✅ 8 Akun Portal Default berhasil diverifikasi/dibuat.');
   console.log('🎉 Seeding Darsa Enterprise Selesai!');
 }
 
