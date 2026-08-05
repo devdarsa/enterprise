@@ -1,13 +1,13 @@
 # Spesifikasi Lengkap Darsa Enterprise (Official Master Document)
 
 **Status:** Approved Official Standard  
-**Versi:** 2.0.0  
+**Versi:** 3.0.0  
 **Tanggal:** 5 Agustus 2026  
 **Lembaga:** Ma'had Darussa'adah Lirboyo Kota Kediri  
 
 ---
 
-## 1. Struktur Menu Darsa Enterprise
+## 1. Structure Navigasi Menu Darsa Enterprise
 
 ### DASHBOARD
 - Overview Dashboard (Dinamis per Role & Instansi Aktif)
@@ -33,15 +33,16 @@
 
 ---
 
-## 2. Role & Hak Akses (7 Roles)
+## 2. Ketentuan Tampilan Menu Berdasarkan Role (UI/UX Standard BAB I - XIV)
 
-1. **Sekretariat Pondok**: Administrator Utama. Akses penuh ke seluruh menu (`Dashboard`, `Database Pondok`, `Keamanan`, `Sistem & Utilitas`).
-2. **Sekretariat Madrasah Diniyyah**: Admin Akademik Madrasah Diniyyah (`Dashboard`, `Akademik Madrasah`). Data santri read-only, tanpa akses ke Konfigurasi Pondok.
-3. **Sekretariat MI**: Admin Operasional MI (`Dashboard`, `Operasional MI`). Data santri read-only, tanpa menu Nilai (diampu app lain).
-4. **Keamanan**: Access restricted to `Dashboard`, `Perizinan`, `Pelanggaran`, `SOP`. Cannot mutate academic/biodata.
-5. **Mustahiq / Munawwib (Guru Madrasah)**: `Dashboard`, `QR Code Absensi Guru`, `Absensi Guru`, `Jadwal Mengajar`, `Data Kelas`, `Data Mapel`, `Input Nilai`, `Input Absensi Santri`, `Riwayat Mengajar`, `Profil`.
-6. **Guru MI**: `Dashboard`, `QR Code Absensi Guru`, `Absensi Guru`, `Jadwal Mengajar`, `Profil` (NO Nilai menu).
-7. **Wali Santri**: `Dashboard` (Read-only Info Santri, Info Akademik, Perizinan, Pelanggaran, Pengumuman, Profil), multi-santri NIK link.
+1. **Sekretariat Pondok (BAB III)**: Desktop/Laptop Only (`DesktopOnlyGuard`). Menu: Dashboard, Database Pondok (Santri, Wali, Asrama, Pengurus, Pengajar, Alumni), Keamanan (Perizinan, Pelanggaran), Sistem (Tahun Ajaran, Manajemen Akun, Audit Log, Recycle Bin, Konfigurasi). Karakter: Profesional, administratif, banyak data & table.
+2. **Sekretariat Madrasah Diniyyah (BAB IV)**: Desktop/Laptop. Menu: Dashboard, Akademik (Kelas, Mapel, Mustahiq, Munawwib, Nilai, Absensi, Jadwal). Karakter: Fokus Akademik, cepat input nilai.
+3. **Sekretariat MI (BAB V)**: Desktop/Laptop. Menu: Dashboard, Operasional MI (Kelas, Guru MI, Jadwal, Rekap Absensi Guru). Karakter: Ringan, operasional.
+4. **Keamanan (BAB VI)**: Desktop/Tablet. Menu: Dashboard, Perizinan, Pelanggaran, Riwayat. Karakter: Cepat, fokus monitoring.
+5. **Mustahiq (Wali Kelas) (BAB VII)**: Mobile First. Bottom Nav: 🏠 Beranda | 📅 Jadwal | 📖 Kelas | 📷 QR Absensi | 👤 Profil. Menu: Jadwal, Data Kelas, Input Absensi, Input Nilai, QR Code, Riwayat, Profil.
+6. **Munawwib (BAB VIII)**: Mobile First. Bottom Nav: 🏠 Beranda | 📚 Mapel | 📷 QR | 📅 Jadwal | 👤 Profil. Menu: Jadwal, Mapel, Input Nilai, Input Absensi, QR Code, Profil.
+7. **Guru MI (BAB IX)**: Mobile First. Bottom Nav: 🏠 Beranda | 📷 QR | 📅 Jadwal | 📋 Absensi | 👤 Profil. Menu: QR Code, Absensi, Jadwal, Profil (**TANPA MENU NILAI**).
+8. **Wali Santri (BAB X)**: Mobile First. Bottom Nav: 🏠 Beranda | 👨‍🎓 Anak | 📢 Informasi | 🔔 Notifikasi | 👤 Profil. Menu: Profil Anak, Nilai, Absensi, Perizinan, Pelanggaran, Pengumuman (Multi-Santri NIK Link).
 
 ---
 
@@ -61,7 +62,7 @@
 * **Data Grid Tabel**: `🔍 Detail`, `✏️ Edit`, `🗑️ Soft Delete` (ke Recycle Bin), `📜 Riwayat` (Audit Log), `🎓 Penempatan`, `⚡ Aktifkan/Nonaktifkan`, `📦 Arsip`.
 * **Toolbar Actions**: `➕ Tambah Data`, `📥 Import`, `📊 Export`, `🖨️ Cetak`, `🔄 Sync`.
 * **Form Actions**: `💾 Simpan`, `➕ Simpan & Tambah Baru`, `✅ Simpan & Tutup`, `🔄 Reset`, `❌ Batal`, `← Kembali`.
-* **Mobile Standards**: Touch-friendly buttons & Mobile Bottom Navigation.
+* **Mobile Standards**: Touch-friendly buttons & Mobile Bottom Navigation Bar.
 
 ---
 
