@@ -12,6 +12,44 @@ interface RegionSelectorProps {
   initialValue?: string;
 }
 
+const FALLBACK_PROVINCES: Region[] = [
+  { id: "35", name: "JAWA TIMUR" },
+  { id: "31", name: "DKI JAKARTA" },
+  { id: "32", name: "JAWA BARAT" },
+  { id: "33", name: "JAWA TENGAH" },
+  { id: "34", name: "DI YOGYAKARTA" },
+  { id: "51", name: "BALI" },
+  { id: "73", name: "SULAWESI SELATAN" },
+  { id: "11", name: "ACEH" },
+  { id: "12", name: "SUMATERA UTARA" },
+  { id: "13", name: "SUMATERA BARAT" },
+  { id: "14", name: "RIAU" },
+  { id: "16", name: "SUMATERA SELATAN" },
+  { id: "18", name: "LAMPUNG" },
+  { id: "36", name: "BANTEN" },
+  { id: "61", name: "KALIMANTAN BARAT" },
+  { id: "63", name: "KALIMANTAN SELATAN font" },
+  { id: "64", name: "KALIMANTAN TIMUR" },
+];
+
+async function safeFetchJson<T>(urls: string[]): Promise<T | null> {
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const text = await res.text();
+      // Verify if response is valid JSON array or object (not HTML error page)
+      if (text.trim().startsWith('[') || text.trim().startsWith('{')) {
+        const parsed = JSON.parse(text);
+        if (parsed) return parsed as T;
+      }
+    } catch {
+      // Ignore error and try next URL
+    }
+  }
+  return null;
+}
+
 export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) {
   const [provinces, setProvinces] = useState<Region[]>([]);
   const [regencies, setRegencies] = useState<Region[]>([]);
@@ -28,124 +66,88 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
   const [postcode, setPostcode] = useState('');
   const [detailStreet, setDetailStreet] = useState('');
 
-  // 1. Fetch 100% Provinces (Official Cahyadsn API: https://wilayah.cahyadsn.com / github:cahyadsn/wilayah)
+  // 1. Fetch 100% Provinces
   useEffect(() => {
     async function fetchProvinces() {
       setLoading(true);
-      try {
-        let res = await fetch('https://wilayah.cahyadsn.com/api/provinces.json');
-        if (!res.ok) {
-          res = await fetch('https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/provinces.json');
-        }
-        if (!res.ok) {
-          res = await fetch('https://cahyadsn.github.io/api-wilayah-indonesia/api/provinces.json');
-        }
-        if (!res.ok) {
-          res = await fetch('/wilayah/provinces.json');
-        }
+      const data = await safeFetchJson<Region[]>([
+        'https://emsifa.github.io/api-wilayah-indonesia/api/provinces.json',
+        'https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/provinces.json',
+        '/wilayah/provinces.json',
+      ]);
 
-        if (res.ok) {
-          const data = await res.json();
-          setProvinces(data || []);
-        }
-      } catch (err) {
-        console.error('Error fetching Official Cahyadsn provinces:', err);
-      } finally {
-        setLoading(false);
+      if (data && Array.isArray(data) && data.length > 0) {
+        setProvinces(data);
+      } else {
+        setProvinces(FALLBACK_PROVINCES);
       }
+      setLoading(false);
     }
     fetchProvinces();
   }, []);
 
-  // 2. Fetch Regencies (Kabupaten / Kota) from Official Cahyadsn API
+  // 2. Fetch Regencies (Kabupaten / Kota)
   useEffect(() => {
     if (!selectedProvince) return;
     async function fetchRegencies() {
       setLoading(true);
-      try {
-        const cleanProv = selectedProvince.replace(/\./g, '');
-        let res = await fetch(`https://wilayah.cahyadsn.com/api/regencies/${cleanProv}.json`);
-        if (!res.ok) {
-          res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/regencies/${cleanProv}.json`);
-        }
-        if (!res.ok) {
-          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/regencies/${cleanProv}.json`);
-        }
-        if (!res.ok) {
-          res = await fetch(`/wilayah/regencies/${cleanProv}.json`);
-        }
+      const cleanProv = selectedProvince.replace(/\./g, '');
+      const data = await safeFetchJson<Region[]>([
+        `https://emsifa.github.io/api-wilayah-indonesia/api/regencies/${cleanProv}.json`,
+        `https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/regencies/${cleanProv}.json`,
+        `/wilayah/regencies/${cleanProv}.json`,
+      ]);
 
-        if (res.ok) {
-          const data = await res.json();
-          setRegencies(data || []);
-        }
-      } catch (err) {
-        console.error('Error fetching Official Cahyadsn regencies:', err);
-      } finally {
-        setLoading(false);
+      if (data && Array.isArray(data)) {
+        setRegencies(data);
+      } else {
+        setRegencies([]);
       }
+      setLoading(false);
     }
     fetchRegencies();
   }, [selectedProvince]);
 
-  // 3. Fetch Districts (Kecamatan) from Official Cahyadsn API
+  // 3. Fetch Districts (Kecamatan)
   useEffect(() => {
     if (!selectedRegency) return;
     async function fetchDistricts() {
       setLoading(true);
-      try {
-        const cleanReg = selectedRegency.replace(/\./g, '');
-        let res = await fetch(`https://wilayah.cahyadsn.com/api/districts/${cleanReg}.json`);
-        if (!res.ok) {
-          res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/districts/${cleanReg}.json`);
-        }
-        if (!res.ok) {
-          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/districts/${cleanReg}.json`);
-        }
-        if (!res.ok) {
-          res = await fetch(`/wilayah/districts/${cleanReg}.json`);
-        }
+      const cleanReg = selectedRegency.replace(/\./g, '');
+      const data = await safeFetchJson<Region[]>([
+        `https://emsifa.github.io/api-wilayah-indonesia/api/districts/${cleanReg}.json`,
+        `https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/districts/${cleanReg}.json`,
+        `/wilayah/districts/${cleanReg}.json`,
+      ]);
 
-        if (res.ok) {
-          const data = await res.json();
-          setDistricts(data || []);
-        }
-      } catch (err) {
-        console.error('Error fetching Official Cahyadsn districts:', err);
-      } finally {
-        setLoading(false);
+      if (data && Array.isArray(data)) {
+        setDistricts(data);
+      } else {
+        setDistricts([]);
       }
+      setLoading(false);
     }
     fetchDistricts();
   }, [selectedRegency]);
 
-  // 4. Fetch Villages (Desa / Kelurahan) from Official Cahyadsn API
+  // 4. Fetch Villages (Desa / Kelurahan)
   useEffect(() => {
     if (!selectedDistrict) return;
     async function fetchVillages() {
       setLoading(true);
-      try {
-        const cleanDist = selectedDistrict.replace(/\./g, '');
-        let res = await fetch(`https://wilayah.cahyadsn.com/api/villages/${cleanDist}.json`);
-        if (!res.ok) {
-          res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/villages/${cleanDist}.json`);
-        }
-        if (!res.ok) {
-          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/villages/${cleanDist}.json`);
-        }
-        if (!res.ok) {
-          res = await fetch(`/wilayah/villages/${cleanDist}.json`);
-        }
+      const cleanDist = selectedDistrict.replace(/\./g, '');
+      const data = await safeFetchJson<Region[]>([
+        `https://emsifa.github.io/api-wilayah-indonesia/api/villages/${cleanDist}.json`,
+        `https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/villages/${cleanDist}.json`,
+        `/wilayah/villages/${cleanDist}.json`,
+      ]);
 
-        if (res.ok) {
-          const data = await res.json();
-          setVillages(data || []);
-        }
-      } catch (err) {
-        console.error('Error fetching Official Cahyadsn villages:', err);
-      } finally {
-        setLoading(false);
+      if (data && Array.isArray(data)) {
+        setVillages(data);
+      } else {
+        setVillages([]);
       }
+      setLoading(false);
     }
     fetchVillages();
   }, [selectedDistrict]);
@@ -165,9 +167,11 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     async function fetchPostcode() {
       setLoadingPostcode(true);
       try {
-        const res = await fetch(`https://kodepos.vercel.app/search?q=${encodeURIComponent(vilName)}`);
-        if (res.ok) {
-          const json = await res.json();
+        const json = await safeFetchJson<any>([
+          `https://kodepos.vercel.app/search?q=${encodeURIComponent(vilName)}`
+        ]);
+
+        if (json) {
           const cleanName = (str: string) =>
             str.toLowerCase().replace(/(kabupaten|kab\.|kota|kecamatan|kec\.|kelurahan|desa|kel\.)/g, '').trim();
 
@@ -203,7 +207,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     };
   }, [selectedVillage, selectedDistrict, selectedRegency, villages, districts, regencies]);
 
-  // 6. Combined Address Output String Format MPHM_V.02
+  // 6. Combined Address Output String
   useEffect(() => {
     const provName = provinces.find((p) => p.id === selectedProvince)?.name || '';
     const regName = regencies.find((r) => r.id === selectedRegency)?.name || '';
@@ -227,10 +231,10 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
       <div className="flex justify-between items-center">
         <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-          <span>📍</span> Alamat Kependudukan (Official Wilayah Cahyadsn API)
+          <span>📍</span> Alamat Kependudukan (API Wilayah Indonesia & Kode Pos Otomatis)
         </label>
         {loading ? (
-          <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Official Cahyadsn API...</span>
+          <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Data Wilayah...</span>
         ) : loadingPostcode ? (
           <span className="text-[10px] text-amber-600 animate-pulse font-bold">✨ Mencari Kode Pos Otomatis...</span>
         ) : null}
