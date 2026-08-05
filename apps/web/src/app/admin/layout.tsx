@@ -108,7 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const currentInstansi = instansiConfig[instansiActive];
 
-  // Struktur Menu Darsa Enterprise Sesuai Dokumen Spesifikasi Resmi
+  // Full Master Menu List according to Official Darsa Enterprise Specification
   const navigationGroups = [
     {
       groupTitle: 'DASHBOARD',
@@ -145,6 +145,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ],
     },
   ];
+
+  // RBAC Filtering according to Role Specification
+  const userRole = user?.role || 'SEKRETARIAT';
+
+  const visibleGroups = navigationGroups
+    .map((group) => {
+      // Keamanan Role: Only sees Dashboard, Keamanan, and SOP
+      if (userRole === 'KEAMANAN') {
+        if (group.groupTitle === 'DATABASE PONDOK') return null;
+        if (group.groupTitle === 'SISTEM & UTILITAS') {
+          return {
+            ...group,
+            items: group.items.filter((item) => item.path === '/admin/sop'),
+          };
+        }
+      }
+      // Madrasah / MI Sekretariat: Cannot access Pondok System Configuration
+      if (instansiActive !== 'pondok') {
+        if (group.groupTitle === 'SISTEM & UTILITAS') {
+          return {
+            ...group,
+            items: group.items.filter((item) => item.path !== '/admin/konfigurasi'),
+          };
+        }
+      }
+      return group;
+    })
+    .filter(Boolean) as typeof navigationGroups;
 
   const notifications = [
     { icon: '📱', text: 'QR Absensi baru: 12 santri scan pagi ini', time: '2m lalu', unread: true },
@@ -236,9 +264,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          {/* Navigation Menu (Grouped by Spesifikasi Struktur Menu Darsa Enterprise) */}
+          {/* Navigation Menu (Grouped and RBAC Filtered) */}
           <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
-            {navigationGroups.map((group) => (
+            {visibleGroups.map((group) => (
               <div key={group.groupTitle} className="space-y-1">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 mb-1">
                   # {group.groupTitle}
@@ -330,7 +358,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {/* Right Top Actions */}
             <div className="flex items-center gap-3">
-              {/* Notification Popover */}
               <div className="relative" ref={notifRef}>
                 <button
                   onClick={() => setNotifOpen(!notifOpen)}
