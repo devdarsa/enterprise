@@ -1,13 +1,30 @@
 # Spesifikasi Lengkap Darsa Enterprise (Official Master Document)
 
 **Status:** Approved Official Standard  
-**Versi:** 4.0.0  
+**Versi:** 5.0.0  
 **Tanggal:** 5 Agustus 2026  
 **Lembaga:** Ma'had Darussa'adah Lirboyo Kota Kediri  
 
 ---
 
-## 1. Standar Isi Navigasi & 19 Modul Menu Darsa Enterprise
+## 1. Standar Penarikan Data & Integrasi API Database (BAB I - XIV)
+
+### A. Arsitektur Data Flow (BAB III)
+```text
+Frontend (Web / Mobile) ──► REST API Backend (/api/v1/*) ──► Database Engine ──► Master Single Source of Truth
+```
+
+### B. Prinsip Utama API & Database Integration:
+1. **Single Source of Truth (SSOT)**: Database Pondok Pesantren merupakan satu-satunya sumber data resmi.
+2. **REST API Gateway**: Frontend (Web/Mobile) **HANYA BISA** mengakses data melalui REST API `/api/v1/*`. Tidak ada akses langsung ke database.
+3. **Zero Hardcoded Data**: Seluruh data disajikan, dibuat, diubah, dan dihapus secara **live / real-time**.
+4. **Operasi CRUD & Recovery**: Mendukung Create, Read, Update, Soft Delete (`recycle_bin`), dan Restore.
+5. **Cross-Module Sync**: Perubahan biodata santri di Pondok atau penempatan di kelas langsung tercermin secara real-time pada modul Madrasah, MI, dan Portal Wali Santri.
+6. **Keamanan API**: HTTPS, Session/Token Auth, Role-Based Access Control (RBAC), Input Validation, Rate Limiting, & Immutable Audit Logging.
+
+---
+
+## 2. Navigasi & Standar Isi 19 Modul Menu Darsa Enterprise
 
 ### 1. DASHBOARD
 - **Cards**: Total Santri Aktif, Total Guru, Total Pengurus, Total Perizinan Hari Ini, Total Pelanggaran Hari Ini, Total Kehadiran Guru Hari Ini.
@@ -20,7 +37,7 @@
 - **Filter**: Tahun Ajaran, Status, Asrama, Pendidikan, Kelas, Jenis Kelamin.
 - **Pencarian**: Stambuk, Nama, NIK Wali, HP, Alamat.
 - **Kolom Tabel**: Foto, Stambuk, Nama Lengkap, Gender, Pendidikan, Kelas, Asrama, Status, Aksi.
-- **Detail Santri Tab-Multi**: Tab Identitas, Tab Orang Tua, Tab Alamat, Tab Pendidikan, Tab Asrama, Tab Perizinan, Tab Pelanggaran, Tab Riwayat Akademik, Tab Dokumen.
+- **Detail Santri Tab-Multi**: Tab Identitas, Tab Orang Tua, Tab Alamat (Master Wilayah Cahyadsn), Tab Pendidikan, Tab Asrama, Tab Perizinan, Tab Pelanggaran, Tab Riwayat Akademik, Tab Dokumen.
 
 ### 3. DATA WALI SANTRI
 - NIK, Nama, Hubungan, Nomor HP, Jumlah Anak, Status Akun, Login Terakhir.
@@ -79,7 +96,7 @@
 
 ---
 
-## 2. Ketentuan Tampilan Menu Berdasarkan Role (UI/UX Standard BAB I - XIV)
+## 3. Ketentuan Tampilan Menu Berdasarkan Role (UI/UX Standard BAB I - XIV)
 
 1. **Sekretariat Pondok (BAB III)**: Desktop/Laptop Only (`DesktopOnlyGuard`). Menu: Dashboard, Database Pondok (Santri, Wali, Asrama, Pengurus, Pengajar, Alumni), Keamanan (Perizinan, Pelanggaran), Sistem (Tahun Ajaran, Manajemen Akun, Audit Log, Recycle Bin, Konfigurasi). Karakter: Profesional, administratif, banyak data & table.
 2. **Sekretariat Madrasah Diniyyah (BAB IV)**: Desktop/Laptop. Menu: Dashboard, Akademik (Kelas, Mapel, Mustahiq, Munawwib, Nilai, Absensi, Jadwal). Karakter: Fokus Akademik, cepat input nilai.
@@ -92,7 +109,7 @@
 
 ---
 
-## 3. Ketentuan Database Santri (BAB I - X)
+## 4. Ketentuan Database Santri (BAB I - X)
 
 1. **Single Source of Truth**: Pondok merupakan Master Database seluruh Santri/Santriwati.
 2. **Master Santri**: Hanya menyimpan identitas dasar permanen (NISP Stambuk, NISN, NIK, Nama Lengkap, Nama Panggilan, Gender, Tempat/Tgl Lahir, Anak Ke, Jumlah Saudara, Status Asrama, Foto).
@@ -103,17 +120,9 @@
 
 ---
 
-## 4. Standar Tombol Aksi & UI
+## 5. Standar Tombol Aksi & UI
 
 * **Data Grid Tabel**: `🔍 Detail`, `✏️ Edit`, `🗑️ Soft Delete` (ke Recycle Bin), `📜 Riwayat` (Audit Log), `🎓 Penempatan`, `⚡ Aktifkan/Nonaktifkan`, `📦 Arsip`.
 * **Toolbar Actions**: `➕ Tambah Data`, `📥 Import`, `📊 Export`, `🖨️ Cetak`, `🔄 Sync`.
 * **Form Actions**: `💾 Simpan`, `➕ Simpan & Tambah Baru`, `✅ Simpan & Tutup`, `🔄 Reset`, `❌ Batal`, `← Kembali`.
 * **Mobile Standards**: Touch-friendly buttons & Mobile Bottom Navigation Bar.
-
----
-
-## 5. Ketentuan Simulasi & API
-
-* Zero Hardcoded Data: 100% database-driven API endpoints (`/api/v1/simulation/data` & `/api/v1/wilayah`).
-* Audit Log Immutable: Seluruh aksi penting tercatat secara otomatis.
-* Soft Delete Recovery: Data terhapus dapat dipulihkan melalui Recycle Bin.
