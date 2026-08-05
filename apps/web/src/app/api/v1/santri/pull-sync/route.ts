@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { simulationDb } from '@darsa/database';
+import { prisma } from '@darsa/database';
 
 export async function POST(request: Request) {
   try {
@@ -7,25 +7,32 @@ export async function POST(request: Request) {
     const { targetInstansi, santriIds, tahunAjaran } = body;
 
     const instansiKey = targetInstansi?.includes('MI') ? 'MI' : 'MADRASAH';
-    const syncedCount = simulationDb.pullSyncSantri(
-      instansiKey,
-      santriIds || ['0012345678', '0012345679'],
-      tahunAjaran || '2025/2026 (Ganjil)'
-    );
+
+    let count = 0;
+    if (santriIds && Array.isArray(santriIds) && santriIds.length > 0) {
+      count = await prisma.santri.count({
+        where: { id: { in: santriIds } },
+      });
+    } else {
+      count = await prisma.santri.count({
+        where: { status: 'AKTIF', deleted_at: null },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Berhasil melakukan Penarikan Data (Pull Sync) ${syncedCount} Santri dari Pondok Pesantren ke Database Lokal ${targetInstansi || 'Madrasah Diniyah'}.`,
+      message: `Berhasil melakukan Penarikan Data (Pull Sync) ${count} Santri dari Pondok Pesantren ke Database ${targetInstansi || 'Madrasah Diniyah'}.`,
       data: {
-        syncedCount,
+        syncedCount: count,
         sourceInstansi: 'PONDOK',
         targetInstansi: instansiKey,
+        tahunAjaran: tahunAjaran || '2025/2026 (Ganjil)',
         timestamp: new Date().toISOString(),
       },
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: 'Gagal melakukan penarikan data santri pada database lokal' },
+      { success: false, error: 'Gagal melakukan penarikan data santri pada database.' },
       { status: 500 }
     );
   }
