@@ -28,14 +28,17 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
   const [postcode, setPostcode] = useState('');
   const [detailStreet, setDetailStreet] = useState('');
 
-  // 1. Fetch 100% Provinces from Cahyadsn API
+  // 1. Fetch 100% Provinces (Official Cahyadsn API: https://wilayah.cahyadsn.com / github:cahyadsn/wilayah)
   useEffect(() => {
     async function fetchProvinces() {
       setLoading(true);
       try {
-        let res = await fetch('https://cahyadsn.github.io/api-wilayah-indonesia/api/provinces.json');
+        let res = await fetch('https://wilayah.cahyadsn.com/api/provinces.json');
         if (!res.ok) {
           res = await fetch('https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/provinces.json');
+        }
+        if (!res.ok) {
+          res = await fetch('https://cahyadsn.github.io/api-wilayah-indonesia/api/provinces.json');
         }
         if (!res.ok) {
           res = await fetch('/wilayah/provinces.json');
@@ -46,7 +49,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
           setProvinces(data || []);
         }
       } catch (err) {
-        console.error('Error fetching Cahyadsn provinces:', err);
+        console.error('Error fetching Official Cahyadsn provinces:', err);
       } finally {
         setLoading(false);
       }
@@ -54,16 +57,19 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     fetchProvinces();
   }, []);
 
-  // 2. Fetch Regencies (Kabupaten / Kota) from Cahyadsn API
+  // 2. Fetch Regencies (Kabupaten / Kota) from Official Cahyadsn API
   useEffect(() => {
     if (!selectedProvince) return;
     async function fetchRegencies() {
       setLoading(true);
       try {
         const cleanProv = selectedProvince.replace(/\./g, '');
-        let res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/regencies/${cleanProv}.json`);
+        let res = await fetch(`https://wilayah.cahyadsn.com/api/regencies/${cleanProv}.json`);
         if (!res.ok) {
           res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/regencies/${cleanProv}.json`);
+        }
+        if (!res.ok) {
+          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/regencies/${cleanProv}.json`);
         }
         if (!res.ok) {
           res = await fetch(`/wilayah/regencies/${cleanProv}.json`);
@@ -74,7 +80,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
           setRegencies(data || []);
         }
       } catch (err) {
-        console.error('Error fetching Cahyadsn regencies:', err);
+        console.error('Error fetching Official Cahyadsn regencies:', err);
       } finally {
         setLoading(false);
       }
@@ -82,16 +88,19 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     fetchRegencies();
   }, [selectedProvince]);
 
-  // 3. Fetch Districts (Kecamatan) from Cahyadsn API
+  // 3. Fetch Districts (Kecamatan) from Official Cahyadsn API
   useEffect(() => {
     if (!selectedRegency) return;
     async function fetchDistricts() {
       setLoading(true);
       try {
         const cleanReg = selectedRegency.replace(/\./g, '');
-        let res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/districts/${cleanReg}.json`);
+        let res = await fetch(`https://wilayah.cahyadsn.com/api/districts/${cleanReg}.json`);
         if (!res.ok) {
           res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/districts/${cleanReg}.json`);
+        }
+        if (!res.ok) {
+          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/districts/${cleanReg}.json`);
         }
         if (!res.ok) {
           res = await fetch(`/wilayah/districts/${cleanReg}.json`);
@@ -102,7 +111,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
           setDistricts(data || []);
         }
       } catch (err) {
-        console.error('Error fetching Cahyadsn districts:', err);
+        console.error('Error fetching Official Cahyadsn districts:', err);
       } finally {
         setLoading(false);
       }
@@ -110,16 +119,19 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     fetchDistricts();
   }, [selectedRegency]);
 
-  // 4. Fetch Villages (Desa / Kelurahan) from Cahyadsn API
+  // 4. Fetch Villages (Desa / Kelurahan) from Official Cahyadsn API
   useEffect(() => {
     if (!selectedDistrict) return;
     async function fetchVillages() {
       setLoading(true);
       try {
         const cleanDist = selectedDistrict.replace(/\./g, '');
-        let res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/villages/${cleanDist}.json`);
+        let res = await fetch(`https://wilayah.cahyadsn.com/api/villages/${cleanDist}.json`);
         if (!res.ok) {
           res = await fetch(`https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/villages/${cleanDist}.json`);
+        }
+        if (!res.ok) {
+          res = await fetch(`https://cahyadsn.github.io/api-wilayah-indonesia/api/villages/${cleanDist}.json`);
         }
         if (!res.ok) {
           res = await fetch(`/wilayah/villages/${cleanDist}.json`);
@@ -130,7 +142,7 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
           setVillages(data || []);
         }
       } catch (err) {
-        console.error('Error fetching Cahyadsn villages:', err);
+        console.error('Error fetching Official Cahyadsn villages:', err);
       } finally {
         setLoading(false);
       }
@@ -215,10 +227,10 @@ export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) 
     <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
       <div className="flex justify-between items-center">
         <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-          <span>📍</span> Alamat Kependudukan (Cahyadsn API Wilayah & Auto Kode Pos)
+          <span>📍</span> Alamat Kependudukan (Official Wilayah Cahyadsn API)
         </label>
         {loading ? (
-          <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Wilayah...</span>
+          <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Official Cahyadsn API...</span>
         ) : loadingPostcode ? (
           <span className="text-[10px] text-amber-600 animate-pulse font-bold">✨ Mencari Kode Pos Otomatis...</span>
         ) : null}
