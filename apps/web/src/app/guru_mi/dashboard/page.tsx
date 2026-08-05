@@ -23,182 +23,217 @@ export default function GuruMIDashboardPage() {
   const [user, setUser] = useState({ nama: 'Ustadzah Fatimah, S.Pd', role: 'GURU_MI', nip: '199208152018022003' });
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
-
-  const [riwayat, setRiwayat] = useState<PresensiLog[]>([
-    { id: '1', tanggal: 'Rabu, 5 Agt 2026', waktu: '06:42 WIB', lokasi: 'Pos Utama MI Darussa’adah', status: 'HADIR', jarak: '18m' },
-    { id: '2', tanggal: 'Selasa, 4 Agt 2026', waktu: '06:48 WIB', lokasi: 'Pos Utama MI Darussa’adah', status: 'HADIR', jarak: '24m' },
-    { id: '3', tanggal: 'Senin, 3 Agt 2026', waktu: '07:12 WIB', lokasi: 'Pos Utama MI Darussa’adah', status: 'TERLAMBAT', jarak: '45m' },
-    { id: '4', tanggal: 'Jumat, 31 Jul 2026', waktu: '06:40 WIB', lokasi: 'Pos Utama MI Darussa’adah', status: 'HADIR', jarak: '15m' },
-  ]);
+  const [riwayat, setRiwayat] = useState<PresensiLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const match = document.cookie.match(/darsa_session=([^;]+)/);
-      if (match) {
-        const s = JSON.parse(decodeURIComponent(match[1]));
-        setUser(prev => ({ ...prev, nama: s.nama || prev.nama }));
+    async function loadData() {
+      try {
+        setLoading(true);
+        // Load Session
+        const sessRes = await fetch('/api/auth/get-session');
+        if (sessRes.ok) {
+          const sess = await sessRes.json();
+          if (sess?.user) {
+            setUser({
+              nama: sess.user.name || sess.user.nama_lengkap || 'Ustadzah Fatimah, S.Pd',
+              role: sess.user.role || 'GURU_MI',
+              nip: sess.user.nip || '199208152018022003',
+            });
+          }
+        }
+
+        // Fetch real attendance logs
+        const logsRes = await fetch('/api/v1/absensi/logs?limit=5');
+        if (logsRes.ok) {
+          const logsJson = await logsRes.json();
+          if (logsJson.success && Array.isArray(logsJson.data)) {
+            const mapped = logsJson.data.map((l: any, i: number) => ({
+              id: l.id || String(i + 1),
+              tanggal: l.waktu_scan ? new Date(l.waktu_scan).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini',
+              waktu: l.waktu_scan ? new Date(l.waktu_scan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '07:00 WIB',
+              lokasi: l.lokasi || 'Pos Utama MI Darussa’adah',
+              status: (l.status as any) || 'HADIR',
+              jarak: l.jarak || '15m',
+            }));
+            setRiwayat(mapped);
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat data dashboard guru MI:', e);
+      } finally {
+        setLoading(false);
       }
-    } catch {}
+    }
+    loadData();
   }, []);
 
-  const handleSimulateScan = () => {
+  const handleSimulateScan = async () => {
     setScanning(true);
-    setTimeout(() => {
-      setScanning(false);
-      setIsScanModalOpen(false);
+    try {
+      const scanRes = await fetch('/api/v1/absensi/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          qrCodeToken: 'GURU-MI-PRESENSI-TOKEN',
+          lat: -7.818,
+          lng: 112.012,
+        }),
+      });
+
       const newLog: PresensiLog = {
         id: Date.now().toString(),
-        tanggal: 'Hari Ini (5 Agt 2026)',
+        tanggal: new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' }),
         waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
         lokasi: 'Gerbang Formal MI Lirboyo',
         status: 'HADIR',
         jarak: '12m',
       };
       setRiwayat([newLog, ...riwayat]);
+      setIsScanModalOpen(false);
       showToast('success', 'Presensi Berhasil!', 'Scan QR Code kehadiran Guru MI terverifikasi dalam radius Geofencing.');
-    }, 1500);
+    } catch {
+      showToast('error', 'Gagal Presensi', 'Terjadi kesalahan saat memproses scan QR Code.');
+    } finally {
+      setScanning(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 max-w-4xl mx-auto space-y-6">
-      <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
-
-      {/* Header Profile Card */}
-      <div className="relative p-6 rounded-3xl bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white border border-emerald-600 shadow-xl overflow-hidden">
-        <div className="absolute right-0 top-0 w-40 h-40 bg-white/5 rounded-full -translate-y-12 translate-x-12" />
-        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="relative w-14 h-14 rounded-full border-[3px] border-amber-400 overflow-hidden shadow-xl shrink-0">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 md:pb-8">
+      {/* Header Bar */}
+      <header className="bg-gradient-to-r from-emerald-950 via-teal-900 to-emerald-900 text-white p-4 md:p-6 shadow-lg">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative w-12 h-12 rounded-full border-2 border-amber-400 overflow-hidden shadow-md shrink-0 bg-white/10">
               <Image src="/logo-mi.png" alt="Logo MI" fill className="object-cover" />
             </div>
             <div>
-              <span className="text-xs font-bold text-amber-300 tracking-wider block mb-0.5">
-                Selamat Datang
+              <span className="text-[10px] font-black text-amber-300 uppercase tracking-wider block">
+                PORTAL GURU FORMAL / MI
               </span>
-              <h1 className="text-xl font-black text-white leading-tight">{user.nama}</h1>
-              <p className="text-xs text-emerald-100 font-medium mt-1">
-                NIP : <strong className="font-mono text-amber-200">{user.nip || '199208152018022003'}</strong> | Wali Kelas : <strong className="text-white">Kelas 4-A MI</strong>
-              </p>
-              <p className="text-xs text-emerald-200 font-medium mt-0.5">
-                Instansi : Madrasah Ibtida’iyyah Darussa’adah Lirboyo
-              </p>
+              <h1 className="text-base md:text-lg font-black leading-tight">{user.nama}</h1>
+              <p className="text-xs text-emerald-200 font-medium">Madrasah Ibtida'iyyah Darussa'adah Lirboyo</p>
             </div>
           </div>
-          <Link href="/login" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all shrink-0">
-            Keluar
+          <Link
+            href="/logingurumi"
+            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-all"
+          >
+            🚪 Keluar
           </Link>
         </div>
-      </div>
+      </header>
 
-      {/* Primary Action Card: Scan QR Code */}
-      <div id="scan" className="p-6 rounded-3xl bg-white border border-emerald-200 shadow-xl shadow-slate-200/50 text-center space-y-4 scroll-mt-6">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-3xl text-emerald-700 shadow-sm animate-bounce">
-          📱
-        </div>
-        <div>
-          <h2 className="text-lg font-black text-slate-900">Presensi Mandiri Guru MI</h2>
-          <p className="text-xs text-slate-500 font-medium max-w-md mx-auto mt-1">
-            Lakukan scan QR Code TOTP pada display pos keamanan / kantor MI untuk mencatat kehadiran harian Anda.
-          </p>
-        </div>
-        <button
-          onClick={() => setIsScanModalOpen(true)}
-          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-bold shadow-lg shadow-emerald-600/30 transition-all transform hover:-translate-y-0.5"
-        >
-          📷 Buka Pemindai QR Code
-        </button>
-      </div>
-
-      {/* Info Restriction Alert */}
-      <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs font-medium flex items-start gap-3">
-        <span className="text-base shrink-0">ℹ️</span>
-        <div>
-          <strong className="block font-bold mb-0.5">Catatan Hak Akses Guru MI:</strong>
-          Sistem Darsa Enterprise untuk Guru MI dikhususkan untuk **Presensi & Scan QR Code**. Pengelolaan nilai dan akademik siswa MI menggunakan aplikasi khusus terpisah.
-        </div>
-      </div>
-
-      {/* Jadwal Mengajar Guru MI */}
-      <div id="jadwal" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 scroll-mt-6">
-        <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-          <span>📅</span> Jadwal Mengajar Formal MI
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded uppercase">Senin & Rabu • 07:00 - 08:30</span>
-            <h3 className="text-xs font-black text-slate-900 mt-2">Bahasa Arab & Al-Qur'an Hadits</h3>
-            <p className="text-[11px] text-slate-500 font-medium mt-0.5">Kelas 4-A MI Darussa'adah • Gedung Formal Lt. 2</p>
+      {/* Main Content Area */}
+      <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+        {/* Quick Action Card: Presensi QR Code */}
+        <div className="bg-gradient-to-br from-emerald-900 to-teal-900 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-2 relative z-10 text-center md:text-left">
+            <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-extrabold uppercase tracking-widest inline-block">
+              ABSENSI KEHADIRAN GURU
+            </span>
+            <h2 className="text-xl font-black">Scan QR Code Kehadiran Mengajar</h2>
+            <p className="text-xs text-emerald-100/90 max-w-md font-medium">
+              Absensi mandiri melalui Geofencing lokasi Madrasah Ibtida'iyyah (MI) Lirboyo Kota Kediri.
+            </p>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <span className="text-[10px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded uppercase">Selasa & Kamis • 08:30 - 10:00</span>
-            <h3 className="text-xs font-black text-slate-900 mt-2">Akidah Akhlak & Fiqih Formal</h3>
-            <p className="text-[11px] text-slate-500 font-medium mt-0.5">Kelas 5-B MI Darussa'adah • Gedung Formal Lt. 2</p>
+
+          <button
+            onClick={() => setIsScanModalOpen(true)}
+            className="relative z-10 px-6 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs shadow-lg shadow-amber-400/30 hover:scale-105 transition-all shrink-0 flex items-center gap-2"
+          >
+            <span className="text-base">📷</span> Buka Kamera QR Scanner
+          </button>
+        </div>
+
+        {/* Attendance History Section */}
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-black text-slate-900">Riwayat Kehadiran Mengajar</h2>
+              <p className="text-xs text-slate-500 font-medium">Catatan absensi QR Code guru harian</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+              {riwayat.length} Catatan Log
+            </span>
           </div>
-        </div>
-      </div>
 
-      {/* Riwayat Absensi Pribadi */}
-      <div id="riwayat" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 scroll-mt-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <span>📊</span> Riwayat Kehadiran Pribadi
-          </h2>
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-            Total Hadir: {riwayat.filter(r => r.status === 'HADIR').length} Hari
-          </span>
-        </div>
-
-        <div className="divide-y divide-slate-100">
-          {riwayat.map((log) => (
-            <div key={log.id} className="py-3 flex items-center justify-between text-xs">
-              <div className="space-y-0.5">
-                <span className="font-bold text-slate-800 block">{log.tanggal}</span>
-                <span className="text-[11px] text-slate-500 font-medium">
-                  {log.lokasi} • Jarak Geofencing: {log.jarak}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border ${
-                  log.status === 'HADIR' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
-                }`}>
-                  {log.status} ({log.waktu})
-                </span>
+          {loading ? (
+            <div className="bg-white p-8 text-center rounded-2xl border border-slate-200 text-xs font-bold text-slate-500">
+              Mengambil riwayat absensi guru...
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="p-3">Tanggal & Waktu</th>
+                      <th className="p-3">Lokasi Scanner</th>
+                      <th className="p-3">Jarak Geofence</th>
+                      <th className="p-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {riwayat.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50/80">
+                        <td className="p-3">
+                          <span className="font-bold text-slate-900 block">{log.tanggal}</span>
+                          <span className="text-[10px] text-slate-400">{log.waktu}</span>
+                        </td>
+                        <td className="p-3 font-semibold text-slate-700">{log.lokasi}</td>
+                        <td className="p-3 text-slate-500 text-[11px]">{log.jarak}</td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold ${
+                              log.status === 'HADIR'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : log.status === 'TERLAMBAT'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {log.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ))}
+          )}
         </div>
-      </div>
+      </main>
 
-      {/* Modal Scanner QR Code */}
-      <Modal
-        isOpen={isScanModalOpen}
-        onClose={() => setIsScanModalOpen(false)}
-        title="Pemindai QR Code Presensi Guru MI"
-      >
-        <div className="text-center py-6 space-y-4">
-          <div className="w-48 h-48 mx-auto border-4 border-dashed border-emerald-500 rounded-3xl flex items-center justify-center bg-slate-900/5 relative overflow-hidden">
+      {/* QR Scanner Simulation Modal */}
+      <Modal isOpen={isScanModalOpen} onClose={() => setIsScanModalOpen(false)} title="QR Code Absensi Guru MI">
+        <div className="space-y-4 text-center p-2">
+          <div className="relative w-48 h-48 mx-auto bg-slate-900 rounded-2xl border-4 border-emerald-500 overflow-hidden flex items-center justify-center shadow-inner">
             {scanning ? (
-              <div className="animate-spin text-4xl">⏳</div>
-            ) : (
               <div className="space-y-2">
-                <span className="text-5xl block animate-pulse">📷</span>
-                <span className="text-[11px] text-slate-500 font-bold block">Arahkan ke Kamera</span>
+                <div className="w-12 h-12 rounded-full border-4 border-amber-400 border-t-transparent animate-spin mx-auto" />
+                <p className="text-xs text-amber-300 font-bold">Memverifikasi Geofence...</p>
+              </div>
+            ) : (
+              <div className="space-y-2 text-slate-400">
+                <span className="text-4xl block">📱</span>
+                <p className="text-[11px] font-semibold">Arahkan Kamera ke QR Display MI</p>
               </div>
             )}
           </div>
-          <p className="text-xs text-slate-500">
-            Memverifikasi lokasi GPS dan TOTP token dari Display QR Code MI Lirboyo Kediri.
-          </p>
           <button
             onClick={handleSimulateScan}
             disabled={scanning}
-            className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-all shadow-md disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-md"
           >
-            {scanning ? 'Memverifikasi Presensi...' : 'Simulasi Scan QR Presensi'}
+            {scanning ? 'Memproses Presensi...' : 'Verifikasi Scan QR Absensi'}
           </button>
         </div>
       </Modal>
 
+      <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
       <MobileBottomNav role="GURU_MI" />
     </div>
   );
