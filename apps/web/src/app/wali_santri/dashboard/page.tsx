@@ -177,12 +177,15 @@ export default function WaliSantriDashboardPage() {
               <Image src="/logo-lirboyo.png" alt="Logo Lirboyo" fill className="object-cover" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block mb-0.5">
-                PORTAL INFORMASI WALI SANTRI (TERHUBUNG VIA NIK WALI)
+              <span className="text-xs font-bold text-amber-300 tracking-wider block mb-0.5">
+                Selamat Datang
               </span>
-              <h1 className="text-xl font-black text-white">{user.nama}</h1>
-              <p className="text-xs text-emerald-100 font-medium mt-0.5">
-                NIK Wali: <strong className="font-mono text-amber-200">{user.nik}</strong> • Santri Terhubung: <strong>{connectedChildren.length || 1} Anak</strong>
+              <h1 className="text-xl font-black text-white leading-tight">{user.nama}</h1>
+              <p className="text-xs text-emerald-100 font-medium mt-1">
+                NIK Wali : <strong className="font-mono text-amber-200">{user.nik}</strong> | Santri Terhubung : <strong className="text-white">{connectedChildren.length || 1} Anak</strong>
+              </p>
+              <p className="text-xs text-emerald-200 font-medium mt-0.5">
+                Instansi : Pondok Pesantren Ma'had Darussa'adah Lirboyo
               </p>
             </div>
           </div>

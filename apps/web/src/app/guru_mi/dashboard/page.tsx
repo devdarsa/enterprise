@@ -72,12 +72,15 @@ export default function GuruMIDashboardPage() {
               <Image src="/logo-mi.png" alt="Logo MI" fill className="object-cover" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block mb-0.5">
-                PORTAL KHUSUS GURU MI • AKADEMIK VIA APPS EKSTERNAL
+              <span className="text-xs font-bold text-amber-300 tracking-wider block mb-0.5">
+                Selamat Datang
               </span>
-              <h1 className="text-xl font-black text-white">{user.nama}</h1>
-              <p className="text-xs text-emerald-100 font-medium mt-0.5">
-                NIP: {user.nip} • Madrasah Ibtida’iyyah Darussa’adah Lirboyo
+              <h1 className="text-xl font-black text-white leading-tight">{user.nama}</h1>
+              <p className="text-xs text-emerald-100 font-medium mt-1">
+                NIP : <strong className="font-mono text-amber-200">{user.nip || '199208152018022003'}</strong> | Wali Kelas : <strong className="text-white">Kelas 4-A MI</strong>
+              </p>
+              <p className="text-xs text-emerald-200 font-medium mt-0.5">
+                Instansi : Madrasah Ibtida’iyyah Darussa’adah Lirboyo
               </p>
             </div>
           </div>

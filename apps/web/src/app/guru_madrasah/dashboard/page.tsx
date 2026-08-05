@@ -105,12 +105,15 @@ export default function GuruMadrasahDashboardPage() {
               <Image src="/logo-madrasah.png" alt="Logo Madrasah Diniyah" fill className="object-cover" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block mb-0.5">
-                PORTAL GURU MADRASAH DINIYAH
+              <span className="text-xs font-bold text-amber-300 tracking-wider block mb-0.5">
+                Selamat Datang
               </span>
-              <h1 className="text-xl font-black text-white">{user.nama}</h1>
+              <h1 className="text-xl font-black text-white leading-tight">{user.nama}</h1>
+              <p className="text-xs text-emerald-100 font-medium mt-1">
+                NIP : <strong className="font-mono text-amber-200">198504122015031002</strong> | Wali Kelas : <strong className="text-white">Kelas 10-A Diniyah</strong>
+              </p>
               <p className="text-xs text-emerald-200 font-medium mt-0.5">
-                Madrasah Diniyah Darussa’adah Lirboyo Kota Kediri
+                Instansi : Madrasah Diniyah Darussa’adah Lirboyo Kota Kediri
               </p>
             </div>
           </div>
