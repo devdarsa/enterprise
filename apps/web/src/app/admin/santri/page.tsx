@@ -1,20 +1,36 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import { LoadingSpinner, SkeletonTable, EmptyState, SearchBar } from '@/components/Loading';
+import RegionSelector from '@/components/RegionSelector';
 
 interface Santri {
   id: string;
   nisp?: string;
   nisn: string;
+  nis?: string;
+  nik?: string;
   nama: string;
   jenis_kelamin: 'L' | 'P';
+  tempat_lahir?: string;
+  tanggal_lahir?: string;
+  alamat?: string;
+  telepon?: string;
+  avatar_url?: string;
+  jenjang?: string;
   kelas: string;
+  kamar?: string;
   instansi: string;
   status: string;
   hafalan_juz?: number;
+  nik_wali?: string;
+  nama_wali?: string;
+  telepon_wali?: string;
+  hubungan_wali?: 'AYAH' | 'IBU' | 'WALI';
+  no_kk?: string;
 }
 
 export default function MasterSantriPage() {
@@ -28,11 +44,29 @@ export default function MasterSantriPage() {
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
 
-  // Form State
+  // Form State — Lengkap MPHM_V.02 & Cahyadsn API
   const [nisn, setNisn] = useState('');
+  const [nis, setNis] = useState('');
+  const [nisp, setNisp] = useState('');
+  const [nik, setNik] = useState('');
   const [nama, setNama] = useState('');
   const [jenisKelamin, setJenisKelamin] = useState<'L' | 'P'>('L');
-  const [kelas, setKelas] = useState('10-A (Tahfidz & Sains)');
+  const [tempatLahir, setTempatLahir] = useState('');
+  const [tanggalLahir, setTanggalLahir] = useState('');
+  const [telepon, setTelepon] = useState('');
+  const [jenjang, setJenjang] = useState('Tsanawiyyah');
+  const [kelas, setKelas] = useState('10-A (Tahfidz & Diniyah)');
+  const [kamar, setKamar] = useState('Asrama Abu Bakar 1');
+  const [hafalanJuz, setHafalanJuz] = useState(0);
+  const [alamat, setAlamat] = useState('');
+
+  // Data Wali
+  const [noKk, setNoKk] = useState('');
+  const [nikWali, setNikWali] = useState('');
+  const [namaWali, setNamaWali] = useState('');
+  const [teleponWali, setTeleponWali] = useState('');
+  const [hubunganWali, setHubunganWali] = useState<'AYAH' | 'IBU' | 'WALI'>('AYAH');
+
   const [submitting, setSubmitting] = useState(false);
 
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
@@ -79,30 +113,53 @@ export default function MasterSantriPage() {
 
   const handleAddSantri = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nisn.trim() || !nama.trim()) {
-      showToast('warning', 'Form Belum Lengkap', 'NISN/NISP dan Nama wajib diisi.');
+    if (!nisn.trim() || !nama.trim() || !nikWali.trim()) {
+      showToast('warning', 'Form Belum Lengkap', 'NISN, Nama Santri, dan NIK Wali wajib diisi.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const newSantri: Santri = {
-        id: Date.now().toString(),
-        nisp: `PNDK-${nisn.trim()}`,
+      const newSantriPayload = {
+        nisp: nisp.trim() || `PNDK-${nisn.trim()}`,
         nisn: nisn.trim(),
+        nis: nis.trim() || undefined,
+        nik: nik.trim() || undefined,
         nama: nama.trim(),
         jenis_kelamin: jenisKelamin,
+        tempat_lahir: tempatLahir.trim(),
+        tanggal_lahir: tanggalLahir,
+        alamat: alamat.trim(),
+        telepon: telepon.trim(),
+        jenjang,
         kelas,
+        kamar,
         instansi: instansiFilter.toUpperCase(),
+        tahun_ajaran: '2025/2026 (Ganjil)',
         status: 'AKTIF',
-        hafalan_juz: 0,
+        hafalan_juz: hafalanJuz,
+        nik_wali: nikWali.trim(),
+        nama_wali: namaWali.trim(),
+        telepon_wali: teleponWali.trim(),
+        hubungan_wali: hubunganWali,
+        no_kk: noKk.trim(),
       };
 
-      setSantriList(prev => [newSantri, ...prev]);
-      setNisn('');
-      setNama('');
-      setIsModalOpen(false);
-      showToast('success', 'Santri Berhasil Ditambahkan', `Master Data Santri ${newSantri.nama} tersimpan di Database Pondok (Single Source of Truth).`);
+      const res = await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_santri',
+          payload: newSantriPayload,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setIsModalOpen(false);
+        fetchSantri();
+        showToast('success', 'Santri Berhasil Ditambahkan', `Master Data Santri ${nama} tersimpan di Database Pondok.`);
+      }
     } catch {
       showToast('error', 'Gagal Menyimpan', 'Terjadi kesalahan sistem.');
     } finally {
@@ -114,6 +171,14 @@ export default function MasterSantriPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
+      await fetch('/api/v1/simulation/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_santri',
+          id: deleteTarget.id,
+        }),
+      });
       setSantriList(prev => prev.filter(s => s.id !== deleteTarget.id));
       showToast('success', 'Santri Dihapus', `Data santri ${deleteTarget.nama} dihapus.`);
     } catch {
@@ -131,7 +196,8 @@ export default function MasterSantriPage() {
       s.nama.toLowerCase().includes(q) ||
       s.nisn.includes(q) ||
       (s.nisp && s.nisp.toLowerCase().includes(q)) ||
-      s.kelas.toLowerCase().includes(q)
+      s.kelas.toLowerCase().includes(q) ||
+      (s.nik_wali && s.nik_wali.includes(q))
     );
   }, [santriList, search]);
 
@@ -161,35 +227,29 @@ export default function MasterSantriPage() {
             }
           </p>
         </div>
-        {instansiFilter === 'pondok' ? (
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="btn-primary inline-flex items-center gap-2 shrink-0"
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/admin/santri/baru"
+            className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            + Tambah Santri Baru (Master Pondok)
-          </button>
-        ) : (
-          <a
-            href="/admin/santri/tarik"
-            className="px-4 py-2.5 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 shadow-md transition-all inline-flex items-center gap-2 shrink-0"
-          >
-            <span>🔄</span> Tarik / Referensikan Data dari Pondok (Pull Sync NISP)
-          </a>
-        )}
+            <span>📝</span> Registrasi Santri Baru (Lengkap)
+          </Link>
+          {instansiFilter !== 'pondok' && (
+            <Link
+              href="/admin/santri/tarik"
+              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all inline-flex items-center gap-2"
+            >
+              <span>📥</span> Tarik Data Santri Pondok
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Search Bar & Count */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        {/* Search */}
         <div className="flex-1 w-full">
-          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama, NISN, atau kelas..." />
+          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama, NISN, NISP, NIK Wali, atau kelas..." />
         </div>
-
-        {/* Count badge */}
         {!loading && (
           <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl">
             {filtered.length} santri
@@ -209,9 +269,9 @@ export default function MasterSantriPage() {
             title={search ? 'Santri Tidak Ditemukan' : 'Belum Ada Data Santri'}
             description={search
               ? `Tidak ada santri yang cocok dengan pencarian "${search}".`
-              : `Belum ada santri terdaftar di instansi ${instansiFilter}. Klik tombol "Tambah Santri Baru" untuk mulai.`
+              : `Belum ada santri terdaftar di instansi ${instansiFilter}. Klik tombol "Registrasi Santri Baru" untuk mulai.`
             }
-            action={!search && instansiFilter === 'pondok' ? { label: '+ Tambah Santri Baru', onClick: () => setIsModalOpen(true) } : undefined}
+            action={!search ? { label: '📝 Registrasi Santri Baru (Lengkap)', onClick: () => window.location.href = '/admin/santri/baru' } : undefined}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -219,54 +279,55 @@ export default function MasterSantriPage() {
               <thead>
                 <tr>
                   <th>NISP / Stambuk</th>
-                  <th>NISN</th>
-                  <th>Nama Lengkap Santri</th>
-                  <th>Gender</th>
-                  <th>Kelas & Rombel</th>
+                  <th>NISN & Nama Santri</th>
+                  <th>L/P</th>
+                  <th>Kelas & Kamar</th>
                   <th>Hafalan</th>
-                  <th>Status</th>
+                  <th>Wali Santri & NIK</th>
                   <th className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((santri, i) => (
-                  <tr key={santri.id || i}>
-                    <td className="font-mono font-black text-amber-800 bg-amber-50/60">{santri.nisp || `PNDK-${santri.nisn}`}</td>
-                    <td className="font-mono font-bold text-emerald-700">{santri.nisn}</td>
-                    <td className="font-bold text-slate-900">{santri.nama}</td>
+                {filtered.map((santri) => (
+                  <tr key={santri.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="font-mono text-xs font-bold text-emerald-800">{santri.nisp || '-'}</td>
                     <td>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                        santri.jenis_kelamin === 'L'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-pink-50 text-pink-700 border-pink-200'
-                      }`}>
-                        {santri.jenis_kelamin === 'L' ? '♂ Laki-laki' : '♀ Perempuan'}
-                      </span>
-                    </td>
-                    <td className="text-slate-600">{santri.kelas}</td>
-                    <td className="font-mono font-bold text-amber-700">
-                      {santri.hafalan_juz !== undefined ? `${santri.hafalan_juz} Juz` : '-'}
+                      <div className="font-bold text-slate-900">{santri.nama}</div>
+                      <div className="text-[11px] text-slate-500 font-mono">NISN: {santri.nisn}</div>
                     </td>
                     <td>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                        santri.status === 'AKTIF'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        santri.jenis_kelamin === 'L' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-pink-50 text-pink-700 border border-pink-200'
                       }`}>
-                        {santri.status}
+                        {santri.jenis_kelamin}
                       </span>
+                    </td>
+                    <td>
+                      <div className="font-semibold text-slate-800 text-xs">{santri.kelas}</div>
+                      <div className="text-[10px] text-slate-400 font-medium">{santri.kamar || 'Asrama Utama'}</div>
+                    </td>
+                    <td>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                        {santri.hafalan_juz ?? 0} Juz
+                      </span>
+                    </td>
+                    <td>
+                      <div className="font-bold text-slate-800 text-xs">{santri.nama_wali || 'Bapak Hendra'}</div>
+                      <div className="text-[10px] text-amber-800 font-mono font-bold">NIK: {santri.nik_wali || '3571012304850001'}</div>
                     </td>
                     <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
+                          type="button"
                           onClick={() => setCardTarget(santri)}
-                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 text-[11px] font-bold border border-teal-200 transition-all flex items-center gap-1"
                         >
-                          🪪 Kartu QR
+                          <span>📱</span> Kartu
                         </button>
                         <button
+                          type="button"
                           onClick={() => setDeleteTarget(santri)}
-                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors"
+                          className="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-[11px] font-bold border border-rose-200 transition-all"
                         >
                           Hapus
                         </button>
@@ -280,41 +341,99 @@ export default function MasterSantriPage() {
         )}
       </div>
 
-      {/* Add Santri Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Registrasi Santri Baru" subtitle="Pondok Pesantren Ma'had Darussa'adah Lirboyo" icon="🎓">
-        <form onSubmit={handleAddSantri} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Nomor Induk Santri Nasional (NISN) <span className="text-rose-500">*</span></label>
-            <input type="text" required value={nisn} onChange={e => setNisn(e.target.value)} placeholder="0012345678" className="input-premium" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap Santri <span className="text-rose-500">*</span></label>
-            <input type="text" required value={nama} onChange={e => setNama(e.target.value)} placeholder="Nama Lengkap Santri..." className="input-premium" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Jenis Kelamin</label>
-              <select value={jenisKelamin} onChange={e => setJenisKelamin(e.target.value as 'L' | 'P')} className="input-premium cursor-pointer">
-                <option value="L">Laki-laki</option>
-                <option value="P">Perempuan</option>
-              </select>
+      {/* Modal Quick Input Santri (Form Lengkap Cahyadsn API) */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Registrasi Master Santri Baru (Lengkap & Cahyadsn API)"
+      >
+        <form onSubmit={handleAddSantri} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          {/* Identitas */}
+          <div className="space-y-3">
+            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block border-b pb-1">I. Identitas Santri</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap *</label>
+                <input type="text" required placeholder="Muhammad Raihan" value={nama} onChange={e => setNama(e.target.value)} className="input-premium" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">NIK Santri (16 Digit)</label>
+                <input type="text" maxLength={16} placeholder="3571011508080001" value={nik} onChange={e => setNik(e.target.value)} className="input-premium font-mono" />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Kelas & Rombel</label>
-              <select value={kelas} onChange={e => setKelas(e.target.value)} className="input-premium cursor-pointer">
-                <option value="10-A (Tahfidz & Sains)">10-A (Tahfidz)</option>
-                <option value="11-B (Sains)">11-B (Sains)</option>
-                <option value="12-C (IPS)">12-C (IPS)</option>
-                <option value="10-B (Sains)">10-B (Sains)</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Kelamin</label>
+                <select value={jenisKelamin} onChange={e => setJenisKelamin(e.target.value as any)} className="input-premium">
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">No. HP Santri</label>
+                <input type="text" placeholder="081234567890" value={telepon} onChange={e => setTelepon(e.target.value)} className="input-premium font-mono" />
+              </div>
             </div>
           </div>
+
+          {/* Akademis */}
+          <div className="space-y-3">
+            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block border-b pb-1">II. Data Akademis & Keasramaan</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">NISN *</label>
+                <input type="text" required placeholder="0012345678" value={nisn} onChange={e => setNisn(e.target.value)} className="input-premium font-mono" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Stambuk / NISP</label>
+                <input type="text" placeholder="PNDK-0012345678" value={nisp} onChange={e => setNisp(e.target.value)} className="input-premium font-mono" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kelas & Rombel</label>
+                <select value={kelas} onChange={e => setKelas(e.target.value)} className="input-premium">
+                  <option value="10-A (Tahfidz & Diniyah)">10-A (Tahfidz & Diniyah)</option>
+                  <option value="11-B (Diniyah Putri)">11-B (Diniyah Putri)</option>
+                  <option value="12-C (Sains)">12-C (Sains)</option>
+                  <option value="MI 4-A">MI 4-A</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kamar Asrama</label>
+                <select value={kamar} onChange={e => setKamar(e.target.value)} className="input-premium">
+                  <option value="Asrama Abu Bakar 1">Asrama Abu Bakar 1</option>
+                  <option value="Asrama Usamah 2">Asrama Usamah 2</option>
+                  <option value="Asrama Aisyah 3">Asrama Aisyah 3</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Alamat Cahyadsn API */}
+          <RegionSelector onChange={fullAddress => setAlamat(fullAddress)} />
+
+          {/* Data Wali */}
+          <div className="space-y-3">
+            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block border-b pb-1">III. Data Wali & Smart KK</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">NIK Wali * (16 Digit)</label>
+                <input type="text" required maxLength={16} placeholder="3571012304850001" value={nikWali} onChange={e => setNikWali(e.target.value)} className="input-premium font-mono" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Wali</label>
+                <input type="text" placeholder="Bapak Hendra" value={namaWali} onChange={e => setNamaWali(e.target.value)} className="input-premium" />
+              </div>
+            </div>
+          </div>
+
           <div className="pt-2 flex gap-3">
             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all">
               Batal
             </button>
-            <button type="submit" disabled={submitting} className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-60 disabled:translate-y-0 text-xs">
-              {submitting ? <><LoadingSpinner size="sm" variant="white" /> Menyimpan...</> : '💾 Simpan Santri'}
+            <button type="submit" disabled={submitting} className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-60 text-xs font-bold">
+              {submitting ? <><LoadingSpinner size="sm" variant="white" /> Menyimpan...</> : '💾 Simpan Santri Terpadu'}
             </button>
           </div>
         </form>
@@ -348,12 +467,11 @@ export default function MasterSantriPage() {
                 </div>
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-black text-white">{cardTarget.nama}</h3>
-                  <p className="text-xs text-emerald-200 font-mono">NISN: {cardTarget.nisn}</p>
-                  <p className="text-[11px] text-amber-300 font-semibold">{cardTarget.kelas}</p>
+                  <p className="text-xs text-emerald-200 font-mono">NISN: {cardTarget.nisn} • Stambuk: {cardTarget.nisp}</p>
+                  <p className="text-[11px] text-amber-300 font-semibold">{cardTarget.kelas} • Wali: {cardTarget.nama_wali || 'Bapak Hendra'}</p>
                 </div>
               </div>
 
-              {/* QR Code Placeholder Box */}
               <div className="p-3 bg-white rounded-2xl flex items-center justify-between gap-3 text-slate-900">
                 <div className="w-16 h-16 bg-slate-900 rounded-xl flex items-center justify-center text-white text-3xl font-black font-mono shadow-inner shrink-0">
                   QR
@@ -361,7 +479,7 @@ export default function MasterSantriPage() {
                 <div className="text-right text-[10px] font-mono text-slate-500">
                   <span className="block font-bold text-emerald-800">TOTP DYNAMIC GEOLOCATION</span>
                   <span className="block">Radius: 200 Meter Pos Utama</span>
-                  <span className="block text-[9px] text-slate-400 mt-0.5">Scannable by Guru & Sekretariat</span>
+                  <span className="block text-[9px] text-slate-400 mt-0.5">NIK Wali: {cardTarget.nik_wali || '3571012304850001'}</span>
                 </div>
               </div>
             </div>
