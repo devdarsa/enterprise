@@ -1,3 +1,5 @@
-import WaliSantriDashboardPage from '@/app/wali_santri/dashboard/page';
+import { redirect } from 'next/navigation';
 
-export default WaliSantriDashboardPage;
+export default function WaliDashboardPage() {
+  redirect('/wali_santri/dashboard');
+}

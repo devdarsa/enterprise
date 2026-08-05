@@ -88,7 +88,7 @@ export default function GuruMIDashboardPage() {
       </div>
 
       {/* Primary Action Card: Scan QR Code */}
-      <div className="p-6 rounded-3xl bg-white border border-emerald-200 shadow-xl shadow-slate-200/50 text-center space-y-4">
+      <div id="scan" className="p-6 rounded-3xl bg-white border border-emerald-200 shadow-xl shadow-slate-200/50 text-center space-y-4 scroll-mt-6">
         <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-3xl text-emerald-700 shadow-sm animate-bounce">
           📱
         </div>
@@ -115,11 +115,30 @@ export default function GuruMIDashboardPage() {
         </div>
       </div>
 
+      {/* Jadwal Mengajar Guru MI */}
+      <div id="jadwal" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 scroll-mt-6">
+        <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+          <span>📅</span> Jadwal Mengajar Formal MI
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded uppercase">Senin & Rabu • 07:00 - 08:30</span>
+            <h3 className="text-xs font-black text-slate-900 mt-2">Bahasa Arab & Al-Qur'an Hadits</h3>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">Kelas 4-A MI Darussa'adah • Gedung Formal Lt. 2</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <span className="text-[10px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded uppercase">Selasa & Kamis • 08:30 - 10:00</span>
+            <h3 className="text-xs font-black text-slate-900 mt-2">Akidah Akhlak & Fiqih Formal</h3>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">Kelas 5-B MI Darussa'adah • Gedung Formal Lt. 2</p>
+          </div>
+        </div>
+      </div>
+
       {/* Riwayat Absensi Pribadi */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+      <div id="riwayat" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 scroll-mt-6">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <span>📅</span> Riwayat Kehadiran Pribadi
+            <span>📊</span> Riwayat Kehadiran Pribadi
           </h2>
           <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
             Total Hadir: {riwayat.filter(r => r.status === 'HADIR').length} Hari

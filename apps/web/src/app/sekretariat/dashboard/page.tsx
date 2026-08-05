@@ -1,3 +1,5 @@
-import AdminDashboardPage from '@/app/admin/dashboard/page';
+import { redirect } from 'next/navigation';
 
-export default AdminDashboardPage;
+export default function SekretariatDashboardPage() {
+  redirect('/admin/dashboard');
+}

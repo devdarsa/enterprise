@@ -75,6 +75,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setTimeout(() => router.push('/login'), 1200);
   };
 
+  const handleSwitchInstansi = (inst: 'pondok' | 'madrasah' | 'mi') => {
+    setInstansiActive(inst);
+    if (user) {
+      const updatedUser = { ...user, instansi: inst.toUpperCase() };
+      setUser(updatedUser);
+      document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax`;
+    } else {
+      const defaultUser = { email: 'admin@darsa.id', nama: 'Sekretariat Utama Darsa', role: 'ADMIN_INSTANSI', instansi: inst.toUpperCase(), loginAt: new Date().toISOString() };
+      document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(defaultUser))}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax`;
+    }
+  };
+
   const instansiConfig = {
     pondok: {
       nama: "Pondok Pesantren Ma'had Darussa'adah",
@@ -202,11 +214,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          {/* Active Instansi Display */}
-          <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-            <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">
-              {instansiActive === 'pondok' ? '🏛️ Instansi Pondok Pesantren' : instansiActive === 'madrasah' ? '📚 Instansi Madrasah Diniyah' : '🏫 Instansi Formal / MI'}
-            </span>
+          {/* Active Instansi Dropdown Switcher */}
+          <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+            <label className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wider block mb-1">
+              Instansi Aktif
+            </label>
+            <select
+              value={instansiActive}
+              onChange={(e) => handleSwitchInstansi(e.target.value as 'pondok' | 'madrasah' | 'mi')}
+              className="w-full text-xs font-bold text-emerald-950 bg-white border border-emerald-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
+            >
+              <option value="pondok">🏛️ Pondok Pesantren</option>
+              <option value="madrasah">📚 Madrasah Diniyah</option>
+              <option value="mi">🏫 MI / Formal</option>
+            </select>
           </div>
         </div>
 

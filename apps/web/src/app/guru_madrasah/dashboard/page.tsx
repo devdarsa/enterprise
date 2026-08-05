@@ -37,6 +37,8 @@ export default function GuruMadrasahDashboardPage() {
   // Munawwib (Guru Mapel) Form & Setoran State
   const [setoranList, setSetoranList] = useState<SetoranItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     santri_nama: '',
@@ -56,6 +58,15 @@ export default function GuruMadrasahDashboardPage() {
       }
     } catch {}
   }, []);
+
+  const handleSimulateScan = () => {
+    setScanning(true);
+    setTimeout(() => {
+      setScanning(false);
+      setIsScanModalOpen(false);
+      showToast('success', 'Presensi Guru Berhasil!', 'Scan QR Code kehadiran Ustadz/Guru Diniyah terverifikasi dalam radius Geofencing.');
+    }, 1500);
+  };
 
   const handleSaveNilai = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,9 +114,17 @@ export default function GuruMadrasahDashboardPage() {
               </p>
             </div>
           </div>
-          <Link href="/login" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all shrink-0">
-            Keluar
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsScanModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-amber-400 text-slate-950 hover:bg-amber-300 text-xs font-black shadow-md transition-all flex items-center gap-1.5"
+            >
+              <span>📱</span> Scan QR
+            </button>
+            <Link href="/login" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all">
+              Keluar
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -135,7 +154,7 @@ export default function GuruMadrasahDashboardPage() {
 
       {/* Mustahiq (Wali Kelas) View */}
       {activeTab === 'mustahiq' && (
-        <div className="space-y-5">
+        <div id="presensi" className="space-y-5 scroll-mt-6">
           <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block mb-1">
@@ -190,7 +209,7 @@ export default function GuruMadrasahDashboardPage() {
 
       {/* Munawwib (Guru Mapel) View */}
       {activeTab === 'munawwib' && (
-        <div className="space-y-5">
+        <div id="nilai" className="space-y-5 scroll-mt-6">
           <div className="p-5 rounded-2xl bg-teal-50/70 border border-teal-200 flex justify-between items-center">
             <div>
               <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider block mb-1">
@@ -207,7 +226,7 @@ export default function GuruMadrasahDashboardPage() {
             </button>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div id="jadwal" className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4 scroll-mt-6">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Jadwal Mengajar Mapel Munawwib</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
@@ -287,6 +306,36 @@ export default function GuruMadrasahDashboardPage() {
             {submitting ? 'Simpan Data...' : 'Simpan Penilaian Munawwib'}
           </button>
         </form>
+      </Modal>
+
+      {/* Modal Scanner QR Code Presensi Guru */}
+      <Modal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        title="Pemindai QR Code Presensi Guru Diniyah"
+      >
+        <div id="scan" className="text-center py-6 space-y-4">
+          <div className="w-48 h-48 mx-auto border-4 border-dashed border-emerald-500 rounded-3xl flex items-center justify-center bg-slate-900/5 relative overflow-hidden">
+            {scanning ? (
+              <div className="animate-spin text-4xl">⏳</div>
+            ) : (
+              <div className="space-y-2">
+                <span className="text-5xl block animate-pulse">📷</span>
+                <span className="text-[11px] text-slate-500 font-bold block">Arahkan ke Display QR Code</span>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-slate-500">
+            Memverifikasi lokasi GPS Geofencing dan TOTP token kehadiran Guru Diniyah Lirboyo Kediri.
+          </p>
+          <button
+            onClick={handleSimulateScan}
+            disabled={scanning}
+            className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-all shadow-md disabled:opacity-50"
+          >
+            {scanning ? 'Memverifikasi Presensi...' : 'Simulasi Scan QR Presensi'}
+          </button>
+        </div>
       </Modal>
 
       <MobileBottomNav role="GURU_MADRASAH" />

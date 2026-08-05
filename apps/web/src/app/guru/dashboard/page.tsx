@@ -1,3 +1,5 @@
-import GuruMadrasahDashboardPage from '@/app/guru_madrasah/dashboard/page';
+import { redirect } from 'next/navigation';
 
-export default GuruMadrasahDashboardPage;
+export default function GuruDashboardPage() {
+  redirect('/guru_madrasah/dashboard');
+}

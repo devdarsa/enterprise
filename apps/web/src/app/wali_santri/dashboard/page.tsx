@@ -192,6 +192,25 @@ export default function WaliSantriDashboardPage() {
         </div>
       </div>
 
+      {/* Desktop Navigation Tabs */}
+      <div id="beranda" className="flex bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <a href="#beranda" className="px-4 py-2.5 text-xs font-bold rounded-xl bg-emerald-700 text-white shadow-sm shrink-0">
+          🏠 Beranda
+        </a>
+        <a href="#surat" className="px-4 py-2.5 text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
+          ✉️ Status Izin
+        </a>
+        <a href="#akademik" className="px-4 py-2.5 text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
+          📜 Rapor & Hafalan
+        </a>
+        <a href="#absensi" className="px-4 py-2.5 text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
+          📊 Presensi
+        </a>
+        <a href="#pengumuman" className="px-4 py-2.5 text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
+          📢 Informasi
+        </a>
+      </div>
+
       {/* Children Selector Tab (If Multiple Children Linked to Same NIK) */}
       {connectedChildren.length > 1 && (
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
@@ -242,7 +261,7 @@ export default function WaliSantriDashboardPage() {
 
       {/* Riwayat Permohonan Izin Wali */}
       {riwayatIzin.length > 0 && (
-        <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
+        <div id="surat" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3 scroll-mt-6">
           <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
             <span>📝</span> Status Permohonan Izin Santri
           </h2>
@@ -265,7 +284,7 @@ export default function WaliSantriDashboardPage() {
       )}
 
       {/* Nilai Akademik & Progres Hafalan */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+      <div id="akademik" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 scroll-mt-6">
         <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
           <span>📜</span> Nilai Akademik & Progres Hafalan
         </h2>
@@ -284,7 +303,7 @@ export default function WaliSantriDashboardPage() {
       </div>
 
       {/* Rekap Absensi Bulanan */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+      <div id="absensi" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 scroll-mt-6">
         <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
           <span>📊</span> Rekap Presensi Kehadiran Bulanan
         </h2>
@@ -306,7 +325,7 @@ export default function WaliSantriDashboardPage() {
       </div>
 
       {/* Live Broadcast Pengumuman dari Database */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+      <div id="pengumuman" className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 scroll-mt-6">
         <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
           <span>📢</span> Pengumuman Resmi Live dari Database
         </h2>
