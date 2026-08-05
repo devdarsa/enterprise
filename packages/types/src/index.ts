@@ -25,11 +25,12 @@ export interface ApiFieldError {
 
 // User & Role Types
 export type UserRole =
-  | 'SUPER_ADMIN'
+  | 'SEKRETARIAT'
   | 'ADMIN_INSTANSI'
+  | 'GURU_MADRASAH'
+  | 'GURU_MI'
   | 'GURU'
   | 'PEGAWAI'
-  | 'BENDAHARA'
   | 'SANTRI'
   | 'WALI_SANTRI';
 
@@ -44,8 +45,6 @@ export type SystemPermission =
   | 'absensi:manage'
   | 'nilai:read'
   | 'nilai:write'
-  | 'keuangan:read'
-  | 'keuangan:write'
   | 'audit:read';
 
 export interface UserSession {
@@ -91,12 +90,26 @@ export interface Pondok {
 
 export interface Santri {
   id: string;
+  nisp: string; // Nomor Induk Santri Pondok (Stambuk)
   nisn: string;
   nama_lengkap: string;
   jenis_kelamin: 'L' | 'P';
   tanggal_lahir: string;
   kelas_id: string;
   pondok_id: string;
+  nik_wali?: string;
+  nama_wali?: string;
   foto_url?: string;
   created_at: string;
+}
+
+export interface Pengumuman {
+  id: string;
+  judul: string;
+  isi: string;
+  target: 'SEMUA' | 'WALI_SANTRI' | 'GURU';
+  instansi: 'PONDOK' | 'MADRASAH' | 'MI' | 'SEMUA';
+  tanggal: string;
+  penulis: string;
+  penting: boolean;
 }

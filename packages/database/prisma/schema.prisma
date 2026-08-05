@@ -12,11 +12,12 @@ generator client {
 // ----------------------------------------------------
 
 enum RoleType {
-  SUPER_ADMIN
+  SEKRETARIAT
   ADMIN_INSTANSI
+  GURU_MADRASAH
+  GURU_MI
   GURU
   PEGAWAI
-  BENDAHARA
   SANTRI
   WALI_SANTRI
 }
@@ -143,7 +144,6 @@ model Pondok {
   lokasi     LokasiPresensi[]
   inventaris InventarisBarang[]
   surat      Surat[]
-  tagihan    Tagihan[]
 
   @@map("pondok")
 }
@@ -213,8 +213,10 @@ model Santri {
   user_id      String    @unique @db.Uuid
   pondok_id    String    @db.Uuid
   kelas_id     String    @db.Uuid
+  nisp         String    @unique // NISP / Stambuk (Single Source of Truth)
   nisn         String    @unique
   nama_lengkap String
+  nik_wali     String?   // NIK Orang Tua / Wali untuk penyambungan akun otomatis
   deleted_at   DateTime?
   created_at   DateTime  @default(now())
 
@@ -225,7 +227,6 @@ model Santri {
   wali_links HubunganWali[]
   nilai      NilaiSantri[]
   rapor      RaporSantri[]
-  tagihan    Tagihan[]
 
   @@map("santri")
 }
@@ -233,6 +234,7 @@ model Santri {
 model WaliSantri {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id      String   @unique @db.Uuid
+  nik          String?  @unique // NIK Kependudukan Wali
   nama_lengkap String
   telepon      String
   created_at   DateTime @default(now())
@@ -241,6 +243,19 @@ model WaliSantri {
   santri_links HubunganWali[]
 
   @@map("wali_santri")
+}
+
+model Pengumuman {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  judul      String
+  isi        String
+  target     String   // SEMUA, WALI_SANTRI, GURU
+  instansi   String   // PONDOK, MADRASAH, MI, SEMUA
+  penulis    String
+  penting    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@map("pengumuman")
 }
 
 model HubunganWali {
@@ -378,46 +393,6 @@ model RaporSantri {
 }
 
 // ----------------------------------------------------
-// 6. KEUANGAN & PAYMENT GATEWAY
-// ----------------------------------------------------
-
-enum StatusPembayaran {
-  BELUM_BAYAR
-  MENUNGGU_VERIFIKASI
-  LUNAS
-  EXPIRED
-}
-
-model Tagihan {
-  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pondok_id    String           @db.Uuid
-  santri_id    String           @db.Uuid
-  judul        String           // e.g. SPP Bulan Agustus 2026
-  jumlah       Float
-  status       StatusPembayaran @default(BELUM_BAYAR)
-  jatuh_tempo  DateTime
-  created_at   DateTime         @default(now())
-
-  pondok     Pondok       @relation(fields: [pondok_id], references: [id], onDelete: Cascade)
-  santri     Santri       @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  pembayaran Pembayaran[]
-
-  @@map("tagihan")
-}
-
-model Pembayaran {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tagihan_id     String   @db.Uuid
-  metode         String   // VA_BCA, QRIS, TRANSFER_BANK
-  jumlah_bayar   Float
-  bukti_bayar_url String?
-  waktu_bayar    DateTime @default(now())
-
-  tagihan Tagihan @relation(fields: [tagihan_id], references: [id], onDelete: Cascade)
-
-  @@map("pembayaran")
-}
-
 // ----------------------------------------------------
 // 7. PERSURATAN & INVENTARIS
 // ----------------------------------------------------

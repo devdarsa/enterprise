@@ -11,10 +11,13 @@ import type { NextRequest } from 'next/server';
 
 const PROTECTED_ROUTES = [
   '/admin',
+  '/sekretariat',
   '/guru',
+  '/guru_madrasah',
+  '/guru_mi',
   '/wali',
+  '/wali_santri',
   '/santri',
-  '/super-admin',
 ];
 
 const PUBLIC_ROUTES = [
@@ -62,25 +65,25 @@ export function middleware(request: NextRequest) {
   try {
     const session = JSON.parse(decodeURIComponent(sessionValue));
     const userRole: string = session.role || '';
-    const userInstansi: string = session.instansi || '';
-
-    // Super Admin can access everything
-    if (userRole === 'SUPER_ADMIN') return NextResponse.next();
 
     // Route-level role guards
-    if (pathname.startsWith('/super-admin') && userRole !== 'SUPER_ADMIN') {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-    }
-
-    if (pathname.startsWith('/guru') && !['GURU', 'ADMIN_INSTANSI', 'SUPER_ADMIN'].includes(userRole)) {
+    if ((pathname.startsWith('/admin') || pathname.startsWith('/sekretariat')) && !['SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    if (pathname.startsWith('/wali') && !['WALI_SANTRI', 'ADMIN_INSTANSI', 'SUPER_ADMIN'].includes(userRole)) {
+    if ((pathname.startsWith('/guru') || pathname.startsWith('/guru_madrasah')) && !['GURU_MADRASAH', 'GURU', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    if (pathname.startsWith('/santri') && !['SANTRI', 'ADMIN_INSTANSI', 'SUPER_ADMIN'].includes(userRole)) {
+    if (pathname.startsWith('/guru_mi') && !['GURU_MI', 'GURU', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    if ((pathname.startsWith('/wali') || pathname.startsWith('/wali_santri')) && !['WALI_SANTRI', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    if (pathname.startsWith('/santri') && !['SANTRI', 'SEKRETARIAT', 'ADMIN_INSTANSI'].includes(userRole)) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 

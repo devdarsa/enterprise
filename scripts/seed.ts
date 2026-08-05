@@ -1,3 +1,4 @@
+declare const process: { exit: (code?: number) => never };
 import { prisma } from '../packages/database/src/index';
 
 async function main() {
@@ -5,11 +6,12 @@ async function main() {
 
   // 1. Seed System Roles
   const roles = [
-    { name: 'SUPER_ADMIN', description: 'Super Administrator Platform SaaS' },
+    { name: 'SEKRETARIAT', description: 'Administrasi Pondok, Madrasah & MI' },
     { name: 'ADMIN_INSTANSI', description: 'Administrator Pondok/Sekolah' },
+    { name: 'GURU_MADRASAH', description: 'Guru / Ustadz Diniyah (Mustahiq & Munawwib)' },
+    { name: 'GURU_MI', description: 'Guru MI (Khusus Absensi & Scan QR)' },
     { name: 'GURU', description: 'Tenaga Pengajar & Ustadz' },
     { name: 'PEGAWAI', description: 'Staf Operasional' },
-    { name: 'BENDAHARA', description: 'Pengelola Keuangan' },
     { name: 'SANTRI', description: 'Siswa / Santri' },
     { name: 'WALI_SANTRI', description: 'Orang Tua / Wali Santri' },
   ];
@@ -54,7 +56,7 @@ async function main() {
   console.log('✅ Master Kelembagaan & Kelas berhasil dibuat.');
 
   // 3. Seed Lokasi Presensi (Geofencing GPS Radius 200m)
-  const lokasi = await prisma.lokasi_presensi.create({
+  const lokasi = await prisma.lokasiPresensi.create({
     data: {
       pondok_id: pondok.id,
       nama_lokasi: 'Gerbang Utama & Pos Keamanan Darsa',

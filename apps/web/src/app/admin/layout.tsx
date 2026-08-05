@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/Loading';
 import Toast, { ToastProps } from '@/components/Toast';
+import DesktopOnlyGuard from '@/components/DesktopOnlyGuard';
 
 interface SessionUser {
   email: string;
@@ -83,9 +84,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       menus: [
         { label: 'Overview Pesantren', path: '/admin/dashboard', icon: '📊' },
         { label: 'Master Santri Pondok', path: '/admin/santri', icon: '🎓' },
+        { label: 'Asrama & Kamar Santri', path: '/admin/asrama', icon: '🏠' },
         { label: 'Dewan Pengasuh & Ustadz', path: '/admin/guru', icon: '👨‍🏫' },
         { label: 'Persuratan & Izin', path: '/admin/surat', icon: '✉️' },
-        { label: 'Keuangan SPP Pondok', path: '/admin/keuangan', icon: '💳' },
+        { label: 'Pusat Pengumuman', path: '/admin/pengumuman', icon: '📢' },
         { label: 'Inventaris & Aset', path: '/admin/inventaris', icon: '📦' },
         { label: 'Jadwal KBM & Pengajian', path: '/admin/jadwal', icon: '📅' },
         { label: 'Dynamic QR Display', path: '/admin/absensi/qr-display', icon: '📱' },
@@ -95,14 +97,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       nama: "Madrasah Diniyah Darussa'adah",
       sub: 'LIRBOYO KOTA KEDIRI',
       logo: '/logo-madrasah.png',
-      badge: 'Modul Instansi Madrasah Diniyah',
+      badge: 'Sekretariat Madrasah Diniyah',
       menus: [
         { label: 'Overview Diniyah', path: '/admin/dashboard', icon: '📊' },
         { label: 'Santri Diniyah', path: '/admin/santri', icon: '🎓' },
         { label: 'Mustahiq & Pengajar', path: '/admin/guru', icon: '👨‍🏫' },
         { label: 'Jadwal & Kitab Kuning', path: '/admin/jadwal', icon: '📅' },
         { label: 'Persuratan & Izin', path: '/admin/surat', icon: '✉️' },
-        { label: 'Keuangan Diniyah', path: '/admin/keuangan', icon: '💳' },
+        { label: 'Pusat Pengumuman', path: '/admin/pengumuman', icon: '📢' },
         { label: 'Inventaris & Aset', path: '/admin/inventaris', icon: '📦' },
         { label: 'Rapor Diniyah PDF', path: '/admin/akademik/rapor', icon: '📜' },
       ],
@@ -111,14 +113,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       nama: "Madrasah Ibtida'iyyah Darussa'adah",
       sub: 'LIRBOYO KOTA KEDIRI',
       logo: '/logo-mi.png',
-      badge: 'Modul Instansi Formal / MI',
+      badge: 'Sekretariat Formal / MI',
       menus: [
         { label: 'Overview MI Formal', path: '/admin/dashboard', icon: '📊' },
         { label: 'Santri MI', path: '/admin/santri', icon: '🎓' },
         { label: 'Guru & Pegawai MI', path: '/admin/guru', icon: '👨‍🏫' },
         { label: 'Jadwal & Kurikulum MI', path: '/admin/jadwal', icon: '📅' },
         { label: 'Persuratan & Izin', path: '/admin/surat', icon: '✉️' },
-        { label: 'Keuangan MI', path: '/admin/keuangan', icon: '💳' },
+        { label: 'Pusat Pengumuman', path: '/admin/pengumuman', icon: '📢' },
         { label: 'Inventaris Aset MI', path: '/admin/inventaris', icon: '📦' },
         { label: 'Rapor Formal MI', path: '/admin/akademik/rapor', icon: '📜' },
       ],
@@ -129,7 +131,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const notifications = [
     { icon: '📱', text: 'QR Absensi baru: 12 santri scan pagi ini', time: '2m lalu', unread: true },
-    { icon: '💳', text: 'Tagihan SPP Agustus sudah jatuh tempo', time: '1j lalu', unread: true },
     { icon: '✉️', text: 'Surat izin baru dari Ahmad Fauzi', time: '3j lalu', unread: false },
   ];
 
@@ -145,7 +146,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   })();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row relative">
+    <DesktopOnlyGuard>
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row relative">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -370,5 +372,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Toast */}
       <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
     </div>
+    </DesktopOnlyGuard>
   );
 }

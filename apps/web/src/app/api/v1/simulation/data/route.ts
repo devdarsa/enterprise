@@ -6,9 +6,16 @@ export async function GET(request: Request) {
   const type = searchParams.get('type') || 'santri';
   const instansi = searchParams.get('instansi') || undefined;
   const tahunAjaran = searchParams.get('tahunAjaran') || undefined;
+  const nik = searchParams.get('nik') || undefined;
 
   if (type === 'santri') {
     const data = simulationDb.getSantri(instansi, tahunAjaran);
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'wali_santri') {
+    // Penyambungan Akun Wali Santri berbasis NIK Kependudukan Wali
+    const data = simulationDb.getSantriByNikWali(nik || '3571012304850001');
     return NextResponse.json({ success: true, data });
   }
 
@@ -19,6 +26,12 @@ export async function GET(request: Request) {
 
   if (type === 'surat') {
     const data = simulationDb.getSurat(instansi, tahunAjaran);
+    return NextResponse.json({ success: true, data });
+  }
+
+  if (type === 'pengumuman') {
+    const target = searchParams.get('target') || undefined;
+    const data = simulationDb.getPengumuman(instansi, target);
     return NextResponse.json({ success: true, data });
   }
 
@@ -80,6 +93,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: 'Surat Berhasil Dihapus' });
     }
 
+    if (action === 'add_pengumuman') {
+      const record = simulationDb.addPengumuman(payload);
+      return NextResponse.json({ success: true, message: 'Pengumuman Berhasil Diterbitkan & Broadcast Live', data: record });
+    }
+
     if (action === 'add_transaksi') {
       const record = simulationDb.addTransaksi(payload);
       return NextResponse.json({ success: true, message: 'Transaksi SPP Berhasil Disimpan', data: record });
@@ -107,11 +125,11 @@ export async function POST(request: Request) {
 
     if (action === 'add_setoran') {
       const record = simulationDb.addSetoran(payload);
-      return NextResponse.json({ success: true, message: 'Setoran Tahfidz Berhasil Disimpan', data: record });
+      return NextResponse.json({ success: true, message: 'Setoran Tahfidz Berhasil Diriwayatkan', data: record });
     }
 
-    return NextResponse.json({ success: false, error: 'Aksi mutasi simulasi tidak dikenali' }, { status: 400 });
-  } catch (err) {
-    return NextResponse.json({ success: false, error: 'Gagal memproses data simulasi' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Aksi simulasi tidak dikenali' }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: 'Internal Server Error pada API Simulasi' }, { status: 500 });
   }
 }

@@ -1,10 +1,20 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
+
+export const viewport: Viewport = {
+  themeColor: '#047857',
+};
 
 export const metadata: Metadata = {
   title: "Darsa Enterprise - Ma'had Darussa'adah Lirboyo Kota Kediri",
   description:
     "Sistem Informasi Terpadu Enterprise Pendidikan Islam - Ma'had Darussa'adah Lirboyo Kota Kediri",
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Darsa Enterprise',
+  },
   icons: {
     icon: [
       { url: '/logo-lirboyo.png', type: 'image/png' },

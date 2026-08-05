@@ -7,22 +7,21 @@ import { LoadingSpinner } from '@/components/Loading';
 
 type InstansiKey = 'pondok' | 'madrasah' | 'mi';
 type AuthMethod = 'email' | 'passkey';
-type RoleKey = 'ADMIN_INSTANSI' | 'GURU' | 'WALI_SANTRI' | 'BENDAHARA' | 'SUPER_ADMIN';
+type RoleKey = 'SEKRETARIAT' | 'ADMIN_INSTANSI' | 'GURU_MADRASAH' | 'GURU_MI' | 'WALI_SANTRI';
 
 const DEMO_USERS: Record<string, { password: string; role: RoleKey; nama: string }> = {
-  'super@darsa.id':     { password: 'super123',  role: 'SUPER_ADMIN',     nama: 'Super Admin Darsa' },
-  'admin@darsa.id':     { password: 'admin123',  role: 'ADMIN_INSTANSI',  nama: 'Ahmad Al-Farisi' },
-  'guru@darsa.id':      { password: 'guru123',   role: 'GURU',            nama: 'Dr. KH. Abdullah Ridwan' },
-  'wali@darsa.id':      { password: 'wali123',   role: 'WALI_SANTRI',     nama: 'Bapak Hendra' },
-  'bendahara@darsa.id': { password: 'bendahara123', role: 'BENDAHARA',    nama: 'Ustadzah Siti Khadijah' },
+  'admin@darsa.id':   { password: 'admin123',  role: 'SEKRETARIAT',    nama: 'Sekretariat Utama Darsa' },
+  'guru@darsa.id':    { password: 'guru123',   role: 'GURU_MADRASAH',  nama: 'Dr. KH. Abdullah Ridwan' },
+  'guru.mi@darsa.id': { password: 'guru123',   role: 'GURU_MI',        nama: 'Ustadzah Fatimah, S.Pd' },
+  'wali@darsa.id':    { password: 'wali123',   role: 'WALI_SANTRI',   nama: 'Bapak Hendra' },
 };
 
 const ROLE_REDIRECT: Record<RoleKey, string> = {
-  SUPER_ADMIN:    '/super-admin/dashboard',
+  SEKRETARIAT:    '/admin/dashboard',
   ADMIN_INSTANSI: '/admin/dashboard',
-  GURU:           '/guru/dashboard',
-  WALI_SANTRI:    '/wali/dashboard',
-  BENDAHARA:      '/admin/keuangan',
+  GURU_MADRASAH:  '/guru_madrasah/dashboard',
+  GURU_MI:        '/guru_mi/dashboard',
+  WALI_SANTRI:    '/wali_santri/dashboard',
 };
 
 export default function LoginPage() {
@@ -90,11 +89,7 @@ export default function LoginPage() {
     setStep('redirecting');
     await new Promise((res) => setTimeout(res, 600));
 
-    if (user.role === 'SUPER_ADMIN') {
-      window.location.href = ROLE_REDIRECT.SUPER_ADMIN;
-    } else {
-      window.location.href = ROLE_REDIRECT[user.role];
-    }
+    window.location.href = ROLE_REDIRECT[user.role];
   };
 
   const handlePasskeyLogin = async () => {
@@ -351,9 +346,10 @@ export default function LoginPage() {
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
               <p className="text-[10px] font-bold text-amber-700 mb-1.5 uppercase tracking-wider">💡 Akun Demo Tersedia:</p>
               <div className="space-y-0.5 text-[10px] text-amber-800 font-mono">
-                <p>admin@darsa.id / admin123</p>
-                <p>guru@darsa.id / guru123</p>
-                <p>wali@darsa.id / wali123</p>
+                <p>admin@darsa.id / admin123 (Sekretariat)</p>
+                <p>guru@darsa.id / guru123 (Guru Madrasah)</p>
+                <p>guru.mi@darsa.id / guru123 (Guru MI Absensi)</p>
+                <p>wali@darsa.id / wali123 (Wali Santri)</p>
               </div>
             </div>
           </div>

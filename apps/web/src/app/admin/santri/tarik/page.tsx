@@ -10,10 +10,10 @@ export default function TarikDataSantriPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const availablePondokSantri = [
-    { nisn: '0012345678', nama: 'Muhammad Raihan', kelas_pondok: 'Pesantren 10-A', status_pondok: 'AKTIF_TERDAFTAR' },
-    { nisn: '0012345679', nama: 'Ahmad Fauzi', kelas_pondok: 'Pesantren 10-A', status_pondok: 'AKTIF_TERDAFTAR' },
-    { nisn: '0012345680', nama: 'Siti Aminah', kelas_pondok: 'Pesantren 11-B', status_pondok: 'AKTIF_TERDAFTAR' },
-    { nisn: '0012345681', nama: 'Fajar Hidayat', kelas_pondok: 'Pesantren 12-C', status_pondok: 'AKTIF_TERDAFTAR' },
+    { nisp: 'PNDK-0012345678', nisn: '0012345678', nama: 'Muhammad Raihan', kelas_pondok: 'Pesantren 10-A', status_pondok: 'AKTIF_TERDAFTAR' },
+    { nisp: 'PNDK-0012345679', nisn: '0012345679', nama: 'Ahmad Fauzi', kelas_pondok: 'Pesantren 10-A', status_pondok: 'AKTIF_TERDAFTAR' },
+    { nisp: 'PNDK-0012345680', nisn: '0012345680', nama: 'Siti Aminah', kelas_pondok: 'Pesantren 11-B', status_pondok: 'AKTIF_TERDAFTAR' },
+    { nisp: 'PNDK-0012345681', nisn: '0012345681', nama: 'Fajar Hidayat', kelas_pondok: 'Pesantren 12-C', status_pondok: 'AKTIF_TERDAFTAR' },
   ];
 
   const handleToggleSelect = (nisn: string) => {
@@ -117,6 +117,7 @@ export default function TarikDataSantriPage() {
             <thead>
               <tr className="border-b border-slate-200 text-slate-500 font-bold bg-slate-50">
                 <th className="p-3 text-center">Pilih</th>
+                <th className="p-3">NISP / Stambuk</th>
                 <th className="p-3">NISN</th>
                 <th className="p-3">Nama Santri</th>
                 <th className="p-3">Kelas Pondok</th>
@@ -136,6 +137,7 @@ export default function TarikDataSantriPage() {
                         className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
                       />
                     </td>
+                    <td className="p-3 font-mono font-black text-amber-800 bg-amber-50/50">{santri.nisp}</td>
                     <td className="p-3 font-mono font-bold text-emerald-800">{santri.nisn}</td>
                     <td className="p-3 font-bold text-slate-900">{santri.nama}</td>
                     <td className="p-3 text-slate-600">{santri.kelas_pondok}</td>

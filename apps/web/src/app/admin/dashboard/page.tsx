@@ -72,24 +72,22 @@ export default function AdminDashboardPage() {
           fetch(`/api/v1/simulation/data?type=transaksi&instansi=${inst}`),
         ]);
 
-        const [santriJson, guruJson, suratJson, keuJson] = await Promise.all([
+        const [santriJson, guruJson, suratJson] = await Promise.all([
           santriRes.json(),
           guruRes.json(),
           suratRes.json(),
-          keuRes.json(),
         ]);
 
         const santriList = santriJson.success ? santriJson.data : [];
         const guruList = guruJson.success ? guruJson.data : [];
         const suratList = suratJson.success ? suratJson.data : [];
-        const keuList = keuJson.success ? keuJson.data : [];
 
         setStats({
           totalSantri: santriList.length,
           santriAktif: santriList.filter((s: any) => s.status === 'AKTIF').length,
           totalGuru: guruList.length,
           totalSurat: suratList.length,
-          totalKeuangan: keuList.filter((k: any) => k.status === 'LUNAS').length,
+          totalKeuangan: 0,
         });
       } catch {
         setStats({ totalSantri: 0, santriAktif: 0, totalGuru: 0, totalSurat: 0, totalKeuangan: 0 });
@@ -112,30 +110,30 @@ export default function AdminDashboardPage() {
       trend: '+3%',
     },
     {
-      label: 'Guru & Ustadz',
+      label: 'Dewan Guru & Pengajar',
       value: stats ? `${stats.totalGuru}` : '-',
-      sub: '100% Terverifikasi',
+      sub: 'Ustadz & Tenaga Pendidik',
       icon: '👨‍🏫',
-      color: 'from-teal-500 to-teal-600',
-      bg: 'bg-teal-50 border-teal-200',
+      color: 'from-amber-500 to-amber-600',
+      bg: 'bg-amber-50 border-amber-200',
       trend: 'stabil',
     },
     {
-      label: 'Surat & Izin',
+      label: 'Surat & Izin Keluar',
       value: stats ? `${stats.totalSurat}` : '-',
-      sub: 'Total surat aktif',
+      sub: 'Dokumen Persuratan',
       icon: '✉️',
-      color: 'from-amber-500 to-amber-600',
-      bg: 'bg-amber-50 border-amber-200',
+      color: 'from-teal-500 to-teal-600',
+      bg: 'bg-teal-50 border-teal-200',
       trend: '+2',
     },
     {
-      label: 'Batas Geofencing',
-      value: '200m',
-      sub: 'Haversine GPS Presisi',
-      icon: '🌐',
-      color: 'from-slate-500 to-slate-600',
-      bg: 'bg-slate-100 border-slate-200',
+      label: 'Presensi GPS Geofencing',
+      value: 'Aktif',
+      sub: 'Dynamic TOTP QR Radius',
+      icon: '📍',
+      color: 'from-blue-500 to-indigo-600',
+      bg: 'bg-blue-50 border-blue-200',
       trend: 'aktif',
     },
   ];
@@ -301,7 +299,7 @@ export default function AdminDashboardPage() {
           {[
             { label: 'Tambah Santri', icon: '🎓', href: '/admin/santri', color: 'bg-emerald-50 border-emerald-200 hover:border-emerald-400 text-emerald-800' },
             { label: 'Buat Surat', icon: '✉️', href: '/admin/surat', color: 'bg-amber-50 border-amber-200 hover:border-amber-400 text-amber-800' },
-            { label: 'Tagihan SPP', icon: '💳', href: '/admin/keuangan', color: 'bg-teal-50 border-teal-200 hover:border-teal-400 text-teal-800' },
+            { label: 'Display QR Code', icon: '📱', href: '/admin/absensi/qr-display', color: 'bg-teal-50 border-teal-200 hover:border-teal-400 text-teal-800' },
             { label: 'Jadwal KBM', icon: '📅', href: '/admin/jadwal', color: 'bg-slate-100 border-slate-200 hover:border-slate-400 text-slate-700' },
           ].map((item) => (
             <Link

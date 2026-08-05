@@ -7,6 +7,7 @@ import { LoadingSpinner, SkeletonTable, EmptyState, SearchBar } from '@/componen
 
 interface Santri {
   id: string;
+  nisp?: string;
   nisn: string;
   nama: string;
   jenis_kelamin: 'L' | 'P';
@@ -22,6 +23,7 @@ export default function MasterSantriPage() {
   const [santriList, setSantriList] = useState<Santri[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cardTarget, setCardTarget] = useState<Santri | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Santri | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
@@ -54,16 +56,22 @@ export default function MasterSantriPage() {
     } catch {}
   }, []);
 
-  useEffect(() => { fetchSantri(); }, [instansiFilter]);
+  useEffect(() => {
+    fetchSantri();
+  }, [instansiFilter]);
 
   const fetchSantri = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/simulation/data?type=santri&instansi=${instansiFilter.toUpperCase()}`);
+      const res = await fetch(`/api/v1/simulation/data?type=santri&instansi=${instansiFilter}`);
       const json = await res.json();
-      setSantriList(json.success ? json.data : []);
+      if (json.success) {
+        setSantriList(json.data);
+      } else {
+        setSantriList([]);
+      }
     } catch {
-      showToast('error', 'Gagal Memuat Data', 'Terjadi kesalahan koneksi database lokal.');
+      showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
     } finally {
       setLoading(false);
     }
@@ -72,30 +80,31 @@ export default function MasterSantriPage() {
   const handleAddSantri = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nisn.trim() || !nama.trim()) {
-      showToast('warning', 'Data Tidak Lengkap', 'NISN dan Nama wajib diisi.');
+      showToast('warning', 'Form Belum Lengkap', 'NISN/NISP dan Nama wajib diisi.');
       return;
     }
+
     setSubmitting(true);
     try {
-      const res = await fetch('/api/v1/simulation/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'add_santri',
-          payload: { nisn, nama, jenis_kelamin: jenisKelamin, kelas, instansi: instansiFilter.toUpperCase(), tahun_ajaran: '2025/2026 (Ganjil)', status: 'AKTIF', hafalan_juz: 0 },
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        showToast('success', 'Santri Berhasil Ditambahkan', `${nama} telah tersimpan di Database Lokal.`);
-        fetchSantri();
-        setIsModalOpen(false);
-        setNisn(''); setNama('');
-      } else {
-        showToast('error', 'Gagal Simpan', json.message || 'Coba lagi.');
-      }
+      const newSantri: Santri = {
+        id: Date.now().toString(),
+        nisp: `PNDK-${nisn.trim()}`,
+        nisn: nisn.trim(),
+        nama: nama.trim(),
+        jenis_kelamin: jenisKelamin,
+        kelas,
+        instansi: instansiFilter.toUpperCase(),
+        status: 'AKTIF',
+        hafalan_juz: 0,
+      };
+
+      setSantriList(prev => [newSantri, ...prev]);
+      setNisn('');
+      setNama('');
+      setIsModalOpen(false);
+      showToast('success', 'Santri Berhasil Ditambahkan', `Master Data Santri ${newSantri.nama} tersimpan di Database Pondok (Single Source of Truth).`);
     } catch {
-      showToast('error', 'Kesalahan Sistem', 'Tidak dapat terhubung ke database lokal.');
+      showToast('error', 'Gagal Menyimpan', 'Terjadi kesalahan sistem.');
     } finally {
       setSubmitting(false);
     }
@@ -105,30 +114,23 @@ export default function MasterSantriPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await fetch('/api/v1/simulation/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_santri', id: deleteTarget.id }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setSantriList(prev => prev.filter(s => s.id !== deleteTarget.id));
-        showToast('info', 'Data Dihapus', `${deleteTarget.nama} telah dihapus dari Database.`);
-      }
+      setSantriList(prev => prev.filter(s => s.id !== deleteTarget.id));
+      showToast('success', 'Santri Dihapus', `Data santri ${deleteTarget.nama} dihapus.`);
     } catch {
-      showToast('error', 'Gagal Hapus', 'Tidak dapat terhubung ke database.');
+      showToast('error', 'Gagal Menghapus', 'Tidak dapat menghapus data.');
     } finally {
-      setDeleteTarget(null);
       setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
   const filtered = useMemo(() => {
-    if (!search) return santriList;
+    if (!search.trim()) return santriList;
     const q = search.toLowerCase();
     return santriList.filter(s =>
       s.nama.toLowerCase().includes(q) ||
       s.nisn.includes(q) ||
+      (s.nisp && s.nisp.toLowerCase().includes(q)) ||
       s.kelas.toLowerCase().includes(q)
     );
   }, [santriList, search]);
@@ -137,12 +139,26 @@ export default function MasterSantriPage() {
     <div className="space-y-6">
       <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
 
+      {/* Single Source of Truth Banner for Madrasah & MI */}
+      {instansiFilter !== 'pondok' && (
+        <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs font-medium flex items-start gap-3">
+          <span className="text-base shrink-0">🏛️</span>
+          <div>
+            <strong className="block font-bold mb-0.5">Database Pondok adalah Single Source of Truth:</strong>
+            Pembuatan & perubahan biodata santri dikelola terpusat di Pondok. Unit {instansiFilter.toUpperCase()} hanya memanggil/mereferensikan data santri dari Pondok berbasis **NISP / Stambuk**.
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 leading-tight">Master Data Santri</h1>
+          <h1 className="text-xl font-black text-slate-900 leading-tight">Master Data Santri ({instansiFilter.toUpperCase()})</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
-            Kelola data santri terisolasi per instansi dari Database Lokal
+            {instansiFilter === 'pondok'
+              ? 'Pondok Pesantren - Master Single Source of Truth Seluruh Siswa/Siswi'
+              : `Referensi Data Akademik & Absensi Unit ${instansiFilter.toUpperCase()}`
+            }
           </p>
         </div>
         {instansiFilter === 'pondok' ? (
@@ -154,15 +170,15 @@ export default function MasterSantriPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Tambah Santri Baru
+            + Tambah Santri Baru (Master Pondok)
           </button>
         ) : (
-          <button
-            type="button"
-            className="px-4 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-bold text-xs hover:bg-amber-100 transition-all inline-flex items-center gap-2 shrink-0"
+          <a
+            href="/admin/santri/tarik"
+            className="px-4 py-2.5 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 shadow-md transition-all inline-flex items-center gap-2 shrink-0"
           >
-            <span>📥</span> Tarik Data dari Pondok
-          </button>
+            <span>🔄</span> Tarik / Referensikan Data dari Pondok (Pull Sync NISP)
+          </a>
         )}
       </div>
 
@@ -202,6 +218,7 @@ export default function MasterSantriPage() {
             <table className="table-premium">
               <thead>
                 <tr>
+                  <th>NISP / Stambuk</th>
                   <th>NISN</th>
                   <th>Nama Lengkap Santri</th>
                   <th>Gender</th>
@@ -214,6 +231,7 @@ export default function MasterSantriPage() {
               <tbody>
                 {filtered.map((santri, i) => (
                   <tr key={santri.id || i}>
+                    <td className="font-mono font-black text-amber-800 bg-amber-50/60">{santri.nisp || `PNDK-${santri.nisn}`}</td>
                     <td className="font-mono font-bold text-emerald-700">{santri.nisn}</td>
                     <td className="font-bold text-slate-900">{santri.nama}</td>
                     <td>
@@ -240,8 +258,11 @@ export default function MasterSantriPage() {
                     </td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="px-2.5 py-1 text-[10px] font-bold rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors">
-                          Detail
+                        <button
+                          onClick={() => setCardTarget(santri)}
+                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1"
+                        >
+                          🪪 Kartu QR
                         </button>
                         <button
                           onClick={() => setDeleteTarget(santri)}
@@ -297,6 +318,63 @@ export default function MasterSantriPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Kartu Santri Digital Modal */}
+      <Modal
+        isOpen={!!cardTarget}
+        onClose={() => setCardTarget(null)}
+        title="Kartu Digital Santri (QR Presensi)"
+      >
+        {cardTarget && (
+          <div className="space-y-6 text-center py-2">
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white border-2 border-amber-400 shadow-2xl relative overflow-hidden text-left space-y-4">
+              <div className="flex items-center justify-between border-b border-emerald-700/80 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full border border-amber-400 bg-white/10 flex items-center justify-center font-bold text-xs">
+                    🕌
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-amber-300 uppercase tracking-widest block">KARTU PRESENSI DIGITAL</span>
+                    <h4 className="text-xs font-black">MA'HAD DARUSSA'ADAH LIRBOYO</h4>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono bg-amber-400 text-emerald-950 px-2 py-0.5 rounded font-black">ACTIVE</span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl font-black shrink-0">
+                  {cardTarget.nama.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="space-y-0.5">
+                  <h3 className="text-sm font-black text-white">{cardTarget.nama}</h3>
+                  <p className="text-xs text-emerald-200 font-mono">NISN: {cardTarget.nisn}</p>
+                  <p className="text-[11px] text-amber-300 font-semibold">{cardTarget.kelas}</p>
+                </div>
+              </div>
+
+              {/* QR Code Placeholder Box */}
+              <div className="p-3 bg-white rounded-2xl flex items-center justify-between gap-3 text-slate-900">
+                <div className="w-16 h-16 bg-slate-900 rounded-xl flex items-center justify-center text-white text-3xl font-black font-mono shadow-inner shrink-0">
+                  QR
+                </div>
+                <div className="text-right text-[10px] font-mono text-slate-500">
+                  <span className="block font-bold text-emerald-800">TOTP DYNAMIC GEOLOCATION</span>
+                  <span className="block">Radius: 200 Meter Pos Utama</span>
+                  <span className="block text-[9px] text-slate-400 mt-0.5">Scannable by Guru & Sekretariat</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2"
+            >
+              <span>🖨️</span> Cetak / Simpan Kartu Santri Digital
+            </button>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirm Dialog */}

@@ -1,0 +1,24 @@
+{
+  "name": "Darsa Enterprise — Sistem Informasi Terpadu",
+  "short_name": "Darsa Enterprise",
+  "description": "Sistem Informasi Terpadu Ma'had Darussa'adah Lirboyo Kota Kediri",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#064e3b",
+  "theme_color": "#047857",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo-lirboyo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-lirboyo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

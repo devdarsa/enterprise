@@ -3,143 +3,116 @@
 **Sistem Informasi Terpadu Enterprise Pendidikan Islam**  
 Ma'had Darussa'adah Lirboyo Kota Kediri
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.1-black?logo=next.js)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://www.typescriptlang.org)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org)
+[![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma)](https://prisma.io)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
-[![pnpm](https://img.shields.io/badge/pnpm-9.x-orange?logo=pnpm)](https://pnpm.io)
 
 ---
 
-## 🏛️ Tentang Sistem
+## 🏛️ Ketentuan & Prinsip Arsitektur Utama
 
-**Darsa Enterprise** adalah platform enterprise terintegrasi yang dirancang khusus untuk mengelola tiga instansi utama dalam naungan Ma'had Darussa'adah Lirboyo:
+### 1. Database Centric (Zero Hardcoded Data)
+* Seluruh data dalam Darsa Enterprise **bermuara pada Database** (`simulationDb` / Prisma).
+* **Tidak ada data hardcode** di dalam kode program, baik data pengguna, data master, konfigurasi operasional, maupun transaksi.
+* Seluruh data dibuat, diubah, dihapus, dan disajikan secara **live / real-time**.
 
-| Instansi | Keterangan |
-|---|---|
-| 🕌 **Pondok Pesantren** | Source of Truth — Master data santri, ustadz, keuangan SPP |
-| 📚 **Madrasah Diniyah** | Sinkronisasi dari Pondok — jadwal kitab kuning, rapor diniyah |
-| 🏫 **Madrasah Ibtida'iyyah (MI)** | Sinkronisasi — kurikulum formal, inventaris, rapor MI |
+### 2. Single Source of Truth (SSOT) Pondok Pesantren
+* **Pondok Pesantren** merupakan **Master Database (Single Source of Truth)** seluruh Siswa/Siswi.
+* Menggunakan **NISP (Nomor Induk Santri Pondok / Stambuk)** sebagai identitas utama unik.
+* Perubahan biodata siswa hanya diizinkan melalui modul Pondok Pesantren.
+* Modul **Madrasah Diniyah** dan **MI Formal** hanya melakukan **pemanggilan (import/referensi)** data dari Database Pondok via NISP tanpa membuat data siswa baru.
+
+### 3. Penyambungan Akun Wali Santri via NIK Orang Tua
+* Akun Wali Santri terhubung otomatis dengan data santri menggunakan **NIK Kependudukan (`nik_wali`)** orang tua/wali di Database Pondok.
+* **Support Multi-Santri**: 1 Akun Wali Santri yang memiliki NIK sama dapat terhubung otomatis dengan 1 atau lebih santri (saudara/kakak-adik) dengan sakelar tab santri di portal.
+
+### 4. Interface Berdasarkan Role (Role-Based Interface)
+* **🖥️ Sekretariat (Desktop-Only Guard)**: Halaman administrasi (`/admin/*` & `/sekretariat/*`) khusus untuk perangkat berlayar besar ($\ge 1024\text{px}$). Akses dari smartphone diblokir otomatis demi integritas data.
+* **📱 Guru, Pengasuh, & Wali Santri (Mobile-First)**: Menggunakan antarmuka Native App dengan **Bottom Navigation Bar** (Beranda, QR Code, Absensi, Informasi, Akun) yang ramah penggunaan satu tangan.
+
+### 5. QR Code Khusus Absensi Guru
+* Fitur scan QR Code **hanya digunakan sebagai media presensi kehadiran Guru** (Guru Madrasah & Guru MI) untuk Absensi Masuk dan Pulang.
+* Fitur QR Code **TIDAK** digunakan oleh Wali Santri, Sekretariat, Pengasuh, maupun Santri.
+* Setiap scan mencatat `guru_id`, `nama_guru`, `unit_guru`, `timestamp`, dan geofencing radius (200m) ke database.
 
 ---
 
-## ✨ Fitur Utama
+## 👥 Hak Akses Role Pengguna
 
-- 🔐 **Multi-Auth** — Email/Password, Google OAuth 2.1, WebAuthn Passkeys (Biometrik)
-- 📍 **Presensi GPS Geofencing** — Dynamic TOTP QR Code + Haversine radius validation
-- 👥 **6 Role Hierarki** — Super Admin, Admin Instansi, Guru, Bendahara, Santri, Wali Santri
-- 🏛️ **Menu Isolasi Per Instansi** — Menu antar instansi tidak boleh bercampur
-- 📅 **Jadwal KBM** — Grid mingguan + list view, CRUD, color-coded per jenis
-- 📦 **Inventaris Aset** — Full CRUD dengan summary nilai total aset
-- 💳 **Keuangan SPP** — Payment gateway (BCA/Mandiri/QRIS)
-- 📜 **Rapor Digital PDF** — Laporan hasil belajar & tahfidz
-- 🔔 **Notifikasi Premium** — Toast slide-in, modal glassmorphism, loading orbital
-- 📱 **Responsive** — Mobile-first dengan hamburger sidebar
+| Role Pengguna | Akses Modul | Navigasi UI | Deskripsi Hak Akses |
+|---|---|---|---|
+| 🏛️ **Sekretariat** | `/admin/*`, `/sekretariat/*` | Desktop Sidebar | Administrasi Master Data Pondok, Madrasah, MI, Asrama, Pengumuman, Surat, Jadwal |
+| 👳 **Pengasuh** | `/pengasuh/*` | Mobile Bottom Nav | Monitoring Pesantren, Hafalan Tahfidz, & Kebijakan |
+| 👨‍🏫 **Guru Madrasah** | `/guru_madrasah/*` | Mobile Bottom Nav | Dual Mode: Mustahiq (Wali Kelas) & Munawwib (Input Nilai Diniyah) + Scan QR Presensi |
+| 🏫 **Guru MI** | `/guru_mi/*` | Mobile Bottom Nav | Presensi Guru MI via Scan QR Code & Jadwal Mengajar (Tanpa Input Nilai) |
+| 👨‍👩‍👧 **Wali Santri** | `/wali_santri/*` | Mobile Bottom Nav | Read-only informasi nilai, presensi, pengumuman, & Pengajuan Izin Santri Online |
 
 ---
 
-## 🏗️ Arsitektur Monorepo
+## 📂 Struktur Folder Proyek
 
+```text
+users/
+├── sekretariat/       # Administrasi Pondok, Madrasah, & MI (Desktop Only)
+├── wali_santri/       # Portal Informasi Wali Santri (Mobile First)
+├── guru_madrasah/     # Portal Mustahiq & Munawwib (Mobile First)
+├── guru_mi/           # Portal Presensi Guru MI (Mobile First)
+└── shared/            # Utility & Shared Components
 ```
+
+---
+
+## 🏗️ Struktur Monorepo
+
+```text
 darsa_enterprise/
 ├── apps/
-│   └── web/               # Next.js 15 Web Application
-│       ├── src/
-│       │   ├── app/       # App Router pages & API routes
-│       │   │   ├── admin/     # Dashboard, Santri, Guru, Keuangan, dst.
-│       │   │   ├── guru/      # Portal Guru & Ustadz
-│       │   │   ├── wali/      # Portal Wali Santri
-│       │   │   ├── santri/    # Portal Santri Mandiri
-│       │   │   └── super-admin/  # SaaS Multi-Tenant Control
-│       │   ├── components/    # Modal, Toast, Loading, SearchBar
-│       │   └── middleware.ts  # Auth route guard
-│       └── next.config.ts
+│   └── web/               # Next.js 15 Web Application (App Router)
+│       ├── public/        # Manifest.json PWA & Static Assets
+│       └── src/
+│           ├── app/
+│           │   ├── admin/             # Master Santri, Asrama, Guru, Pengumuman, Surat
+│           │   ├── guru_madrasah/     # Portal Guru Madrasah (Mustahiq & Munawwib)
+│           │   ├── guru_mi/           # Portal Presensi Guru MI
+│           │   ├── wali_santri/       # Portal Wali Santri & Pengajuan Izin
+│           │   └── api/v1/            # Real-Time Simulation API Routes
+│           └── components/            # DesktopOnlyGuard, MobileBottomNav, Modal, Toast
 ├── packages/
-│   ├── database/          # Prisma Schema + Simulation DB Engine
-│   ├── auth/              # Better Auth Configuration
-│   ├── types/             # Shared TypeScript types
-│   ├── ui/                # Shared UI components
-│   └── utils/             # Shared utilities
-└── turbo.json             # Turborepo pipeline
+│   ├── database/          # Prisma Schema + Simulation Database Engine Store
+│   ├── types/             # TypeScript Shared Types
+│   ├── ui/                # Shared UI Tokens
+│   └── utils/             # Haversine Distance & Response Utilities
+└── scripts/
+    └── seed.ts            # Database Seeder
 ```
 
 ---
 
-## 🚀 Cara Menjalankan (Development)
-
-### Prasyarat
-- Node.js `>= 20.0.0`
-- pnpm `>= 9.0.0`
+## 🚀 Cara Menjalankan Aplikasi
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/devdarsa/enterprise.git
-cd enterprise
-
-# 2. Install semua dependencies
+# 1. Install dependencies
 pnpm install
 
-# 3. Salin file environment
-cp .env.example apps/web/.env.local
-# Edit apps/web/.env.local sesuai konfigurasi Anda
+# 2. Generate Prisma Client
+cd packages/database
+npx prisma generate
 
-# 4. Jalankan development server
-pnpm --filter @darsa/web dev -- -p 3005
+# 3. Jalankan Server Development
+cd ../../apps/web
+npm run dev
 ```
 
-Buka [http://localhost:3005](http://localhost:3005)
+Buka [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🎭 Akun Demo (Simulation Mode)
+## 🎭 Akun Demo Login (Live Simulation Mode)
 
-| Email | Password | Role | Redirect |
+| Role Pengguna | Username / Email | Password | Direct Portal |
 |---|---|---|---|
-| `admin@darsa.id` | `admin123` | Admin Instansi | `/admin/dashboard` |
-| `guru@darsa.id` | `guru123` | Guru / Ustadz | `/guru/dashboard` |
-| `wali@darsa.id` | `wali123` | Wali Santri | `/wali/dashboard` |
-| `santri@darsa.id` | `santri123` | Santri | `/santri/dashboard` |
-| `bendahara@darsa.id` | `bendahara123` | Bendahara | `/admin/keuangan` |
-| `super@darsa.id` | `super123` | Super Admin | `/super-admin/dashboard` |
-
-> ⚠️ Akun ini hanya untuk simulasi/demo. Ganti dengan autentikasi nyata di produksi.
-
----
-
-## 🌐 Deployment ke Vercel
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Login ke Vercel
-vercel login
-
-# Deploy (dari root folder)
-vercel --cwd apps/web
-```
-
-**Environment Variables yang wajib diisi di Vercel:**
-- `DATABASE_URL` — Neon PostgreSQL connection string
-- `BETTER_AUTH_SECRET` — Random 32+ karakter
-- `BETTER_AUTH_URL` — URL produksi (misal: `https://darsa.vercel.app`)
-- `NEXT_PUBLIC_APP_URL` — URL produksi
-
----
-
-## 🔒 Keamanan
-
-- Semua file `.env*` dikecualikan dari Git (lihat `.gitignore`)
-- Route `/admin`, `/guru`, `/wali`, `/santri`, `/super-admin` dilindungi middleware
-- Session berbasis cookie HttpOnly dengan validasi role
-- Tidak ada hardcoded secret di source code
-
----
-
-## 📄 Lisensi
-
-Proyek ini adalah hak milik **Ma'had Darussa'adah Lirboyo Kota Kediri**.  
-Dibangun dengan ❤️ oleh tim Darsa Developer.
-
----
-
-*Darsa Enterprise Engine v3.0 — © 2026 Ma'had Darussa'adah Lirboyo Kota Kediri*
+| 🏛️ **Sekretariat** | `admin@darsa.id` | `admin123` | `/admin/dashboard` |
+| 👨‍🏫 **Guru Madrasah** | `guru@darsa.id` | `guru123` | `/guru_madrasah/dashboard` |
+| 🏫 **Guru MI** | `gurumi@darsa.id` | `guru123` | `/guru_mi/dashboard` |
+| 👨‍👩‍👧 **Wali Santri** | `wali@darsa.id` | `wali123` | `/wali_santri/dashboard` |
