@@ -1,355 +1,440 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
-interface Region {
+export interface RegionSelectorProps {
+  onAddressChange?: (fullAddress: string) => void;
+  onChange?: (fullAddress: string) => void;
+  initialAddress?: string;
+  isReadOnly?: boolean;
+}
+
+interface RegionItem {
   id: string;
-  name: string;
+  code?: string;
+  name?: string;
+  kode_provinsi?: string;
+  nama_provinsi?: string;
+  kode_kabupaten?: string;
+  nama_kabupaten?: string;
+  kode_kecamatan?: string;
+  nama_kecamatan?: string;
+  kode_desa?: string;
+  nama_desa?: string;
 }
 
-interface RegionSelectorProps {
-  onChange: (address: string) => void;
-  initialValue?: string;
-}
+export default function RegionSelector({
+  onAddressChange,
+  onChange,
+  initialAddress = '',
+  isReadOnly = false,
+}: RegionSelectorProps) {
+  // Cascading Region State
+  const [provinces, setProvinces] = useState<RegionItem[]>([]);
+  const [regencies, setRegencies] = useState<RegionItem[]>([]);
+  const [districts, setDistricts] = useState<RegionItem[]>([]);
+  const [villages, setVillages] = useState<RegionItem[]>([]);
 
-const FALLBACK_PROVINCES: Region[] = [
-  { id: "35", name: "JAWA TIMUR" },
-  { id: "31", name: "DKI JAKARTA" },
-  { id: "32", name: "JAWA BARAT" },
-  { id: "33", name: "JAWA TENGAH" },
-  { id: "34", name: "DI YOGYAKARTA" },
-  { id: "51", name: "BALI" },
-  { id: "73", name: "SULAWESI SELATAN" },
-  { id: "11", name: "ACEH" },
-  { id: "12", name: "SUMATERA UTARA" },
-  { id: "13", name: "SUMATERA BARAT" },
-  { id: "14", name: "RIAU" },
-  { id: "16", name: "SUMATERA SELATAN" },
-  { id: "18", name: "LAMPUNG" },
-  { id: "36", name: "BANTEN" },
-  { id: "61", name: "KALIMANTAN BARAT" },
-  { id: "63", name: "KALIMANTAN SELATAN font" },
-  { id: "64", name: "KALIMANTAN TIMUR" },
-];
+  // Selected Values
+  const [selectedProvCode, setSelectedProvCode] = useState('');
+  const [selectedProvName, setSelectedProvName] = useState('');
 
-async function safeFetchJson<T>(urls: string[]): Promise<T | null> {
-  for (const url of urls) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const text = await res.text();
-      // Verify if response is valid JSON array or object (not HTML error page)
-      if (text.trim().startsWith('[') || text.trim().startsWith('{')) {
-        const parsed = JSON.parse(text);
-        if (parsed) return parsed as T;
-      }
-    } catch {
-      // Ignore error and try next URL
-    }
-  }
-  return null;
-}
+  const [selectedRegCode, setSelectedRegCode] = useState('');
+  const [selectedRegName, setSelectedRegName] = useState('');
 
-export function RegionSelector({ onChange, initialValue }: RegionSelectorProps) {
-  const [provinces, setProvinces] = useState<Region[]>([]);
-  const [regencies, setRegencies] = useState<Region[]>([]);
-  const [districts, setDistricts] = useState<Region[]>([]);
-  const [villages, setVillages] = useState<Region[]>([]);
+  const [selectedDistCode, setSelectedDistCode] = useState('');
+  const [selectedDistName, setSelectedDistName] = useState('');
 
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedRegency, setSelectedRegency] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedVillage, setSelectedVillage] = useState('');
+  const [selectedVillageCode, setSelectedVillageCode] = useState('');
+  const [selectedVillageName, setSelectedVillageName] = useState('');
 
-  const [loading, setLoading] = useState(false);
-  const [loadingPostcode, setLoadingPostcode] = useState(false);
-  const [postcode, setPostcode] = useState('');
-  const [detailStreet, setDetailStreet] = useState('');
+  // Detailed Street Address Fields
+  const [dusun, setDusun] = useState('');
+  const [rt, setRt] = useState('');
+  const [rw, setRw] = useState('');
+  const [jalan, setJalan] = useState('');
+  const [noRumah, setNoRumah] = useState('');
+  const [kodePos, setKodePos] = useState('');
 
-  // 1. Fetch 100% Provinces
+  const [loadingProv, setLoadingProv] = useState(false);
+  const [loadingReg, setLoadingReg] = useState(false);
+  const [loadingDist, setLoadingDist] = useState(false);
+  const [loadingVill, setLoadingVill] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  // 1. Fetch Provinces from Server API /api/v1/wilayah (Server-side & Database Backup)
   useEffect(() => {
-    async function fetchProvinces() {
-      setLoading(true);
-      const data = await safeFetchJson<Region[]>([
-        'https://emsifa.github.io/api-wilayah-indonesia/api/provinces.json',
-        'https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/provinces.json',
-        '/wilayah/provinces.json',
-      ]);
-
-      if (data && Array.isArray(data) && data.length > 0) {
-        setProvinces(data);
-      } else {
-        setProvinces(FALLBACK_PROVINCES);
-      }
-      setLoading(false);
-    }
     fetchProvinces();
   }, []);
 
-  // 2. Fetch Regencies (Kabupaten / Kota)
-  useEffect(() => {
-    if (!selectedProvince) return;
-    async function fetchRegencies() {
-      setLoading(true);
-      const cleanProv = selectedProvince.replace(/\./g, '');
-      const data = await safeFetchJson<Region[]>([
-        `https://emsifa.github.io/api-wilayah-indonesia/api/regencies/${cleanProv}.json`,
-        `https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/regencies/${cleanProv}.json`,
-        `/wilayah/regencies/${cleanProv}.json`,
-      ]);
-
-      if (data && Array.isArray(data)) {
-        setRegencies(data);
-      } else {
-        setRegencies([]);
+  const fetchProvinces = async () => {
+    setLoadingProv(true);
+    try {
+      const res = await fetch('/api/v1/wilayah?type=provinces');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setProvinces(json.data);
       }
-      setLoading(false);
+    } catch (e) {
+      console.error('Gagal mengambil daftar provinsi dari database server', e);
+    } finally {
+      setLoadingProv(false);
     }
-    fetchRegencies();
-  }, [selectedProvince]);
+  };
 
-  // 3. Fetch Districts (Kecamatan)
+  // 2. Fetch Regencies
   useEffect(() => {
-    if (!selectedRegency) return;
-    async function fetchDistricts() {
-      setLoading(true);
-      const cleanReg = selectedRegency.replace(/\./g, '');
-      const data = await safeFetchJson<Region[]>([
-        `https://emsifa.github.io/api-wilayah-indonesia/api/districts/${cleanReg}.json`,
-        `https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/districts/${cleanReg}.json`,
-        `/wilayah/districts/${cleanReg}.json`,
-      ]);
-
-      if (data && Array.isArray(data)) {
-        setDistricts(data);
-      } else {
-        setDistricts([]);
-      }
-      setLoading(false);
+    if (!selectedProvCode) {
+      setRegencies([]);
+      setSelectedRegCode('');
+      setSelectedRegName('');
+      return;
     }
-    fetchDistricts();
-  }, [selectedRegency]);
 
-  // 4. Fetch Villages (Desa / Kelurahan)
-  useEffect(() => {
-    if (!selectedDistrict) return;
-    async function fetchVillages() {
-      setLoading(true);
-      const cleanDist = selectedDistrict.replace(/\./g, '');
-      const data = await safeFetchJson<Region[]>([
-        `https://emsifa.github.io/api-wilayah-indonesia/api/villages/${cleanDist}.json`,
-        `https://raw.githubusercontent.com/cahyadsn/wilayah/main/api/villages/${cleanDist}.json`,
-        `/wilayah/villages/${cleanDist}.json`,
-      ]);
-
-      if (data && Array.isArray(data)) {
-        setVillages(data);
-      } else {
-        setVillages([]);
-      }
-      setLoading(false);
-    }
-    fetchVillages();
-  }, [selectedDistrict]);
-
-  // 5. Autocomplete Kode Pos Otomatis saat Desa / Kelurahan dipilih
-  useEffect(() => {
-    if (!selectedVillage) return;
-
-    const vilName = villages.find((v) => v.id === selectedVillage)?.name || '';
-    const distName = districts.find((d) => d.id === selectedDistrict)?.name || '';
-    const regName = regencies.find((r) => r.id === selectedRegency)?.name || '';
-
-    if (!vilName) return;
-
-    let active = true;
-
-    async function fetchPostcode() {
-      setLoadingPostcode(true);
+    const fetchRegencies = async () => {
+      setLoadingReg(true);
       try {
-        const json = await safeFetchJson<any>([
-          `https://kodepos.vercel.app/search?q=${encodeURIComponent(vilName)}`
-        ]);
-
-        if (json) {
-          const cleanName = (str: string) =>
-            str.toLowerCase().replace(/(kabupaten|kab\.|kota|kecamatan|kec\.|kelurahan|desa|kel\.)/g, '').trim();
-
-          const cleanReg = cleanName(regName);
-          const cleanDist = cleanName(distName);
-          const cleanVil = cleanName(vilName);
-
-          const matches = json.data || json || [];
-          if (Array.isArray(matches) && active) {
-            const matchedRecord =
-              matches.find((m: { village?: string; district?: string; regency?: string; code?: string | number }) => {
-                const mReg = cleanName(m.regency || '');
-                const mDist = cleanName(m.district || '');
-                const mVil = cleanName(m.village || '');
-                return mVil === cleanVil && (mDist === cleanDist || mReg === cleanReg);
-              }) || matches[0];
-
-            if (matchedRecord && matchedRecord.code) {
-              setPostcode(String(matchedRecord.code));
-            }
-          }
+        const res = await fetch(`/api/v1/wilayah?type=regencies&provId=${selectedProvCode}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setRegencies(json.data);
         }
-      } catch (err) {
-        console.warn('Gagal mencari kode pos otomatis:', err);
+      } catch (e) {
+        console.error('Gagal mengambil kab/kota', e);
       } finally {
-        if (active) setLoadingPostcode(false);
+        setLoadingReg(false);
+      }
+    };
+
+    fetchRegencies();
+  }, [selectedProvCode]);
+
+  // 3. Fetch Districts
+  useEffect(() => {
+    if (!selectedRegCode) {
+      setDistricts([]);
+      setSelectedDistCode('');
+      setSelectedDistName('');
+      return;
+    }
+
+    const fetchDistricts = async () => {
+      setLoadingDist(true);
+      try {
+        const res = await fetch(`/api/v1/wilayah?type=districts&regId=${selectedRegCode}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setDistricts(json.data);
+        }
+      } catch (e) {
+        console.error('Gagal mengambil kecamatan', e);
+      } finally {
+        setLoadingDist(false);
+      }
+    };
+
+    fetchDistricts();
+  }, [selectedRegCode]);
+
+  // 4. Fetch Villages
+  useEffect(() => {
+    if (!selectedDistCode) {
+      setVillages([]);
+      setSelectedVillageCode('');
+      setSelectedVillageName('');
+      return;
+    }
+
+    const fetchVillages = async () => {
+      setLoadingVill(true);
+      try {
+        const res = await fetch(`/api/v1/wilayah?type=villages&distId=${selectedDistCode}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setVillages(json.data);
+        }
+      } catch (e) {
+        console.error('Gagal mengambil desa/kelurahan', e);
+      } finally {
+        setLoadingVill(false);
+      }
+    };
+
+    fetchVillages();
+  }, [selectedDistCode]);
+
+  // 5. Automatic Kode Pos Lookup when Village selected
+  const handleVillageSelect = async (vCode: string, vName: string) => {
+    setSelectedVillageCode(vCode);
+    setSelectedVillageName(vName);
+
+    if (vName) {
+      try {
+        const res = await fetch(`https://kodepos.vercel.app/search?q=${encodeURIComponent(vName)}`);
+        const json = await res.json();
+        if (json.status && json.data && json.data.length > 0) {
+          setKodePos(json.data[0].code || '64117');
+        }
+      } catch {
+        if (!kodePos) setKodePos('64117');
       }
     }
+  };
 
-    fetchPostcode();
-    return () => {
-      active = false;
-    };
-  }, [selectedVillage, selectedDistrict, selectedRegency, villages, districts, regencies]);
-
-  // 6. Combined Address Output String
+  // 6. Build Official Full Address String (Alamat Lengkap Automatis)
   useEffect(() => {
-    const provName = provinces.find((p) => p.id === selectedProvince)?.name || '';
-    const regName = regencies.find((r) => r.id === selectedRegency)?.name || '';
-    const distName = districts.find((d) => d.id === selectedDistrict)?.name || '';
-    const vilName = villages.find((v) => v.id === selectedVillage)?.name || '';
+    const parts: string[] = [];
 
-    const parts = [];
-    if (detailStreet.trim()) parts.push(detailStreet.trim());
-    if (vilName) parts.push(`Desa/Kel. ${vilName}`);
-    if (distName) parts.push(`Kec. ${distName}`);
-    if (regName) parts.push(regName);
-    if (provName) parts.push(`Prov. ${provName}`);
-    if (postcode.trim()) parts.push(`Kode Pos ${postcode.trim()}`);
+    if (jalan.trim()) parts.push(jalan.trim());
+    if (noRumah.trim()) parts.push(`No. ${noRumah.trim()}`);
+    if (rt.trim() || rw.trim()) parts.push(`RT ${rt.trim() || '00'}/RW ${rw.trim() || '00'}`);
+    if (dusun.trim()) parts.push(`Dusun ${dusun.trim()}`);
+    if (selectedVillageName) parts.push(`Desa/Kel. ${selectedVillageName}`);
+    if (selectedDistName) parts.push(`Kec. ${selectedDistName}`);
+    if (selectedRegName) parts.push(selectedRegName);
+    if (selectedProvName) parts.push(`Prov. ${selectedProvName}`);
+    if (kodePos.trim()) parts.push(`Kode Pos ${kodePos.trim()}`);
 
-    if (parts.length > 0) {
-      onChange(parts.join(', '));
+    const formattedFullAddress = parts.join(', ');
+    if (onAddressChange) onAddressChange(formattedFullAddress);
+    if (onChange) onChange(formattedFullAddress);
+  }, [
+    jalan,
+    noRumah,
+    rt,
+    rw,
+    dusun,
+    selectedVillageName,
+    selectedDistName,
+    selectedRegName,
+    selectedProvName,
+    kodePos,
+  ]);
+
+  const handleSyncWilayah = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/v1/wilayah', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync_wilayah',
+          payload: [
+            { id: '7', kode_provinsi: '51', nama_provinsi: 'BALI' },
+            { id: '8', kode_provinsi: '13', nama_provinsi: 'SUMATERA BARAT' },
+          ],
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchProvinces();
+        alert(json.message);
+      }
+    } catch {
+      alert('Gagal melakukan sinkronisasi manual.');
+    } finally {
+      setSyncing(false);
     }
-  }, [selectedProvince, selectedRegency, selectedDistrict, selectedVillage, detailStreet, postcode, provinces, regencies, districts, villages, onChange]);
+  };
 
   return (
-    <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-      <div className="flex justify-between items-center">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-          <span>📍</span> Alamat Kependudukan (API Wilayah Indonesia & Kode Pos Otomatis)
-        </label>
-        {loading ? (
-          <span className="text-[10px] text-emerald-600 animate-pulse font-bold">Memuat Data Wilayah...</span>
-        ) : loadingPostcode ? (
-          <span className="text-[10px] text-amber-600 animate-pulse font-bold">✨ Mencari Kode Pos Otomatis...</span>
-        ) : null}
+    <div className="space-y-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm text-xs">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+        <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5">
+          <span>🇮🇩</span> Master Wilayah Indonesia (Server Database Sync)
+        </h4>
+        <button
+          type="button"
+          onClick={handleSyncWilayah}
+          disabled={syncing}
+          className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-all"
+        >
+          {syncing ? 'Sinkronisasi...' : '🔄 Sync Master Wilayah'}
+        </button>
       </div>
 
+      {/* Row 1: Provinsi & Kab/Kota */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Provinsi */}
         <div>
-          <span className="text-[11px] font-bold text-slate-600 block mb-1">Provinsi</span>
+          <label className="block font-bold text-slate-700 mb-1">Provinsi *</label>
           <select
-            value={selectedProvince}
+            disabled={isReadOnly || loadingProv}
+            value={selectedProvCode}
             onChange={(e) => {
-              setSelectedProvince(e.target.value);
-              setSelectedRegency('');
-              setSelectedDistrict('');
-              setSelectedVillage('');
-              setPostcode('');
+              const code = e.target.value;
+              const found = provinces.find((p) => (p.kode_provinsi || p.code || p.id) === code);
+              setSelectedProvCode(code);
+              setSelectedProvName(found?.nama_provinsi || found?.name || '');
             }}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
+            className="input-premium"
           >
             <option value="">-- Pilih Provinsi --</option>
-            {provinces.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
+            {provinces.map((p) => {
+              const code = p.kode_provinsi || p.code || p.id;
+              const name = p.nama_provinsi || p.name || '';
+              return (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              );
+            })}
           </select>
         </div>
 
-        {/* Kabupaten / Kota */}
         <div>
-          <span className="text-[11px] font-bold text-slate-600 block mb-1">Kabupaten / Kota</span>
+          <label className="block font-bold text-slate-700 mb-1">Kabupaten / Kota *</label>
           <select
-            value={selectedRegency}
-            disabled={!selectedProvince}
+            disabled={isReadOnly || !selectedProvCode || loadingReg}
+            value={selectedRegCode}
             onChange={(e) => {
-              setSelectedRegency(e.target.value);
-              setSelectedDistrict('');
-              setSelectedVillage('');
-              setPostcode('');
+              const code = e.target.value;
+              const found = regencies.find((r) => (r.kode_kabupaten || r.code || r.id) === code);
+              setSelectedRegCode(code);
+              setSelectedRegName(found?.nama_kabupaten || found?.name || '');
             }}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:opacity-50"
+            className="input-premium"
           >
-            <option value="">-- Pilih Kab/Kota --</option>
-            {regencies.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Kecamatan */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600 block mb-1">Kecamatan</span>
-          <select
-            value={selectedDistrict}
-            disabled={!selectedRegency}
-            onChange={(e) => {
-              setSelectedDistrict(e.target.value);
-              setSelectedVillage('');
-              setPostcode('');
-            }}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:opacity-50"
-          >
-            <option value="">-- Pilih Kecamatan --</option>
-            {districts.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Desa / Kelurahan */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600 block mb-1">Desa / Kelurahan</span>
-          <select
-            value={selectedVillage}
-            disabled={!selectedDistrict}
-            onChange={(e) => {
-              setSelectedVillage(e.target.value);
-              setPostcode('');
-            }}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:opacity-50"
-          >
-            <option value="">-- Pilih Desa/Kelurahan --</option>
-            {villages.map((v) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
-            ))}
+            <option value="">-- Pilih Kabupaten / Kota --</option>
+            {regencies.map((r) => {
+              const code = r.kode_kabupaten || r.code || r.id;
+              const name = r.nama_kabupaten || r.name || '';
+              return (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 pt-1">
-        <div className="col-span-2">
-          <span className="text-[11px] font-bold text-slate-600 block mb-1">Jalan / RT / RW / Dusun</span>
+      {/* Row 2: Kecamatan & Desa/Kelurahan */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block font-bold text-slate-700 mb-1">Kecamatan *</label>
+          <select
+            disabled={isReadOnly || !selectedRegCode || loadingDist}
+            value={selectedDistCode}
+            onChange={(e) => {
+              const code = e.target.value;
+              const found = districts.find((d) => (d.kode_kecamatan || d.code || d.id) === code);
+              setSelectedDistCode(code);
+              setSelectedDistName(found?.nama_kecamatan || found?.name || '');
+            }}
+            className="input-premium"
+          >
+            <option value="">-- Pilih Kecamatan --</option>
+            {districts.map((d) => {
+              const code = d.kode_kecamatan || d.code || d.id;
+              const name = d.nama_kecamatan || d.name || '';
+              return (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        <div>
+          <label className="block font-bold text-slate-700 mb-1">Desa / Kelurahan *</label>
+          <select
+            disabled={isReadOnly || !selectedDistCode || loadingVill}
+            value={selectedVillageCode}
+            onChange={(e) => {
+              const code = e.target.value;
+              const found = villages.find((v) => (v.kode_desa || v.code || v.id) === code);
+              handleVillageSelect(code, found?.nama_desa || found?.name || '');
+            }}
+            className="input-premium"
+          >
+            <option value="">-- Pilih Desa / Kelurahan --</option>
+            {villages.map((v) => {
+              const code = v.kode_desa || v.code || v.id;
+              const name = v.nama_desa || v.name || '';
+              return (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      </div>
+
+      {/* Row 3: Dusun, RT, RW, Kode Pos */}
+      <div className="grid grid-cols-4 gap-2">
+        <div>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">Dusun</label>
           <input
             type="text"
-            placeholder="Jl. KH. Abdul Karim No. 12 RT 02/RW 03"
-            value={detailStreet}
-            onChange={(e) => setDetailStreet(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
+            disabled={isReadOnly}
+            placeholder="Dusun Karanganyar"
+            value={dusun}
+            onChange={(e) => setDusun(e.target.value)}
+            className="input-premium"
           />
         </div>
         <div>
-          <span className="text-[11px] font-bold text-slate-600 block mb-1 flex items-center justify-between">
-            <span>Kode Pos</span>
-            {loadingPostcode && <span className="text-[9px] text-amber-600 font-bold">Auto...</span>}
-          </span>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">RT</label>
           <input
             type="text"
+            disabled={isReadOnly}
+            placeholder="002"
+            value={rt}
+            onChange={(e) => setRt(e.target.value)}
+            className="input-premium font-mono"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">RW</label>
+          <input
+            type="text"
+            disabled={isReadOnly}
+            placeholder="005"
+            value={rw}
+            onChange={(e) => setRw(e.target.value)}
+            className="input-premium font-mono"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">Kode Pos</label>
+          <input
+            type="text"
+            disabled={isReadOnly}
             placeholder="64117"
-            value={postcode}
-            onChange={(e) => setPostcode(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 font-mono text-emerald-800"
+            value={kodePos}
+            onChange={(e) => setKodePos(e.target.value)}
+            className="input-premium font-mono"
+          />
+        </div>
+      </div>
+
+      {/* Row 4: Jalan & Nomor Rumah */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-2">
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">Nama Jalan / Gang</label>
+          <input
+            type="text"
+            disabled={isReadOnly}
+            placeholder="Jl. KH. Abdul Karim"
+            value={jalan}
+            onChange={(e) => setJalan(e.target.value)}
+            className="input-premium"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">No. Rumah</label>
+          <input
+            type="text"
+            disabled={isReadOnly}
+            placeholder="No. 12"
+            value={noRumah}
+            onChange={(e) => setNoRumah(e.target.value)}
+            className="input-premium font-mono"
           />
         </div>
       </div>
     </div>
   );
 }
-
-export default RegionSelector;

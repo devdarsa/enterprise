@@ -269,6 +269,55 @@ model PenempatanPendidikan {
   @@map("penempatan_pendidikan")
 }
 
+model MasterProvinsi {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kode_provinsi String   @unique // e.g. "35"
+  nama_provinsi String   // e.g. "JAWA TIMUR"
+  created_at    DateTime @default(now())
+
+  kabupaten MasterKabupaten[]
+
+  @@map("master_provinsi")
+}
+
+model MasterKabupaten {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kode_kabupaten String   @unique // e.g. "35.71"
+  kode_provinsi  String   // Foreign key link to MasterProvinsi
+  nama_kabupaten String   // e.g. "KOTA KEDIRI"
+  created_at     DateTime @default(now())
+
+  provinsi  MasterProvinsi    @relation(fields: [kode_provinsi], references: [kode_provinsi], onDelete: Cascade)
+  kecamatan MasterKecamatan[]
+
+  @@map("master_kabupaten")
+}
+
+model MasterKecamatan {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kode_kecamatan String   @unique // e.g. "35.71.01"
+  kode_kabupaten String   // Foreign key link to MasterKabupaten
+  nama_kecamatan String   // e.g. "MOJOROTO"
+  created_at     DateTime @default(now())
+
+  kabupaten MasterKabupaten @relation(fields: [kode_kabupaten], references: [kode_kabupaten], onDelete: Cascade)
+  desa      MasterDesa[]
+
+  @@map("master_kecamatan")
+}
+
+model MasterDesa {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kode_desa      String   @unique // e.g. "35.71.01.1001"
+  kode_kecamatan String   // Foreign key link to MasterKecamatan
+  nama_desa      String   // e.g. "LIRBOYO"
+  created_at     DateTime @default(now())
+
+  kecamatan MasterKecamatan @relation(fields: [kode_kecamatan], references: [kode_kecamatan], onDelete: Cascade)
+
+  @@map("master_desa")
+}
+
 model WaliSantri {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id      String   @unique @db.Uuid

@@ -18,7 +18,7 @@ export interface PenempatanPendidikanRecord {
 
 export interface SantriRecord {
   id: string;
-  nisp: string; // Nomor Induk Santri Pondok (Stambuk)
+  nisp: string;
   nisn: string;
   nis?: string;
   nik?: string;
@@ -41,7 +41,7 @@ export interface SantriRecord {
   tahun_ajaran: string;
   status: 'AKTIF' | 'NON_AKTIF' | 'CUTI' | 'ALUMNI' | 'MUTASI';
   hafalan_juz: number;
-  nik_wali?: string; // NIK Kependudukan Wali untuk penyambungan akun otomatis
+  nik_wali?: string;
   nama_wali?: string;
   telepon_wali?: string;
   hubungan_wali?: 'AYAH' | 'IBU' | 'WALI';
@@ -205,6 +205,34 @@ export interface KonfigurasiRecord {
   notifWa: boolean;
 }
 
+// Master Wilayah Database Schema (Strict Foreign Key Relations & Server Caching)
+export interface MasterProvinsiRecord {
+  id: string;
+  kode_provinsi: string;
+  nama_provinsi: string;
+}
+
+export interface MasterKabupatenRecord {
+  id: string;
+  kode_kabupaten: string;
+  kode_provinsi: string;
+  nama_kabupaten: string;
+}
+
+export interface MasterKecamatanRecord {
+  id: string;
+  kode_kecamatan: string;
+  kode_kabupaten: string;
+  nama_kecamatan: string;
+}
+
+export interface MasterDesaRecord {
+  id: string;
+  kode_desa: string;
+  kode_kecamatan: string;
+  nama_desa: string;
+}
+
 // Database Store Class
 class SimulationDatabaseStore {
   private santriList: SantriRecord[] = [
@@ -221,7 +249,7 @@ class SimulationDatabaseStore {
       tanggal_lahir: '2008-08-15',
       anak_ke: 1,
       jumlah_saudara: 3,
-      alamat: 'Jl. KH. Abdul Karim No. 12 RT 02/RW 03, Desa/Kel. LIRBOYO, Kec. MOJOROTO, KOTA KEDIRI, Prov. JAWA TIMUR, Kode Pos 64117',
+      alamat: 'Jl. KH. Abdul Karim No. 12 RT 02/RW 03, Desa Lirboyo, Kecamatan Mojoroto, Kota Kediri, Provinsi Jawa Timur 64117',
       telepon: '081234567890',
       jenjang: 'Tsanawiyyah',
       kelas: '10-A (Tahfidz & Diniyah)',
@@ -262,7 +290,7 @@ class SimulationDatabaseStore {
       tahun_ajaran: '2025/2026 (Ganjil)',
       status: 'AKTIF',
       hafalan_juz: 12,
-      nik_wali: '3571012304850001', // Wali sama (Multi-Santri 1 NIK Wali)
+      nik_wali: '3571012304850001',
       nama_wali: 'Bapak Hendra',
       telepon_wali: '081399887766',
       hubungan_wali: 'AYAH',
@@ -300,7 +328,6 @@ class SimulationDatabaseStore {
     },
   ];
 
-  // Penempatan Pendidikan Santri per Unit (BAB V - Dual Enrollment)
   private penempatanList: PenempatanPendidikanRecord[] = [
     { id: '1', santri_id: '1', nisp: 'PNDK-0012345678', tahun_ajaran: '2025/2026 (Ganjil)', semester: 'Ganjil', unit: 'MADRASAH', tingkat: 'Tsanawiyyah', kelas: '10-A (Tahfidz & Diniyah)', wali_kelas: 'Dr. KH. Abdullah Ridwan', status: 'AKTIF' },
     { id: '2', santri_id: '1', nisp: 'PNDK-0012345678', tahun_ajaran: '2025/2026 (Ganjil)', semester: 'Ganjil', unit: 'MI', tingkat: 'VI', kelas: 'VI-B', wali_kelas: 'Ustadzah Fatimah, S.Pd', status: 'AKTIF' },
@@ -367,6 +394,35 @@ class SimulationDatabaseStore {
     notifWa: true,
   };
 
+  // Master Wilayah Data Store (Cached in Database Store)
+  private masterProvinsi: MasterProvinsiRecord[] = [
+    { id: '1', kode_provinsi: '35', nama_provinsi: 'JAWA TIMUR' },
+    { id: '2', kode_provinsi: '33', nama_provinsi: 'JAWA TENGAH' },
+    { id: '3', kode_provinsi: '32', nama_provinsi: 'JAWA BARAT' },
+    { id: '4', kode_provinsi: '31', nama_provinsi: 'DKI JAKARTA' },
+    { id: '5', kode_provinsi: '36', nama_provinsi: 'BANTEN' },
+    { id: '6', kode_provinsi: '34', nama_provinsi: 'DI YOGYAKARTA' },
+  ];
+
+  private masterKabupaten: MasterKabupatenRecord[] = [
+    { id: '1', kode_kabupaten: '35.71', kode_provinsi: '35', nama_kabupaten: 'KOTA KEDIRI' },
+    { id: '2', kode_kabupaten: '35.06', kode_provinsi: '35', nama_kabupaten: 'KABUPATEN KEDIRI' },
+    { id: '3', kode_kabupaten: '35.78', kode_provinsi: '35', nama_kabupaten: 'KOTA SURABAYA' },
+    { id: '4', kode_kabupaten: '35.07', kode_provinsi: '35', nama_kabupaten: 'KABUPATEN MALANG' },
+  ];
+
+  private masterKecamatan: MasterKecamatanRecord[] = [
+    { id: '1', kode_kecamatan: '35.71.01', kode_kabupaten: '35.71', nama_kecamatan: 'MOJOROTO' },
+    { id: '2', kode_kecamatan: '35.71.02', kode_kabupaten: '35.71', nama_kecamatan: 'KOTA' },
+    { id: '3', kode_kecamatan: '35.71.03', kode_kabupaten: '35.71', nama_kecamatan: 'PESANTREN' },
+  ];
+
+  private masterDesa: MasterDesaRecord[] = [
+    { id: '1', kode_desa: '35.71.01.1001', kode_kecamatan: '35.71.01', nama_desa: 'LIRBOYO' },
+    { id: '2', kode_desa: '35.71.01.1002', kode_kecamatan: '35.71.01', nama_desa: 'CAMPUREJO' },
+    { id: '3', kode_desa: '35.71.01.1003', kode_kecamatan: '35.71.01', nama_desa: 'BANDAR KIDUL' },
+  ];
+
   // Helper Audit Logging
   public logAudit(user: string, aktivitas: string, modul: string) {
     const newRecord: AuditLogRecord = {
@@ -378,6 +434,36 @@ class SimulationDatabaseStore {
       ipAddress: '182.253.12.9',
     };
     this.auditLogList.unshift(newRecord);
+  }
+
+  // Master Wilayah Server Queries (Read from Local Database Store)
+  getProvinces(): MasterProvinsiRecord[] {
+    return this.masterProvinsi;
+  }
+
+  getRegencies(kodeProvinsi: string): MasterKabupatenRecord[] {
+    return this.masterKabupaten.filter((k) => k.kode_provinsi === kodeProvinsi);
+  }
+
+  getDistricts(kodeKabupaten: string): MasterKecamatanRecord[] {
+    return this.masterKecamatan.filter((k) => k.kode_kabupaten === kodeKabupaten);
+  }
+
+  getVillages(kodeKecamatan: string): MasterDesaRecord[] {
+    return this.masterDesa.filter((d) => d.kode_kecamatan === kodeKecamatan);
+  }
+
+  syncWilayahData(newProvinces: MasterProvinsiRecord[]): number {
+    let updated = 0;
+    for (const p of newProvinces) {
+      const idx = this.masterProvinsi.findIndex((x) => x.kode_provinsi === p.kode_provinsi);
+      if (idx === -1) {
+        this.masterProvinsi.push(p);
+        updated++;
+      }
+    }
+    this.logAudit('admin@darsa.id', `Sinkronisasi Master Wilayah Indonesia (${updated} provinsi baru)`, 'WILAYAH');
+    return updated;
   }
 
   pullSyncSantri(targetInstansi: 'MADRASAH' | 'MI', santriIds: string[], tahunAjaran: string): number {
