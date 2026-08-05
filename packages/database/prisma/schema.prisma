@@ -24,59 +24,61 @@ enum RoleType {
 }
 
 model User {
-  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email          String              @unique
-  nama_lengkap   String
-  foto_url       String?
-  email_verified Boolean             @default(false)
-  created_at     DateTime            @default(now())
-  updated_at     DateTime            @updatedAt
-  deleted_at     DateTime?
+  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  email         String    @unique
+  name          String    @default("") @map("nama_lengkap")
+  foto_url      String?
+  emailVerified Boolean   @default(false) @map("email_verified")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
-  accounts         Account[]
-  sessions         Session[]
-  passkeys         PasskeyCredential[]
-  user_roles       UserRole[]
-  audit_logs       AuditLog[]
-
-  guru             Guru?
-  santri           Santri?
-  wali_santri      WaliSantri?
-  pelanggaran_as_petugas Pelanggaran[] @relation("PelanggaranPetugas")
-  perizinan_disetujui    Perizinan[]   @relation("PerizinanApprover")
+  accounts               Account[]
+  sessions               Session[]
+  passkeys               PasskeyCredential[]
+  user_roles             UserRole[]
+  audit_logs             AuditLog[]
+  guru                   Guru?
+  santri                 Santri?
+  wali_santri            WaliSantri?
+  pelanggaran_as_petugas Pelanggaran[]        @relation("PelanggaranPetugas")
+  perizinan_disetujui    Perizinan[]          @relation("PerizinanApprover")
 
   @@map("users")
 }
 
 model Account {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id             String   @db.Uuid
-  provider            String
-  provider_account_id String
-  refresh_token       String?
-  access_token        String?
-  expires_at          Int?
-  token_type          String?
-  scope               String?
-  id_token            String?
-  created_at          DateTime @default(now())
+  id                    String    @id @default(dbgenerated("gen_random_uuid()"))
+  userId                String    @map("user_id")
+  accountId             String    @map("provider_account_id")
+  providerId            String    @map("provider")
+  password              String?
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("expires_at")
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, provider_account_id])
+  @@unique([providerId, accountId])
   @@map("accounts")
 }
 
 model Session {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String   @db.Uuid
-  session_token String   @unique
-  ip_address    String?
-  user_agent    String?
-  expires_at    DateTime
-  created_at    DateTime @default(now())
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  userId    String   @map("user_id")
+  token     String   @unique @map("session_token")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -91,8 +93,8 @@ model VerificationToken {
 }
 
 model PasskeyCredential {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String   @db.Uuid
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id       String  
   credential_id String   @unique
   public_key    String
   counter       Int
@@ -105,7 +107,7 @@ model PasskeyCredential {
 }
 
 model Role {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
   name        RoleType @unique
   description String?
   
@@ -115,9 +117,9 @@ model Role {
 }
 
 model UserRole {
-  id      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id String @db.Uuid
-  role_id String @db.Uuid
+  id      String @id @default(dbgenerated("gen_random_uuid()"))
+  user_id String
+  role_id String
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   role Role @relation(fields: [role_id], references: [id], onDelete: Cascade)
@@ -131,7 +133,7 @@ model UserRole {
 // ----------------------------------------------------
 
 model Pondok {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()"))
   nama       String
   alamat     String
   telepon    String?
@@ -152,8 +154,8 @@ model Pondok {
 }
 
 model Madrasah {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pondok_id  String    @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id  String   
   nama       String
   npsn       String?   @unique
   created_at DateTime  @default(now())
@@ -165,8 +167,8 @@ model Madrasah {
 }
 
 model MI {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pondok_id  String    @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id  String   
   nama       String
   npsn       String?   @unique
   created_at DateTime  @default(now())
@@ -178,9 +180,9 @@ model MI {
 }
 
 model Kelas {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  madrasah_id String?  @db.Uuid
-  mi_id       String?  @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
+  madrasah_id String? 
+  mi_id       String? 
   nama_kelas  String
   tingkat     Int
 
@@ -198,8 +200,8 @@ model Kelas {
 // ----------------------------------------------------
 
 model Guru {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id      String   @unique @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id      String   @unique
   nip          String?  @unique
   nama_lengkap String
   telepon      String?
@@ -212,10 +214,10 @@ model Guru {
 }
 
 model Santri {
-  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id               String    @unique @db.Uuid
-  pondok_id             String    @db.Uuid
-  kelas_id              String    @db.Uuid
+  id                    String    @id @default(dbgenerated("gen_random_uuid()"))
+  user_id               String    @unique
+  pondok_id             String   
+  kelas_id              String   
   nisp                  String    @unique // NISP / Stambuk (Single Source of Truth)
   nisn                  String    @unique
   nis                   String?
@@ -261,8 +263,8 @@ model Santri {
 }
 
 model PenempatanPendidikan {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id    String   @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id    String  
   nisp         String   // Stambuk
   tahun_ajaran String   // e.g. "2026/2027"
   semester     String   // "Ganjil" | "Genap"
@@ -279,7 +281,7 @@ model PenempatanPendidikan {
 }
 
 model MasterProvinsi {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
   kode_provinsi String   @unique // e.g. "35"
   nama_provinsi String   // e.g. "JAWA TIMUR"
   created_at    DateTime @default(now())
@@ -290,7 +292,7 @@ model MasterProvinsi {
 }
 
 model MasterKabupaten {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()"))
   kode_kabupaten String   @unique // e.g. "35.71"
   kode_provinsi  String   // Foreign key link to MasterProvinsi
   nama_kabupaten String   // e.g. "KOTA KEDIRI"
@@ -303,7 +305,7 @@ model MasterKabupaten {
 }
 
 model MasterKecamatan {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()"))
   kode_kecamatan String   @unique // e.g. "35.71.01"
   kode_kabupaten String   // Foreign key link to MasterKabupaten
   nama_kecamatan String   // e.g. "MOJOROTO"
@@ -316,7 +318,7 @@ model MasterKecamatan {
 }
 
 model MasterDesa {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()"))
   kode_desa      String   @unique // e.g. "35.71.01.1001"
   kode_kecamatan String   // Foreign key link to MasterKecamatan
   nama_desa      String   // e.g. "LIRBOYO"
@@ -328,8 +330,8 @@ model MasterDesa {
 }
 
 model WaliSantri {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id      String   @unique @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id      String   @unique
   nik          String?  @unique // NIK Kependudukan Wali
   nama_lengkap String
   telepon      String
@@ -342,7 +344,7 @@ model WaliSantri {
 }
 
 model Pengumuman {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
   judul      String
   isi        String
   target     String   // SEMUA, WALI_SANTRI, GURU
@@ -355,9 +357,9 @@ model Pengumuman {
 }
 
 model HubunganWali {
-  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id      String @db.Uuid
-  wali_santri_id String @db.Uuid
+  id             String @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id      String
+  wali_santri_id String
   hubungan       String
 
   santri      Santri     @relation(fields: [santri_id], references: [id], onDelete: Cascade)
@@ -372,8 +374,8 @@ model HubunganWali {
 // ----------------------------------------------------
 
 model LokasiPresensi {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pondok_id    String   @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id    String  
   nama_lokasi  String
   latitude     Float
   longitude    Float
@@ -387,7 +389,7 @@ model LokasiPresensi {
 }
 
 model QRSession {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
   qr_token   String   @unique
   expires_at DateTime
   created_at DateTime @default(now())
@@ -404,9 +406,9 @@ enum StatusAbsensi {
 }
 
 model AbsensiLog {
-  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id          String        @db.Uuid
-  lokasi_presensi_id String        @db.Uuid
+  id                 String        @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id          String       
+  lokasi_presensi_id String       
   status             StatusAbsensi @default(HADIR)
   latitude_scan      Float
   longitude_scan     Float
@@ -425,7 +427,7 @@ model AbsensiLog {
 // ----------------------------------------------------
 
 model MataPelajaran {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
   kode_mapel String   @unique
   nama_mapel String
   kategori   String
@@ -438,10 +440,10 @@ model MataPelajaran {
 }
 
 model JadwalPelajaran {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  kelas_id          String   @db.Uuid
-  guru_id           String   @db.Uuid
-  mata_pelajaran_id String   @db.Uuid
+  id                String   @id @default(dbgenerated("gen_random_uuid()"))
+  kelas_id          String  
+  guru_id           String  
+  mata_pelajaran_id String  
   hari              String
   jam_mulai         String
   jam_selesai       String
@@ -455,9 +457,9 @@ model JadwalPelajaran {
 }
 
 model NilaiSantri {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id         String   @db.Uuid
-  mata_pelajaran_id String   @db.Uuid
+  id                String   @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id         String  
+  mata_pelajaran_id String  
   semester          String
   tahun_ajaran      String
   nilai_harian      Float
@@ -472,9 +474,9 @@ model NilaiSantri {
 }
 
 model RaporSantri {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id     String   @db.Uuid
-  kelas_id      String   @db.Uuid
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id     String  
+  kelas_id      String  
   semester      String
   tahun_ajaran  String
   hafalan_juz   Int      @default(0)
@@ -501,8 +503,8 @@ enum JenisSurat {
 }
 
 model Surat {
-  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pondok_id   String     @db.Uuid
+  id          String     @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id   String    
   nomor_surat String     @unique
   jenis_surat JenisSurat
   perihal     String
@@ -523,8 +525,8 @@ enum KondisiBarang {
 }
 
 model InventarisBarang {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pondok_id   String        @db.Uuid
+  id          String        @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id   String       
   kode_barang String        @unique
   nama_barang String
   kategori    String
@@ -543,8 +545,8 @@ model InventarisBarang {
 // ----------------------------------------------------
 
 model AuditLog {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id     String?  @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id     String? 
   action      String
   entity_type String
   entity_id   String?
@@ -563,7 +565,7 @@ model AuditLog {
 // ----------------------------------------------------
 
 model TahunAjaran {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
   nama          String   @unique // e.g. "2025/2026"
   semester      String   // "Ganjil" | "Genap"
   tanggal_mulai DateTime
@@ -580,7 +582,7 @@ model TahunAjaran {
 // ----------------------------------------------------
 
 model Asrama {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()"))
   nama_asrama String
   kapasitas   Int       @default(20)
   jenis       String    @default("PUTRA") // PUTRA | PUTRI
@@ -595,9 +597,9 @@ model Asrama {
 }
 
 model PenempatanAsrama {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id      String    @db.Uuid
-  asrama_id      String    @db.Uuid
+  id             String    @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id      String   
+  asrama_id      String   
   tanggal_masuk  DateTime  @default(now())
   tanggal_keluar DateTime?
   keterangan     String?
@@ -619,13 +621,13 @@ enum TingkatPelanggaran {
 }
 
 model Pelanggaran {
-  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id   String             @db.Uuid
+  id          String             @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id   String            
   tanggal     DateTime           @default(now())
   jenis       String
   tingkat     TingkatPelanggaran @default(RINGAN)
   tindakan    String?
-  petugas_id  String?            @db.Uuid
+  petugas_id  String?           
   keterangan  String?
   created_at  DateTime           @default(now())
   deleted_at  DateTime?
@@ -644,14 +646,14 @@ enum StatusPerizinan {
 }
 
 model Perizinan {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id       String          @db.Uuid
+  id              String          @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id       String         
   jenis           String          // "PULANG" | "KELUAR_KOTA" | "BEROBAT" | "LAINNYA"
   alasan          String
   tanggal_mulai   DateTime
   tanggal_kembali DateTime
   status          StatusPerizinan @default(PENDING)
-  disetujui_oleh  String?         @db.Uuid
+  disetujui_oleh  String?        
   keterangan      String?
   created_at      DateTime        @default(now())
   updated_at      DateTime        @updatedAt
@@ -668,7 +670,7 @@ model Perizinan {
 // ----------------------------------------------------
 
 model Pengurus {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()"))
   nik          String?   @unique
   nama_lengkap String
   jabatan      String
@@ -688,8 +690,8 @@ model Pengurus {
 // ----------------------------------------------------
 
 model Alumni {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  santri_id    String    @unique @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id    String    @unique
   tahun_lulus  Int
   unit_terakhir String   // MADRASAH | MI
   kelas_terakhir String?
@@ -706,7 +708,7 @@ model Alumni {
 // ----------------------------------------------------
 
 model OtpVerification {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
   nik          String
   phone        String
   otp_hash     String

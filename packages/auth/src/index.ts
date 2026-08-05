@@ -9,15 +9,11 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-  },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    },
+    minPasswordLength: 6,
   },
   advanced: {
     useSecureCookies: process.env.NODE_ENV === 'production',
+    generateId: false,
   },
 });
 
