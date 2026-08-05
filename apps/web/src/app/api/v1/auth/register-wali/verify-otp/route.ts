@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Ambil record OTP PENDING terbaru untuk NIK & Nomor HP ini
-    const otpRecord = await prisma.otpVerification.findFirst({
+    const otpRecord = await (prisma as any).otpVerification.findFirst({
       where: {
         nik: cleanNik,
         phone: cleanPhone,
@@ -51,9 +51,9 @@ export async function POST(req: NextRequest) {
       return apiError('Kode OTP tidak ditemukan atau sudah tidak berlaku. Silakan kirim ulang OTP.', 400);
     }
 
-    // 3. Cek Masa Berlaku (Max 3 Menit sesuai BAB VII & XIV)
+    // 3. Cek Masa Berlaku (Max 1 Menit / 60 Detik)
     if (new Date() > new Date(otpRecord.expires_at)) {
-      await prisma.otpVerification.update({
+      await (prisma as any).otpVerification.update({
         where: { id: otpRecord.id },
         data: { status: 'EXPIRED' },
       });
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Cek Maksimal Percobaan (Max 5x Percobaan Salah sesuai BAB XI)
     if (otpRecord.attempts >= 5) {
-      await prisma.otpVerification.update({
+      await (prisma as any).otpVerification.update({
         where: { id: otpRecord.id },
         data: { status: 'FAILED' },
       });
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     if (submittedOtpHash !== otpRecord.otp_hash) {
       const newAttempts = otpRecord.attempts + 1;
-      await prisma.otpVerification.update({
+      await (prisma as any).otpVerification.update({
         where: { id: otpRecord.id },
         data: {
           attempts: newAttempts,
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. OTP Valid — Update Status ke VERIFIED
-    await prisma.otpVerification.update({
+    await (prisma as any).otpVerification.update({
       where: { id: otpRecord.id },
       data: { status: 'VERIFIED' },
     });

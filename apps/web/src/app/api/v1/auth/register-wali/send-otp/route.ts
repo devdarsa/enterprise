@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Rate Limiting & Cooldown Check (BAB X & XI)
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    const recentOtps = await prisma.otpVerification.findMany({
+    const recentOtps = await (prisma as any).otpVerification.findMany({
       where: {
         nik: cleanNik,
         created_at: { gte: fifteenMinutesAgo },
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Invalidate OTP PENDING sebelumnya
-    await prisma.otpVerification.updateMany({
+    await (prisma as any).otpVerification.updateMany({
       where: {
         nik: cleanNik,
         status: 'PENDING',
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + 60 * 1000); // 1 Menit / 60 Detik
 
     // 7. Simpan OTP Hash di DB
-    const otpRecord = await prisma.otpVerification.create({
+    const otpRecord = await (prisma as any).otpVerification.create({
       data: {
         nik: cleanNik,
         phone: cleanPhone,
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     if (!sendResult.success) {
       // Mark OTP record as failed
-      await prisma.otpVerification.update({
+      await (prisma as any).otpVerification.update({
         where: { id: otpRecord.id },
         data: { status: 'FAILED' },
       });
