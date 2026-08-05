@@ -3,6 +3,19 @@
  * Database Engine Murni per Instansi tanpa data hardcode di frontend.
  */
 
+export interface PenempatanPendidikanRecord {
+  id: string;
+  santri_id: string;
+  nisp: string;
+  tahun_ajaran: string;
+  semester: 'Ganjil' | 'Genap';
+  unit: 'MADRASAH' | 'MI';
+  tingkat: string;
+  kelas: string;
+  wali_kelas: string;
+  status: 'AKTIF' | 'ALUMNI' | 'LULUS';
+}
+
 export interface SantriRecord {
   id: string;
   nisp: string; // Nomor Induk Santri Pondok (Stambuk)
@@ -10,9 +23,12 @@ export interface SantriRecord {
   nis?: string;
   nik?: string;
   nama: string;
+  nama_panggilan?: string;
   jenis_kelamin: 'L' | 'P';
   tempat_lahir?: string;
   tanggal_lahir?: string;
+  anak_ke?: number;
+  jumlah_saudara?: number;
   alamat?: string;
   telepon?: string;
   avatar_url?: string;
@@ -30,6 +46,7 @@ export interface SantriRecord {
   telepon_wali?: string;
   hubungan_wali?: 'AYAH' | 'IBU' | 'WALI';
   no_kk?: string;
+  penempatan?: PenempatanPendidikanRecord[];
 }
 
 export interface GuruRecord {
@@ -112,9 +129,12 @@ class SimulationDatabaseStore {
       nis: '20261001',
       nik: '3571011508080001',
       nama: 'Muhammad Raihan',
+      nama_panggilan: 'Raihan',
       jenis_kelamin: 'L',
       tempat_lahir: 'Kediri',
       tanggal_lahir: '2008-08-15',
+      anak_ke: 1,
+      jumlah_saudara: 3,
       alamat: 'Jl. KH. Abdul Karim No. 12, Lirboyo, Kota Kediri',
       telepon: '081234567890',
       jenjang: 'Tsanawiyyah',
@@ -139,9 +159,12 @@ class SimulationDatabaseStore {
       nis: '20261002',
       nik: '3571012010090002',
       nama: 'Ahmad Fauzi',
+      nama_panggilan: 'Fauzi',
       jenis_kelamin: 'L',
       tempat_lahir: 'Surabaya',
       tanggal_lahir: '2009-10-20',
+      anak_ke: 2,
+      jumlah_saudara: 3,
       alamat: 'Jl. Raya Darmo No. 45, Surabaya',
       telepon: '081298765432',
       jenjang: 'Tsanawiyyah',
@@ -166,9 +189,12 @@ class SimulationDatabaseStore {
       nis: '20261003',
       nik: '3571016504090003',
       nama: 'Siti Aminah',
+      nama_panggilan: 'Aminah',
       jenis_kelamin: 'P',
       tempat_lahir: 'Malang',
       tanggal_lahir: '2009-04-25',
+      anak_ke: 1,
+      jumlah_saudara: 2,
       alamat: 'Jl. Ijen No. 88, Malang',
       telepon: '085711223344',
       jenjang: 'Aliyah',
@@ -186,6 +212,14 @@ class SimulationDatabaseStore {
       hubungan_wali: 'IBU',
       no_kk: '3571099904090088',
     },
+  ];
+
+  // Penempatan Pendidikan Santri per Unit (BAB V - Dual Enrollment)
+  private penempatanList: PenempatanPendidikanRecord[] = [
+    { id: '1', santri_id: '1', nisp: 'PNDK-0012345678', tahun_ajaran: '2025/2026 (Ganjil)', semester: 'Ganjil', unit: 'MADRASAH', tingkat: 'Tsanawiyyah', kelas: '10-A (Tahfidz & Diniyah)', wali_kelas: 'Dr. KH. Abdullah Ridwan', status: 'AKTIF' },
+    { id: '2', santri_id: '1', nisp: 'PNDK-0012345678', tahun_ajaran: '2025/2026 (Ganjil)', semester: 'Ganjil', unit: 'MI', tingkat: 'VI', kelas: 'VI-B', wali_kelas: 'Ustadzah Fatimah, S.Pd', status: 'AKTIF' },
+    { id: '3', santri_id: '2', nisp: 'PNDK-0012345679', tahun_ajaran: '2025/2026 (Ganjil)', semester: 'Ganjil', unit: 'MADRASAH', tingkat: 'Tsanawiyyah', kelas: '10-A (Tahfidz & Diniyah)', wali_kelas: 'Dr. KH. Abdullah Ridwan', status: 'AKTIF' },
+    { id: '4', santri_id: '3', nisp: 'PNDK-0012345680', tahun_ajaran: '2025/2026 (Ganjil)', semester: 'Ganjil', unit: 'MADRASAH', tingkat: 'Aliyah', kelas: '11-B (Diniyah Putri)', wali_kelas: 'Ustadz Ahmad Al-Farisi', status: 'AKTIF' },
   ];
 
   private guruList: GuruRecord[] = [
@@ -260,13 +294,30 @@ class SimulationDatabaseStore {
     },
   ];
 
-  // 1. Santri Queries & Mutations
+  // 1. Santri Queries & Mutations (BAB I & BAB VII: Single Source of Truth + Unit Placement Reference)
   getSantri(instansi?: string, tahunAjaran?: string): SantriRecord[] {
-    return this.santriList.filter((s) => {
-      const matchInstansi = !instansi || s.instansi === instansi.toUpperCase();
-      const matchTahun = !tahunAjaran || s.tahun_ajaran === tahunAjaran;
-      return matchInstansi && matchTahun;
-    });
+    const targetInst = instansi?.toUpperCase() || 'PONDOK';
+
+    return this.santriList
+      .filter((s) => {
+        if (targetInst === 'PONDOK') return true;
+        // Referensi Penempatan Pendidikan per Unit (BAB VII)
+        return this.penempatanList.some(
+          (p) => p.santri_id === s.id && p.unit === targetInst && p.status === 'AKTIF'
+        );
+      })
+      .map((s) => {
+        // Enriched with Dual-Enrollment Educational Placements (BAB VI)
+        const santriPenempatan = this.penempatanList.filter((p) => p.santri_id === s.id);
+        return {
+          ...s,
+          penempatan: santriPenempatan,
+        };
+      });
+  }
+
+  getPenempatanBySantri(santriId: string): PenempatanPendidikanRecord[] {
+    return this.penempatanList.filter((p) => p.santri_id === santriId);
   }
 
   getSantriByNikWali(nikWali: string): SantriRecord[] {

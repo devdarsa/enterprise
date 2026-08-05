@@ -218,9 +218,12 @@ model Santri {
   nis                   String?
   nik                   String?   // NIK Santri (16 Digit)
   nama_lengkap          String
+  nama_panggilan        String?
   jenis_kelamin         String?   // L / P
   tempat_lahir          String?
   tanggal_lahir         String?
+  anak_ke               Int?
+  jumlah_saudara        Int?
   alamat                String?   // Alamat Kependudukan Lengkap (API Cahyadsn Wilayah)
   telepon               String?
   avatar_url            String?
@@ -236,15 +239,34 @@ model Santri {
   deleted_at            DateTime?
   created_at            DateTime  @default(now())
 
-  user       User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  pondok     Pondok         @relation(fields: [pondok_id], references: [id])
-  kelas      Kelas          @relation(fields: [kelas_id], references: [id])
+  user       User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  pondok     Pondok                 @relation(fields: [pondok_id], references: [id])
+  kelas      Kelas                  @relation(fields: [kelas_id], references: [id])
   absensi    AbsensiLog[]
   wali_links HubunganWali[]
   nilai      NilaiSantri[]
   rapor      RaporSantri[]
+  penempatan PenempatanPendidikan[]
 
   @@map("santri")
+}
+
+model PenempatanPendidikan {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  santri_id    String   @db.Uuid
+  nisp         String   // Stambuk
+  tahun_ajaran String   // e.g. "2026/2027"
+  semester     String   // "Ganjil" | "Genap"
+  unit         String   // "MADRASAH" | "MI"
+  tingkat      String   // e.g. "Tsanawiyyah" / "VI"
+  kelas        String   // e.g. "2A" / "B"
+  wali_kelas   String?  // Mustahiq / Wali Kelas
+  status       String   @default("AKTIF")
+  created_at   DateTime @default(now())
+
+  santri Santri @relation(fields: [santri_id], references: [id], onDelete: Cascade)
+
+  @@map("penempatan_pendidikan")
 }
 
 model WaliSantri {
