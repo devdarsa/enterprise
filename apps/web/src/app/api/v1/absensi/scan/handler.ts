@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@darsa/database';
 import { calculateHaversineDistance, createErrorResponse, createSuccessResponse } from '@darsa/utils';
 import type { GPSCoordinates } from '@darsa/types';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { qr_token, guru_id, nama_guru, unit_guru, user_gps, device_info } = body as {
+    const { qr_token, santri_id, user_gps, device_info } = body as {
       qr_token: string;
-      guru_id?: string;
-      nama_guru?: string;
-      unit_guru?: 'MADRASAH' | 'MI';
+      santri_id?: string;
       user_gps: GPSCoordinates;
       device_info?: string;
     };
@@ -23,14 +22,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Coordinates center for Pondok/School Gate (-6.2088, 106.8456)
-    const schoolCenter: GPSCoordinates = {
-      latitude: -6.2088,
-      longitude: 106.8456,
-    };
-    const maxRadiusMeters = 200;
+    // 1. Validasi QR Token di database — cek keberadaan & masa berlaku
+    const qrSession = await prisma.qRSession.findFirst({
+      where: {
+        qr_token,
+        expires_at: { gt: new Date() },
+      },
+    });
 
-    // Calculate distance using Haversine formula
+    if (!qrSession) {
+      return NextResponse.json(
+        createErrorResponse('QR Code tidak valid atau sudah kedaluwarsa. Silakan minta QR baru dari petugas.'),
+        { status: 422 }
+      );
+    }
+
+    // 2. Ambil lokasi presensi aktif dari database
+    const lokasiPresensi = await prisma.lokasiPresensi.findFirst({
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (!lokasiPresensi) {
+      return NextResponse.json(
+        createErrorResponse('Lokasi presensi belum dikonfigurasi oleh admin.'),
+        { status: 503 }
+      );
+    }
+
+    const schoolCenter: GPSCoordinates = {
+      latitude: lokasiPresensi.latitude,
+      longitude: lokasiPresensi.longitude,
+    };
+    const maxRadiusMeters = lokasiPresensi.radius_meter;
+
+    // 3. Hitung jarak via Haversine formula
     const distanceMeters = calculateHaversineDistance(user_gps, schoolCenter);
 
     if (distanceMeters > maxRadiusMeters) {
@@ -48,24 +73,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const absensiGuruRecord = {
-      id: `ABS-GURU-${Date.now()}`,
-      guru_id: guru_id || 'GURU-001',
-      nama_guru: nama_guru || 'Ustadz Pengajar Darsa',
-      unit: unit_guru || 'MADRASAH',
-      status: 'HADIR',
-      distance_meters: distanceMeters,
-      timestamp: new Date().toISOString(),
-      lokasi: 'POS UTAMA MA\'HAD DARUSSA\'ADAH',
-      device_info: device_info || 'Mobile Native Scanner',
-    };
+    // 4. Tentukan status absensi berdasarkan waktu
+    const now = new Date();
+    const jamSekarang = now.getHours() * 60 + now.getMinutes(); // menit sejak tengah malam
+    const batasHadir = 7 * 60; // 07:00
+    const batasTerlambat = 7 * 60 + 30; // 07:30
+
+    let statusAbsensi: 'HADIR' | 'TERLAMBAT' = 'HADIR';
+    if (jamSekarang > batasHadir && jamSekarang <= batasTerlambat) {
+      statusAbsensi = 'TERLAMBAT';
+    } else if (jamSekarang > batasTerlambat) {
+      statusAbsensi = 'TERLAMBAT';
+    }
+
+    // 5. Tulis ke AbsensiLog jika santri_id disediakan
+    let absensiRecord: any = null;
+    if (santri_id) {
+      const santri = await prisma.santri.findFirst({ where: { id: santri_id, deleted_at: null } });
+      if (santri) {
+        absensiRecord = await prisma.absensiLog.create({
+          data: {
+            santri_id,
+            lokasi_presensi_id: lokasiPresensi.id,
+            status: statusAbsensi,
+            latitude_scan: user_gps.latitude,
+            longitude_scan: user_gps.longitude,
+            distance_meters: distanceMeters,
+            device_info: device_info || null,
+          },
+        });
+      }
+    }
 
     return NextResponse.json(
-      createSuccessResponse(absensiGuruRecord, 'Presensi Kehadiran Guru (Masuk/Pulang) via Dynamic QR berhasil dicatat ke Database')
+      createSuccessResponse(
+        {
+          id: absensiRecord?.id || `SCAN-${Date.now()}`,
+          santri_id: santri_id || null,
+          status: statusAbsensi,
+          distance_meters: distanceMeters,
+          timestamp: now.toISOString(),
+          lokasi: lokasiPresensi.nama_lokasi,
+          device_info: device_info || null,
+        },
+        'Presensi berhasil dicatat ke Database.'
+      )
     );
   } catch (error) {
+    console.error('[Absensi Scan] Error:', error);
     return NextResponse.json(
-      createErrorResponse('Internal Server Error pada pemrosesan scan QR Absensi Guru'),
+      createErrorResponse('Internal Server Error pada pemrosesan scan QR Absensi'),
       { status: 500 }
     );
   }

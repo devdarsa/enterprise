@@ -14,11 +14,6 @@ export const GET = withAuth(
     const where: any = {};
     if (jenis) where.jenis_surat = jenis;
 
-    // Ambil pondok dari user session atau default
-    const user = await prisma.user.findFirst({
-      where: { id: session.user.id },
-    });
-
     const [total, data] = await Promise.all([
       prisma.surat.count({ where }),
       prisma.surat.findMany({

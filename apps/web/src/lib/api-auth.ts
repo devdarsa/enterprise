@@ -55,14 +55,15 @@ const ROLE_HIERARCHY: Record<string, number> = {
 
 /**
  * Higher-order function: wraps an API handler with auth + role check.
+ * Supports an optional context (route params) forwarded from dynamic routes.
  * Usage:
  *   export const GET = withAuth(handler, ['SEKRETARIAT', 'ADMIN_INSTANSI']);
  */
 export function withAuth(
-  handler: (req: NextRequest, session: AuthSession) => Promise<NextResponse>,
+  handler: (req: NextRequest, session: AuthSession, context?: any) => Promise<NextResponse>,
   allowedRoles?: string[]
 ) {
-  return async (req: NextRequest): Promise<NextResponse> => {
+  return async (req: NextRequest, context?: any): Promise<NextResponse> => {
     const session = await getApiSession(req);
 
     if (!session) {
@@ -82,7 +83,7 @@ export function withAuth(
       }
     }
 
-    return handler(req, session);
+    return handler(req, session, context);
   };
 }
 

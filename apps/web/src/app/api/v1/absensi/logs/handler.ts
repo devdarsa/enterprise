@@ -1,43 +1,47 @@
-import { NextResponse } from 'next/server';
-import { createSuccessResponse } from '@darsa/utils';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@darsa/database';
+import { withAuth, apiSuccess } from '@/lib/api-auth';
 
-export async function GET() {
-  const sampleLogs = [
-    {
-      id: 'ABS-1001',
-      nama_santri: 'Muhammad Raihan',
-      kelas: '10-A (Tahfidz)',
-      status: 'HADIR',
-      waktu: '06:45:12 WIB',
-      distance_meters: 28,
-      lokasi: 'Gerbang Utama',
-    },
-    {
-      id: 'ABS-1002',
-      nama_santri: 'Ahmad Fauzi',
-      kelas: '10-A (Tahfidz)',
-      status: 'HADIR',
-      waktu: '06:50:44 WIB',
-      distance_meters: 45,
-      lokasi: 'Gerbang Utama',
-    },
-    {
-      id: 'ABS-1003',
-      nama_santri: 'Siti Aminah',
-      kelas: '11-B (Sains)',
-      status: 'TERLAMBAT',
-      waktu: '07:15:02 WIB',
-      distance_meters: 62,
-      lokasi: 'Gerbang Utama',
-    },
-  ];
+// GET /api/v1/absensi/logs — Daftar log presensi dari database dengan pagination
+export const GET = withAuth(
+  async (req: NextRequest, session) => {
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const santri_id = searchParams.get('santri_id') || '';
+    const status = searchParams.get('status') || '';
+    const skip = (page - 1) * limit;
 
-  return NextResponse.json(
-    createSuccessResponse(sampleLogs, 'Daftar riwayat presensi berhasil diambil', {
-      page: 1,
-      limit: 20,
-      total: 3,
-      total_pages: 1,
-    })
-  );
-}
+    const where: any = {};
+    if (santri_id) where.santri_id = santri_id;
+    if (status) where.status = status;
+
+    const [total, logs] = await Promise.all([
+      prisma.absensiLog.count({ where }),
+      prisma.absensiLog.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { timestamp: 'desc' },
+        include: {
+          santri: {
+            select: {
+              nama_lengkap: true,
+              nisp: true,
+              kelas: { select: { nama_kelas: true } },
+            },
+          },
+          lokasi: { select: { nama_lokasi: true } },
+        },
+      }),
+    ]);
+
+    return apiSuccess(logs, 'Daftar riwayat presensi berhasil diambil.', {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
+  },
+  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI', 'GURU']
+);

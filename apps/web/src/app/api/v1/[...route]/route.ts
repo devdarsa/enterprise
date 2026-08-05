@@ -29,7 +29,7 @@ import * as waliAnak from '../wali/anak/handler';
 import * as waliVerifikasiNik from '../wali/verifikasi-nik/handler';
 import * as wilayah from '../wilayah/handler';
 
-// Route dispatch map
+// Static route dispatch map
 const handlers: Record<string, any> = {
   'health': health,
   'auth/seed-default-accounts': seedAccounts,
@@ -71,11 +71,11 @@ async function handleDispatch(
   let dynamicContext: any = undefined;
 
   // Handle dynamic parameters like /api/v1/santri/[id] or /api/v1/jadwal/[id]
-  if (!handlerModule && routeParts.length === 2) {
-    if (routeParts[0] === 'santri') {
+  if (!handlerModule && routeParts.length >= 2) {
+    if (routeParts[0] === 'santri' && routeParts.length === 2) {
       handlerModule = santriId;
       dynamicContext = { params: Promise.resolve({ id: routeParts[1] }) };
-    } else if (routeParts[0] === 'jadwal') {
+    } else if (routeParts[0] === 'jadwal' && routeParts.length === 2) {
       handlerModule = jadwalId;
       dynamicContext = { params: Promise.resolve({ id: routeParts[1] }) };
     }

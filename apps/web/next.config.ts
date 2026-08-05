@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
       '../../packages/database/**/*',
     ],
   },
-  transpilePackages: ['@darsa/auth', '@darsa/database', '@darsa/types', '@darsa/ui', '@darsa/utils'],
+  transpilePackages: ['@darsa/auth', '@darsa/types', '@darsa/ui', '@darsa/utils'],
   images: {
     remotePatterns: [
       {

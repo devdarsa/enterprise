@@ -1,16 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@darsa/database';
+import { withAuth, apiSuccess, apiError } from '@/lib/api-auth';
 
 const EMSIFA_BASE_URL = 'https://www.emsifa.com/api-wilayah-indonesia/api';
 
 /**
- * Backend API Wilayah Indonesia (EMSIFA Kemendagri Standard API + PostgreSQL Prisma Cache)
- * Supports:
- * - GET ?type=provinces
- * - GET ?type=regencies&provId=35
- * - GET ?type=districts&regId=3571
- * - GET ?type=villages&distId=3571010
- * - GET ?type=format_address&provId=...&regId=...&distId=...&villageId=...
+ * Backend API Wilayah Indonesia (EMSIFA Kemendagri Standard API + Live PostgreSQL Cache)
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -31,7 +26,7 @@ export async function GET(request: Request) {
             name: String(item.name).toUpperCase(),
           }));
 
-          // Async sync to DB in background
+          // Async sync to Live DB in background
           Promise.resolve().then(async () => {
             for (const p of data.slice(0, 38)) {
               await prisma.masterProvinsi.upsert({
@@ -46,20 +41,11 @@ export async function GET(request: Request) {
         }
       } catch {}
 
-      // DB Cache Fallback
+      // DB Cache Query
       const dbProvs = await prisma.masterProvinsi.findMany({ orderBy: { kode_provinsi: 'asc' } });
-      const data = dbProvs.length > 0
-        ? dbProvs.map(p => ({ id: p.kode_provinsi, name: p.nama_provinsi }))
-        : [
-            { id: '35', name: 'JAWA TIMUR' },
-            { id: '31', name: 'DKI JAKARTA' },
-            { id: '32', name: 'JAWA BARAT' },
-            { id: '33', name: 'JAWA TENGAH' },
-            { id: '34', name: 'DI YOGYAKARTA' },
-            { id: '51', name: 'BALI' },
-          ];
+      const data = dbProvs.map(p => ({ id: p.kode_provinsi, name: p.nama_provinsi }));
 
-      return NextResponse.json({ success: true, source: 'PostgreSQL Cache', data });
+      return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }
 
     // 2. KABUPATEN / KOTA
@@ -79,22 +65,14 @@ export async function GET(request: Request) {
         }
       } catch {}
 
-      // DB Cache Fallback
+      // DB Cache Query
       const dbRegs = await prisma.masterKabupaten.findMany({
         where: cleanProvId ? { kode_provinsi: cleanProvId } : undefined,
         orderBy: { kode_kabupaten: 'asc' },
       });
+      const data = dbRegs.map(r => ({ id: r.kode_kabupaten, province_id: r.kode_provinsi, name: r.nama_kabupaten }));
 
-      const data = dbRegs.length > 0
-        ? dbRegs.map(r => ({ id: r.kode_kabupaten, province_id: r.kode_provinsi, name: r.nama_kabupaten }))
-        : [
-            { id: '3571', province_id: '35', name: 'KOTA KEDIRI' },
-            { id: '3506', province_id: '35', name: 'KABUPATEN KEDIRI' },
-            { id: '3573', province_id: '35', name: 'KOTA MALANG' },
-            { id: '3578', province_id: '35', name: 'KOTA SURABAYA' },
-          ];
-
-      return NextResponse.json({ success: true, source: 'PostgreSQL Cache', data });
+      return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }
 
     // 3. KECAMATAN
@@ -114,21 +92,14 @@ export async function GET(request: Request) {
         }
       } catch {}
 
-      // DB Cache Fallback
+      // DB Cache Query
       const dbDists = await prisma.masterKecamatan.findMany({
         where: cleanRegId ? { kode_kabupaten: cleanRegId } : undefined,
         orderBy: { kode_kecamatan: 'asc' },
       });
+      const data = dbDists.map(d => ({ id: d.kode_kecamatan, regency_id: d.kode_kabupaten, name: d.nama_kecamatan }));
 
-      const data = dbDists.length > 0
-        ? dbDists.map(d => ({ id: d.kode_kecamatan, regency_id: d.kode_kabupaten, name: d.nama_kecamatan }))
-        : [
-            { id: '3571010', regency_id: '3571', name: 'MOJOROTO' },
-            { id: '3571020', regency_id: '3571', name: 'KOTA' },
-            { id: '3571030', regency_id: '3571', name: 'PESANTREN' },
-          ];
-
-      return NextResponse.json({ success: true, source: 'PostgreSQL Cache', data });
+      return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }
 
     // 4. DESA / KELURAHAN
@@ -148,30 +119,22 @@ export async function GET(request: Request) {
         }
       } catch {}
 
-      // DB Cache Fallback
+      // DB Cache Query
       const dbVills = await prisma.masterDesa.findMany({
         where: cleanDistId ? { kode_kecamatan: cleanDistId } : undefined,
         orderBy: { kode_desa: 'asc' },
       });
+      const data = dbVills.map(v => ({ id: v.kode_desa, district_id: v.kode_kecamatan, name: v.nama_desa }));
 
-      const data = dbVills.length > 0
-        ? dbVills.map(v => ({ id: v.kode_desa, district_id: v.kode_kecamatan, name: v.nama_desa }))
-        : [
-            { id: '3571010001', district_id: '3571010', name: 'LIRBOYO' },
-            { id: '3571010002', district_id: '3571010', name: 'BANDAR LOR' },
-            { id: '3571010003', district_id: '3571010', name: 'BANDAR KIDUL' },
-            { id: '3571010004', district_id: '3571010', name: 'CAMPUREJO' },
-          ];
-
-      return NextResponse.json({ success: true, source: 'PostgreSQL Cache', data });
+      return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }
 
-    // 5. STANDARISASI FORMAT DATA WILAYAH (Format JSON Resmi Prioritas 5)
+    // 5. STANDARISASI FORMAT DATA WILAYAH
     if (type === 'format_address') {
-      const provName = searchParams.get('prov') || 'JAWA TIMUR';
-      const regName = searchParams.get('reg') || 'KOTA KEDIRI';
-      const distName = searchParams.get('dist') || 'MOJOROTO';
-      const villageName = searchParams.get('village') || 'LIRBOYO';
+      const provName = searchParams.get('prov') || '';
+      const regName = searchParams.get('reg') || '';
+      const distName = searchParams.get('dist') || '';
+      const villageName = searchParams.get('village') || '';
 
       return NextResponse.json({
         success: true,
@@ -189,45 +152,41 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Sistem mengalami kendala sementara saat menghubungkan ke Server API Wilayah Indonesia.',
-        fallback: {
-          provinsi: 'JAWA TIMUR',
-          kabupaten: 'KOTA KEDIRI',
-          kecamatan: 'MOJOROTO',
-          desa: 'LIRBOYO',
-        },
+        error: 'Gagal menghubungkan ke Server API Wilayah Indonesia.',
       },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { action, payload } = body;
+export const POST = withAuth(
+  async (request: NextRequest, session) => {
+    try {
+      const body = await request.json();
+      const { action, payload } = body;
 
-    if (action === 'sync_wilayah' && Array.isArray(payload)) {
-      let updatedCount = 0;
-      for (const item of payload) {
-        if (item.kode_provinsi && item.nama_provinsi) {
-          await prisma.masterProvinsi.upsert({
-            where: { kode_provinsi: item.kode_provinsi },
-            update: { nama_provinsi: item.nama_provinsi.toUpperCase() },
-            create: { kode_provinsi: item.kode_provinsi, nama_provinsi: item.nama_provinsi.toUpperCase() },
-          });
-          updatedCount++;
+      if (action === 'sync_wilayah' && Array.isArray(payload)) {
+        let updatedCount = 0;
+        for (const item of payload) {
+          if (item.kode_provinsi && item.nama_provinsi) {
+            await prisma.masterProvinsi.upsert({
+              where: { kode_provinsi: item.kode_provinsi },
+              update: { nama_provinsi: item.nama_provinsi.toUpperCase() },
+              create: { kode_provinsi: item.kode_provinsi, nama_provinsi: item.nama_provinsi.toUpperCase() },
+            });
+            updatedCount++;
+          }
         }
+        return apiSuccess(
+          { count: updatedCount },
+          `Sinkronisasi Master Wilayah Indonesia Berhasil (${updatedCount} data tersimpan di Live PostgreSQL).`
+        );
       }
-      return NextResponse.json({
-        success: true,
-        message: `Sinkronisasi Master Wilayah Indonesia Berhasil (${updatedCount} data tersimpan di PostgreSQL).`,
-        count: updatedCount,
-      });
-    }
 
-    return NextResponse.json({ success: false, error: 'Aksi sinkronisasi wilayah tidak valid' }, { status: 400 });
-  } catch {
-    return NextResponse.json({ success: false, error: 'Terjadi kesalahan pada server sinkronisasi' }, { status: 500 });
-  }
-}
+      return apiError('Aksi sinkronisasi wilayah tidak valid.', 400);
+    } catch {
+      return apiError('Terjadi kesalahan pada server sinkronisasi.', 500);
+    }
+  },
+  ['SEKRETARIAT', 'ADMIN_INSTANSI']
+);

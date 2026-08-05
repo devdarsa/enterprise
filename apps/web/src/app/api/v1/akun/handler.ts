@@ -50,7 +50,7 @@ export const GET = withAuth(
   ['SEKRETARIAT', 'ADMIN_INSTANSI']
 );
 
-// POST /api/v1/akun — Buat akun baru
+// POST /api/v1/akun — Buat akun baru (dengan credential login via Better Auth)
 export const POST = withAuth(
   async (req: NextRequest, session) => {
     const body = await req.json();
@@ -67,21 +67,57 @@ export const POST = withAuth(
     const roleRecord = await prisma.role.findFirst({ where: { name: role } });
     if (!roleRecord) return apiError(`Role ${role} tidak ditemukan di database.`, 404);
 
-    // Buat user via Better Auth atau Prisma langsung
+    // Buat user beserta credential login via Better Auth (creates User + Account with hashed password)
+    const finalPassword = password || 'DarsaTemp2026!';
     const { auth } = await import('@darsa/auth');
-    const { hash } = await import('crypto');
-    const hashedPassword = hash('sha256', password || 'DarsaTemp2026!');
+    let newUser: any = null;
 
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        nama_lengkap,
-        email_verified: false,
-        user_roles: {
-          create: { role_id: roleRecord.id },
+    try {
+      const authResult = await auth.api.signUpEmail({
+        body: {
+          email,
+          password: finalPassword,
+          name: nama_lengkap,
         },
-      },
+      });
+      if (authResult?.user) {
+        newUser = authResult.user;
+      }
+    } catch (authErr: any) {
+      console.warn('⚠️ Better Auth signUpEmail warning:', authErr?.message || authErr);
+    }
+
+    // Fallback: ambil user dari DB jika Better Auth sudah buatkan
+    if (!newUser) {
+      newUser = await prisma.user.findFirst({ where: { email } });
+    }
+
+    // Last resort: buat user langsung via Prisma (tanpa Account credential)
+    if (!newUser) {
+      newUser = await prisma.user.create({
+        data: {
+          email,
+          nama_lengkap,
+          email_verified: false,
+        },
+      });
+    }
+
+    // Pastikan nama_lengkap tersimpan (Better Auth simpan sebagai `name`)
+    await prisma.user.update({
+      where: { id: newUser.id },
+      data: { nama_lengkap },
     });
+
+    // Attach role
+    const existingRole = await prisma.userRole.findFirst({
+      where: { user_id: newUser.id, role_id: roleRecord.id },
+    });
+    if (!existingRole) {
+      await prisma.userRole.create({
+        data: { user_id: newUser.id, role_id: roleRecord.id },
+      });
+    }
 
     await logAudit({
       userId: session.user.id,

@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
-type RouteContext = { params: Promise<{ id: string }> };
-
 // GET /api/v1/santri/[id]
 export const GET = withAuth(
-  async (req: NextRequest, session) => {
-    const { id } = await (req as any).params || {};
-    const url = req.url;
-    const pathId = url.split('/').pop();
+  async (req: NextRequest, session, context?: any) => {
+    const id = context?.params ? (await context.params).id : req.url.split('/').slice(-1)[0];
 
     const santri = await prisma.santri.findFirst({
-      where: { id: pathId, deleted_at: null },
+      where: { id, deleted_at: null },
       include: {
         kelas: true,
         penempatan: { orderBy: { created_at: 'desc' } },
@@ -31,16 +27,15 @@ export const GET = withAuth(
 
 // PUT /api/v1/santri/[id]
 export const PUT = withAuth(
-  async (req: NextRequest, session) => {
-    const url = req.url;
-    const pathId = url.split('/').pop()!;
+  async (req: NextRequest, session, context?: any) => {
+    const id = context?.params ? (await context.params).id : req.url.split('/').slice(-1)[0];
     const body = await req.json();
 
-    const existing = await prisma.santri.findFirst({ where: { id: pathId, deleted_at: null } });
+    const existing = await prisma.santri.findFirst({ where: { id, deleted_at: null } });
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);
 
     const updated = await prisma.santri.update({
-      where: { id: pathId },
+      where: { id },
       data: {
         nama_lengkap: body.nama_lengkap,
         nama_panggilan: body.nama_panggilan,
@@ -69,7 +64,7 @@ export const PUT = withAuth(
       userId: session.user.id,
       action: 'UPDATE_SANTRI',
       entityType: 'Santri',
-      entityId: pathId,
+      entityId: id,
       metadata: { perubahan: body },
     });
 
@@ -80,15 +75,14 @@ export const PUT = withAuth(
 
 // DELETE /api/v1/santri/[id] — Soft delete
 export const DELETE = withAuth(
-  async (req: NextRequest, session) => {
-    const url = req.url;
-    const pathId = url.split('/').pop()!;
+  async (req: NextRequest, session, context?: any) => {
+    const id = context?.params ? (await context.params).id : req.url.split('/').slice(-1)[0];
 
-    const existing = await prisma.santri.findFirst({ where: { id: pathId, deleted_at: null } });
+    const existing = await prisma.santri.findFirst({ where: { id, deleted_at: null } });
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);
 
     await prisma.santri.update({
-      where: { id: pathId },
+      where: { id },
       data: { deleted_at: new Date() },
     });
 
@@ -96,7 +90,7 @@ export const DELETE = withAuth(
       userId: session.user.id,
       action: 'DELETE_SANTRI',
       entityType: 'Santri',
-      entityId: pathId,
+      entityId: id,
       metadata: { nisp: existing.nisp, nama: existing.nama_lengkap },
     });
 

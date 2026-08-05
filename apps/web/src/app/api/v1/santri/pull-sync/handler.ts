@@ -1,10 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@darsa/database';
+import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+// POST /api/v1/santri/pull-sync — Tarik data santri dari Pondok ke instansi target
+export const POST = withAuth(
+  async (req: NextRequest, session) => {
+    const body = await req.json();
     const { targetInstansi, santriIds, tahunAjaran } = body;
+
+    if (!targetInstansi) {
+      return apiError('targetInstansi wajib diisi (contoh: MADRASAH atau MI).');
+    }
 
     const instansiKey = targetInstansi?.includes('MI') ? 'MI' : 'MADRASAH';
 
@@ -19,21 +25,20 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Berhasil melakukan Penarikan Data (Pull Sync) ${count} Santri dari Pondok Pesantren ke Database ${targetInstansi || 'Madrasah Diniyah'}.`,
-      data: {
-        syncedCount: count,
-        sourceInstansi: 'PONDOK',
-        targetInstansi: instansiKey,
-        tahunAjaran: tahunAjaran || '2025/2026 (Ganjil)',
-        timestamp: new Date().toISOString(),
-      },
+    await logAudit({
+      userId: session.user.id,
+      action: 'PULL_SYNC_SANTRI',
+      entityType: 'Santri',
+      metadata: { targetInstansi: instansiKey, count, tahunAjaran },
     });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Gagal melakukan penarikan data santri pada database.' },
-      { status: 500 }
-    );
-  }
-}
+
+    return apiSuccess({
+      syncedCount: count,
+      sourceInstansi: 'PONDOK',
+      targetInstansi: instansiKey,
+      tahunAjaran: tahunAjaran || '2025/2026 (Ganjil)',
+      timestamp: new Date().toISOString(),
+    }, `Berhasil melakukan Penarikan Data (Pull Sync) ${count} Santri dari Pondok Pesantren ke Database ${targetInstansi || 'Madrasah Diniyah'}.`);
+  },
+  ['SEKRETARIAT', 'ADMIN_INSTANSI']
+);

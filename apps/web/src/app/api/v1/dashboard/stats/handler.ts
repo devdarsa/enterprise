@@ -21,7 +21,7 @@ export const GET = withAuth(
       auditLogTerbaru,
     ] = await Promise.all([
       prisma.santri.count({ where: { deleted_at: null } }),
-      prisma.santri.count({ where: { deleted_at: null } }), // aktif placeholder — filter by status if schema has it
+      prisma.santri.count({ where: { deleted_at: null, status: 'AKTIF' } }),
       prisma.guru.count(),
       prisma.pengurus.count({ where: { deleted_at: null, status: 'AKTIF' } }),
       prisma.perizinan.count({
@@ -58,7 +58,7 @@ export const GET = withAuth(
     return apiSuccess({
       stats: {
         totalSantri,
-        santriAktif: totalSantri, // will be updated once status field is confirmed
+        santriAktif,
         totalGuru,
         totalPengurus,
         perizinanHariIni,
