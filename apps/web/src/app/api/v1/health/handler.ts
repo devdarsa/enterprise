@@ -33,7 +33,7 @@ export async function GET() {
       accountCount,
       sampleEmails,
       dbHost: maskedDbUrl,
-      betterAuthSecretSet: !!process.env.BETTER_AUTH_SECRET,
+      betterAuthSecretValue: process.env.BETTER_AUTH_SECRET || 'NOT_SET',
       betterAuthUrl: process.env.BETTER_AUTH_URL || 'NOT_SET',
       nextPublicAppUrl: process.env.NEXT_PUBLIC_APP_URL || 'NOT_SET',
     },
