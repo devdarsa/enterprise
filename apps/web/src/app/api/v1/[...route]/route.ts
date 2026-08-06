@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // Import all API handlers
 import * as health from '../health/handler';
 import * as seedAccounts from '../auth/seed-default-accounts/handler';

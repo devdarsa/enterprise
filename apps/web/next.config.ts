@@ -2,9 +2,9 @@ import type { NextConfig } from 'next';
 import path from 'path';
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['@prisma/client', '@darsa/database'],
+  serverExternalPackages: ['@prisma/client', 'prisma'],
   outputFileTracingRoot: path.join(__dirname, '../../'),
-  transpilePackages: ['@darsa/auth', '@darsa/types', '@darsa/ui', '@darsa/utils'],
+  transpilePackages: ['@darsa/database', '@darsa/auth', '@darsa/types', '@darsa/ui', '@darsa/utils'],
   images: {
     remotePatterns: [
       {
