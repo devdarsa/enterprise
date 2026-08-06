@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, RoleType } from '@darsa/database';
+import { prisma } from '@darsa/database';
 import { scryptSync, randomBytes } from 'crypto';
 
 function hashPassword(password: string): string {
@@ -13,56 +13,56 @@ const DEFAULT_ACCOUNTS = [
     email: 'sekretariat.pondok@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Sekretariat Pondok Pesantren',
-    role: RoleType.SEKRETARIAT,
+    role: 'SEKRETARIAT',
     portal: '/loginpondok',
   },
   {
     email: 'sekretariat.madrasah@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Sekretariat Madrasah Diniyah',
-    role: RoleType.ADMIN_INSTANSI,
+    role: 'ADMIN_INSTANSI',
     portal: '/loginmadrasah',
   },
   {
     email: 'sekretariat.mi@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Sekretariat Formal MI',
-    role: RoleType.ADMIN_INSTANSI,
+    role: 'ADMIN_INSTANSI',
     portal: '/loginmi',
   },
   {
     email: 'keamanan@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Tim Keamanan & Perizinan',
-    role: RoleType.KEAMANAN,
+    role: 'KEAMANAN',
     portal: '/loginkeamanan',
   },
   {
     email: 'guru.mi@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Ustadzah Guru MI',
-    role: RoleType.GURU_MI,
+    role: 'GURU_MI',
     portal: '/logingurumi',
   },
   {
     email: 'mustahiq@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Ustadz Mustahiq Diniyah',
-    role: RoleType.MUSTAHIQ,
+    role: 'MUSTAHIQ',
     portal: '/login',
   },
   {
     email: 'munawwib@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Ustadz Munawwib Diniyah',
-    role: RoleType.MUNAWWIB,
+    role: 'MUNAWWIB',
     portal: '/login',
   },
   {
     email: 'wali@darsa.my.id',
     password: 'darsa25',
     nama_lengkap: 'Wali Santri Lirboyo',
-    role: RoleType.WALI_SANTRI,
+    role: 'WALI_SANTRI',
     portal: '/loginwali',
   },
 ];
@@ -109,14 +109,15 @@ export async function POST() {
       }
 
       // 3. Upsert Role in roles table
+      const targetRole = acc.role as any;
       let roleObj = await prisma.role.findFirst({
-        where: { name: acc.role },
+        where: { name: targetRole },
       });
 
       if (!roleObj) {
         roleObj = await prisma.role.create({
           data: {
-            name: acc.role,
+            name: targetRole,
             description: `Role default ${acc.nama_lengkap}`,
           },
         });

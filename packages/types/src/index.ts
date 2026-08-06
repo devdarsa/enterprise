@@ -31,6 +31,9 @@ export type UserRole =
   | 'GURU_MI'
   | 'GURU'
   | 'PEGAWAI'
+  | 'KEAMANAN'
+  | 'MUSTAHIQ'
+  | 'MUNAWWIB'
   | 'SANTRI'
   | 'WALI_SANTRI';
 
