@@ -4,6 +4,14 @@ import { toNextJsHandler } from 'better-auth/next-js';
 import { prisma } from '@darsa/database';
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET || 'darsa-enterprise-secret-prod-2026-lirboyo-neon-ok',
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://web-red-tau-84.vercel.app',
+  trustedOrigins: [
+    'https://web-red-tau-84.vercel.app',
+    'https://darsa.develzy.my.id',
+    'http://localhost:3000',
+    'http://localhost:3005',
+  ],
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
