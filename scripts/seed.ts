@@ -170,10 +170,10 @@ async function main() {
     { email: 'sekretariat.pondok@darsa.my.id', nama_lengkap: 'Sekretariat Pondok Pesantren', role: 'SEKRETARIAT' as const },
     { email: 'sekretariat.madrasah@darsa.my.id', nama_lengkap: 'Sekretariat Madrasah Diniyah', role: 'ADMIN_INSTANSI' as const },
     { email: 'sekretariat.mi@darsa.my.id', nama_lengkap: 'Sekretariat Formal MI', role: 'ADMIN_INSTANSI' as const },
-    { email: 'keamanan@darsa.my.id', nama_lengkap: 'Tim Keamanan & Perizinan', role: 'PEGAWAI' as const },
+    { email: 'keamanan@darsa.my.id', nama_lengkap: 'Tim Keamanan & Perizinan', role: 'KEAMANAN' as const },
     { email: 'guru.mi@darsa.my.id', nama_lengkap: 'Ustadzah Guru MI', role: 'GURU_MI' as const },
-    { email: 'mustahiq@darsa.my.id', nama_lengkap: 'Ustadz Mustahiq Diniyah', role: 'GURU_MADRASAH' as const },
-    { email: 'munawwib@darsa.my.id', nama_lengkap: 'Ustadz Munawwib Diniyah', role: 'GURU_MADRASAH' as const },
+    { email: 'mustahiq@darsa.my.id', nama_lengkap: 'Ustadz Mustahiq Diniyah', role: 'MUSTAHIQ' as const },
+    { email: 'munawwib@darsa.my.id', nama_lengkap: 'Ustadz Munawwib Diniyah', role: 'MUNAWWIB' as const },
     { email: 'wali@darsa.my.id', nama_lengkap: 'Wali Santri Lirboyo', role: 'WALI_SANTRI' as const },
   ];
 

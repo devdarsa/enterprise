@@ -45,9 +45,12 @@ export async function getUserRole(request: NextRequest): Promise<string | null> 
 const ROLE_HIERARCHY: Record<string, number> = {
   SEKRETARIAT: 100,
   ADMIN_INSTANSI: 90,
+  KEAMANAN: 60,
   GURU_MADRASAH: 50,
   GURU_MI: 50,
   GURU: 50,
+  MUSTAHIQ: 50,
+  MUNAWWIB: 50,
   PEGAWAI: 40,
   WALI_SANTRI: 30,
   SANTRI: 20,
