@@ -99,12 +99,12 @@ export async function POST() {
             provider: 'credential',
             provider_account_id: user.id,
             password: hashPassword(acc.password),
-          },
+          } as any,
         });
-      } else if (!account.password) {
+      } else if (!(account as any).password) {
         await prisma.account.update({
           where: { id: account.id },
-          data: { password: hashPassword(acc.password) },
+          data: { password: hashPassword(acc.password) } as any,
         });
       }
 
