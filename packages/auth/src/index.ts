@@ -8,7 +8,6 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://darsa.develzy.my.id',
   trustedOrigins: [
     'https://darsa.develzy.my.id',
-    'https://web-red-tau-84.vercel.app',
     'http://localhost:3000',
     'http://localhost:3005',
   ],
