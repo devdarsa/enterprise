@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@darsa/database';
+import { prisma, Prisma } from '@darsa/database';
 import { withAuth, apiSuccess } from '@/lib/api-auth';
 
 // GET /api/v1/absensi/logs — Daftar log presensi dari database dengan pagination
@@ -12,9 +12,9 @@ export const GET = withAuth(
     const status = searchParams.get('status') || '';
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.AbsensiLogWhereInput = {};
     if (santri_id) where.santri_id = santri_id;
-    if (status) where.status = status;
+    if (status) where.status = status as Prisma.EnumStatusAbsensiFilter['equals'];
 
     const [total, logs] = await Promise.all([
       prisma.absensiLog.count({ where }),
@@ -22,7 +22,7 @@ export const GET = withAuth(
         where,
         skip,
         take: limit,
-        orderBy: { timestamp: 'desc' },
+        orderBy: { tanggal: 'desc' },
         include: {
           santri: {
             select: {
@@ -31,7 +31,6 @@ export const GET = withAuth(
               kelas: { select: { nama_kelas: true } },
             },
           },
-          lokasi: { select: { nama_lokasi: true } },
         },
       }),
     ]);

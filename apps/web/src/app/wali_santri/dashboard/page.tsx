@@ -188,7 +188,7 @@ export default function WaliSantriDashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 max-w-4xl mx-auto space-y-6">
-      <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
+      <Toast {...toast} onClose={() => setToast((t: any) => ({ ...t, isOpen: false }))} />
 
       {/* Header */}
       <div className="relative p-6 rounded-3xl bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white border border-emerald-600 shadow-xl overflow-hidden">
@@ -290,7 +290,7 @@ export default function WaliSantriDashboardPage() {
             <span>📝</span> Status Permohonan Izin Santri
           </h2>
           <div className="divide-y divide-slate-100">
-            {riwayatIzin.map((iz) => (
+            {riwayatIzin.map((iz: any) => (
               <div key={iz.id} className="py-3 flex items-center justify-between text-xs">
                 <div className="space-y-0.5">
                   <span className="font-bold text-slate-900 block">{iz.jenis} • {iz.alasan}</span>
@@ -313,7 +313,7 @@ export default function WaliSantriDashboardPage() {
           <span>📜</span> Nilai Akademik & Progres Hafalan
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {(nilaiTerakhir as Array<{ mapel: string; nilai: number; predikat: string; ustadz?: string }>).map((n, idx: number) => (
+          {(nilaiTerakhir as Array<{ mapel: string; nilai: number; predikat: string; ustadz?: string }>).map((n: any, idx: number) => (
             <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
               <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">{n.mapel}</span>
               <div className="flex justify-between items-baseline mt-2">
@@ -332,7 +332,7 @@ export default function WaliSantriDashboardPage() {
           <span>📊</span> Rekap Presensi Kehadiran Bulanan
         </h2>
         <div className="divide-y divide-slate-100">
-          {rekapAbsensi.map((r, idx) => (
+          {rekapAbsensi.map((r: any, idx: number) => (
             <div key={idx} className="py-3 flex items-center justify-between text-xs">
               <span className="font-bold text-slate-800">{r.bulan}</span>
               <div className="flex items-center gap-4 text-slate-600 font-semibold">
@@ -355,7 +355,7 @@ export default function WaliSantriDashboardPage() {
         </h2>
         <div className="space-y-3">
           {pengumumanList.length > 0 ? (
-            pengumumanList.map((p) => (
+            pengumumanList.map((p: any) => (
               <div key={p.id} className={`p-4 rounded-2xl ${p.penting ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 border border-slate-200'}`}>
                 <div className="flex justify-between items-center mb-1">
                   <h3 className="text-xs font-bold text-slate-900">{p.judul}</h3>

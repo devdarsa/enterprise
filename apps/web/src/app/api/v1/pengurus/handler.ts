@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@darsa/database';
+import { prisma, Prisma } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
 // GET /api/v1/pengurus
@@ -12,7 +12,7 @@ export const GET = withAuth(
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const where: any = { deleted_at: null };
+    const where: Prisma.PengurusWhereInput = { deleted_at: null };
     if (unit) where.unit = unit;
     if (search) {
       where.OR = [

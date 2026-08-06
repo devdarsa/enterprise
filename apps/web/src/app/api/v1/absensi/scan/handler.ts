@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Validasi QR Token di database — cek keberadaan & masa berlaku
-    const qrSession = await prisma.qRSession.findFirst({
+    const qrSession = await prisma.qrSession.findFirst({
       where: {
         qr_token,
         expires_at: { gt: new Date() },

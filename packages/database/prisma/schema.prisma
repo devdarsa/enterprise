@@ -42,9 +42,9 @@ model User {
   user_roles       UserRole[]
   audit_logs       AuditLog[]
 
-  guru             Guru?
-  santri           Santri?
-  wali_santri      WaliSantri?
+  guru                   Guru?
+  santri                 Santri?
+  wali_santri            WaliSantri?
   pelanggaran_as_petugas Pelanggaran[] @relation("PelanggaranPetugas")
   perizinan_disetujui    Perizinan[]   @relation("PerizinanApprover")
 
@@ -68,42 +68,46 @@ model Account {
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([provider, provider_account_id])
   @@map("accounts")
 }
 
 model Session {
-  id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  user_id       String
-  session_token String   @unique
-  ip_address    String?
-  user_agent    String?
-  expires_at    DateTime
-  created_at    DateTime @default(now())
-  updated_at    DateTime @default(now()) @updatedAt
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id    String
+  token      String   @unique @map("session_token")
+  expires_at DateTime
+  ip_address String?
+  user_agent String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
-model VerificationToken {
+model Verification {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
   identifier String
-  token      String   @unique
+  value      String
   expires_at DateTime
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 
-  @@unique([identifier, token])
-  @@map("verification_tokens")
+  @@map("verifications")
 }
 
 model PasskeyCredential {
-  id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  user_id       String  
-  credential_id String   @unique
-  public_key    String
-  counter       Int
-  device_type   String
-  created_at    DateTime @default(now())
+  id             String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id        String
+  credential_id  String   @unique
+  public_key     String
+  counter        Int      @default(0)
+  device_type    String   @default("singleDevice")
+  backed_up      Boolean  @default(false)
+  transports     String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -114,16 +118,18 @@ model Role {
   id          String   @id @default(dbgenerated("gen_random_uuid()"))
   name        RoleType @unique
   description String?
-  
-  user_roles  UserRole[]
+  created_at  DateTime @default(now())
+
+  user_roles UserRole[]
 
   @@map("roles")
 }
 
 model UserRole {
-  id      String @id @default(dbgenerated("gen_random_uuid()"))
-  user_id String
-  role_id String
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id    String
+  role_id    String
+  created_at DateTime @default(now())
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   role Role @relation(fields: [role_id], references: [id], onDelete: Cascade)
@@ -132,429 +138,14 @@ model UserRole {
   @@map("user_roles")
 }
 
-// ----------------------------------------------------
-// 2. KELEMBAGAAN & TENANT SAAS CONFIG
-// ----------------------------------------------------
-
-model Pondok {
-  id         String    @id @default(dbgenerated("gen_random_uuid()"))
-  nama       String
-  alamat     String
-  telepon    String?
-  logo_url   String?
-  subdomain  String?   @unique
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
-
-  madrasah   Madrasah[]
-  mi         MI[]
-  santri     Santri[]
-  lokasi     LokasiPresensi[]
-  inventaris InventarisBarang[]
-  surat      Surat[]
-
-  @@map("pondok")
-}
-
-model Madrasah {
-  id         String    @id @default(dbgenerated("gen_random_uuid()"))
-  pondok_id  String   
-  nama       String
-  npsn       String?   @unique
-  created_at DateTime  @default(now())
-
-  pondok Pondok  @relation(fields: [pondok_id], references: [id], onDelete: Cascade)
-  kelas  Kelas[]
-
-  @@map("madrasah")
-}
-
-model MI {
-  id         String    @id @default(dbgenerated("gen_random_uuid()"))
-  pondok_id  String   
-  nama       String
-  npsn       String?   @unique
-  created_at DateTime  @default(now())
-
-  pondok Pondok  @relation(fields: [pondok_id], references: [id], onDelete: Cascade)
-  kelas  Kelas[]
-
-  @@map("mi")
-}
-
-model Kelas {
-  id          String   @id @default(dbgenerated("gen_random_uuid()"))
-  madrasah_id String? 
-  mi_id       String? 
-  nama_kelas  String
-  tingkat     Int
-
-  madrasah Madrasah?         @relation(fields: [madrasah_id], references: [id])
-  mi       MI?               @relation(fields: [mi_id], references: [id])
-  santri   Santri[]
-  jadwal   JadwalPelajaran[]
-  rapor    RaporSantri[]
-
-  @@map("kelas")
-}
-
-// ----------------------------------------------------
-// 3. CIVITAS (GURU, SANTRI, WALI)
-// ----------------------------------------------------
-
-model Guru {
-  id           String   @id @default(dbgenerated("gen_random_uuid()"))
-  user_id      String   @unique
-  nip          String?  @unique
-  nama_lengkap String
-  telepon      String?
-  created_at   DateTime @default(now())
-
-  user   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  jadwal JadwalPelajaran[]
-
-  @@map("guru")
-}
-
-model Santri {
-  id                    String    @id @default(dbgenerated("gen_random_uuid()"))
-  user_id               String    @unique
-  pondok_id             String   
-  kelas_id              String   
-  nisp                  String    @unique // NISP / Stambuk (Single Source of Truth)
-  nisn                  String    @unique
-  nis                   String?
-  nik                   String?   // NIK Santri (16 Digit)
-  nama_lengkap          String
-  nama_panggilan        String?
-  jenis_kelamin         String?   // L / P
-  tempat_lahir          String?
-  tanggal_lahir         String?
-  anak_ke               Int?
-  jumlah_saudara        Int?
-  alamat                String?   // Alamat Kependudukan Lengkap (API Cahyadsn Wilayah)
-  telepon               String?
-  avatar_url            String?
-  jenjang               String?   // Tsanawiyyah, Aliyah, Diniyah Ula/Wustho, MI
-  kamar                 String?   // Asrama / Kamar
-  status_tempat_tinggal String?   // PONDOK_PESANTREN / UNIT_LAIN
-  hafalan_juz           Int?      @default(0)
-  nik_wali              String?   // NIK Orang Tua / Wali untuk penyambungan akun otomatis
-  nama_wali             String?
-  telepon_wali          String?
-  hubungan_wali         String?   // AYAH / IBU / WALI
-  no_kk                 String?   // Nomor Kartu Keluarga
-  status                String    @default("AKTIF") // AKTIF | NON_AKTIF | ALUMNI | MUTASI
-  deleted_at            DateTime?
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @updatedAt
-
-  user              User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  pondok            Pondok                 @relation(fields: [pondok_id], references: [id])
-  kelas             Kelas                  @relation(fields: [kelas_id], references: [id])
-  absensi           AbsensiLog[]
-  wali_links        HubunganWali[]
-  nilai             NilaiSantri[]
-  rapor             RaporSantri[]
-  penempatan        PenempatanPendidikan[]
-  pelanggaran       Pelanggaran[]
-  perizinan         Perizinan[]
-  asrama_penempatan PenempatanAsrama[]
-  alumni            Alumni?
-
-  @@map("santri")
-}
-
-model PenempatanPendidikan {
-  id           String   @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id    String  
-  nisp         String   // Stambuk
-  tahun_ajaran String   // e.g. "2026/2027"
-  semester     String   // "Ganjil" | "Genap"
-  unit         String   // "MADRASAH" | "MI"
-  tingkat      String   // e.g. "Tsanawiyyah" / "VI"
-  kelas        String   // e.g. "2A" / "B"
-  wali_kelas   String?  // Mustahiq / Wali Kelas
-  status       String   @default("AKTIF")
-  created_at   DateTime @default(now())
-
-  santri Santri @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-
-  @@map("penempatan_pendidikan")
-}
-
-model MasterProvinsi {
-  id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  kode_provinsi String   @unique // e.g. "35"
-  nama_provinsi String   // e.g. "JAWA TIMUR"
-  created_at    DateTime @default(now())
-
-  kabupaten MasterKabupaten[]
-
-  @@map("master_provinsi")
-}
-
-model MasterKabupaten {
-  id             String   @id @default(dbgenerated("gen_random_uuid()"))
-  kode_kabupaten String   @unique // e.g. "35.71"
-  kode_provinsi  String   // Foreign key link to MasterProvinsi
-  nama_kabupaten String   // e.g. "KOTA KEDIRI"
-  created_at     DateTime @default(now())
-
-  provinsi  MasterProvinsi    @relation(fields: [kode_provinsi], references: [kode_provinsi], onDelete: Cascade)
-  kecamatan MasterKecamatan[]
-
-  @@map("master_kabupaten")
-}
-
-model MasterKecamatan {
-  id             String   @id @default(dbgenerated("gen_random_uuid()"))
-  kode_kecamatan String   @unique // e.g. "35.71.01"
-  kode_kabupaten String   // Foreign key link to MasterKabupaten
-  nama_kecamatan String   // e.g. "MOJOROTO"
-  created_at     DateTime @default(now())
-
-  kabupaten MasterKabupaten @relation(fields: [kode_kabupaten], references: [kode_kabupaten], onDelete: Cascade)
-  desa      MasterDesa[]
-
-  @@map("master_kecamatan")
-}
-
-model MasterDesa {
-  id             String   @id @default(dbgenerated("gen_random_uuid()"))
-  kode_desa      String   @unique // e.g. "35.71.01.1001"
-  kode_kecamatan String   // Foreign key link to MasterKecamatan
-  nama_desa      String   // e.g. "LIRBOYO"
-  created_at     DateTime @default(now())
-
-  kecamatan MasterKecamatan @relation(fields: [kode_kecamatan], references: [kode_kecamatan], onDelete: Cascade)
-
-  @@map("master_desa")
-}
-
-model WaliSantri {
-  id           String   @id @default(dbgenerated("gen_random_uuid()"))
-  user_id      String   @unique
-  nik          String?  @unique // NIK Kependudukan Wali
-  nama_lengkap String
-  telepon      String
-  created_at   DateTime @default(now())
-
-  user         User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  santri_links HubunganWali[]
-
-  @@map("wali_santri")
-}
-
-model Pengumuman {
-  id         String   @id @default(dbgenerated("gen_random_uuid()"))
-  judul      String
-  isi        String
-  target     String   // SEMUA, WALI_SANTRI, GURU
-  instansi   String   // PONDOK, MADRASAH, MI, SEMUA
-  penulis    String
-  penting    Boolean  @default(false)
-  created_at DateTime @default(now())
-
-  @@map("pengumuman")
-}
-
-model HubunganWali {
-  id             String @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id      String
-  wali_santri_id String
-  hubungan       String
-
-  santri      Santri     @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  wali_santri WaliSantri @relation(fields: [wali_santri_id], references: [id], onDelete: Cascade)
-
-  @@unique([santri_id, wali_santri_id])
-  @@map("hubungan_wali")
-}
-
-// ----------------------------------------------------
-// 4. PRESENSI & GEOFENCING
-// ----------------------------------------------------
-
-model LokasiPresensi {
-  id           String   @id @default(dbgenerated("gen_random_uuid()"))
-  pondok_id    String  
-  nama_lokasi  String
-  latitude     Float
-  longitude    Float
-  radius_meter Int      @default(200)
-  created_at   DateTime @default(now())
-
-  pondok  Pondok       @relation(fields: [pondok_id], references: [id], onDelete: Cascade)
-  absensi AbsensiLog[]
-
-  @@map("lokasi_presensi")
-}
-
-model QRSession {
-  id         String   @id @default(dbgenerated("gen_random_uuid()"))
-  qr_token   String   @unique
-  expires_at DateTime
-  created_at DateTime @default(now())
-
-  @@map("qr_sessions")
-}
-
-enum StatusAbsensi {
-  HADIR
-  TERLAMBAT
-  IZIN
-  SAKIT
-  ALPA
-}
-
-model AbsensiLog {
-  id                 String        @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id          String       
-  lokasi_presensi_id String       
-  status             StatusAbsensi @default(HADIR)
-  latitude_scan      Float
-  longitude_scan     Float
-  distance_meters    Int
-  device_info        String?
-  timestamp          DateTime      @default(now())
-
-  santri Santri         @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  lokasi LokasiPresensi @relation(fields: [lokasi_presensi_id], references: [id])
-
-  @@map("absensi_logs")
-}
-
-// ----------------------------------------------------
-// 5. AKADEMIK & JADWAL
-// ----------------------------------------------------
-
-model MataPelajaran {
-  id         String   @id @default(dbgenerated("gen_random_uuid()"))
-  kode_mapel String   @unique
-  nama_mapel String
-  kategori   String
-  created_at DateTime @default(now())
-
-  jadwal JadwalPelajaran[]
-  nilai  NilaiSantri[]
-
-  @@map("mata_pelajaran")
-}
-
-model JadwalPelajaran {
-  id                String   @id @default(dbgenerated("gen_random_uuid()"))
-  kelas_id          String  
-  guru_id           String  
-  mata_pelajaran_id String  
-  hari              String
-  jam_mulai         String
-  jam_selesai       String
-  ruangan           String
-
-  kelas          Kelas         @relation(fields: [kelas_id], references: [id], onDelete: Cascade)
-  guru           Guru          @relation(fields: [guru_id], references: [id])
-  mata_pelajaran MataPelajaran @relation(fields: [mata_pelajaran_id], references: [id])
-
-  @@map("jadwal_pelajaran")
-}
-
-model NilaiSantri {
-  id                String   @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id         String  
-  mata_pelajaran_id String  
-  semester          String
-  tahun_ajaran      String
-  nilai_harian      Float
-  nilai_uts         Float
-  nilai_uas         Float
-  nilai_akhir       Float
-
-  santri         Santri        @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  mata_pelajaran MataPelajaran @relation(fields: [mata_pelajaran_id], references: [id])
-
-  @@map("nilai_santri")
-}
-
-model RaporSantri {
-  id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id     String  
-  kelas_id      String  
-  semester      String
-  tahun_ajaran  String
-  hafalan_juz   Int      @default(0)
-  predikat_arab String   @default("MUMTAZ")
-  catatan_wali  String?
-  created_at    DateTime @default(now())
-
-  santri Santri @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  kelas  Kelas  @relation(fields: [kelas_id], references: [id])
-
-  @@map("rapor_santri")
-}
-
-// ----------------------------------------------------
-// ----------------------------------------------------
-// 7. PERSURATAN & INVENTARIS
-// ----------------------------------------------------
-
-enum JenisSurat {
-  SURAT_MASUK
-  SURAT_KELUAR
-  SURAT_IZIN_SANTRI
-  SURAT_KETERANGAN
-}
-
-model Surat {
-  id          String     @id @default(dbgenerated("gen_random_uuid()"))
-  pondok_id   String    
-  nomor_surat String     @unique
-  jenis_surat JenisSurat
-  perihal     String
-  pengirim    String
-  penerima    String
-  tanggal     DateTime   @default(now())
-
-  pondok Pondok @relation(fields: [pondok_id], references: [id], onDelete: Cascade)
-
-  @@map("surat")
-}
-
-enum KondisiBarang {
-  BAIK
-  RUSAK_RINGAN
-  RUSAK_BERAT
-  PERBAIKAN
-}
-
-model InventarisBarang {
-  id          String        @id @default(dbgenerated("gen_random_uuid()"))
-  pondok_id   String       
-  kode_barang String        @unique
-  nama_barang String
-  kategori    String
-  jumlah      Int           @default(1)
-  kondisi     KondisiBarang @default(BAIK)
-  lokasi      String
-  created_at  DateTime      @default(now())
-
-  pondok Pondok @relation(fields: [pondok_id], references: [id], onDelete: Cascade)
-
-  @@map("inventaris_barang")
-}
-
-// ----------------------------------------------------
-// 8. AUDIT LOG & SECURITY
-// ----------------------------------------------------
-
 model AuditLog {
   id          String   @id @default(dbgenerated("gen_random_uuid()"))
-  user_id     String? 
+  user_id     String?
   action      String
-  entity_type String
+  entity_type String?
   entity_id   String?
   metadata    Json?
+  ip          String?
   ip_address  String?
   user_agent  String?
   created_at  DateTime @default(now())
@@ -565,13 +156,87 @@ model AuditLog {
 }
 
 // ----------------------------------------------------
-// 9. TAHUN AJARAN
+// 2. MASTER DATA KELEMBAGAAN, PEGAWAI & AKADEMIK
 // ----------------------------------------------------
+
+model Pondok {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  nama       String
+  alamat     String?
+  telepon    String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  madrasah        Madrasah[]
+  lokasi_presensi LokasiPresensi[]
+  santri          Santri[]
+  surat           Surat[]
+
+  @@map("pondok")
+}
+
+model Madrasah {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id  String
+  nama       String
+  npsn       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  pondok Pondok  @relation(fields: [pondok_id], references: [id])
+  kelas  Kelas[]
+
+  @@map("madrasah")
+}
+
+model LokasiPresensi {
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id    String
+  nama_lokasi  String
+  latitude     Float
+  longitude    Float
+  radius_meter Int      @default(200)
+  created_at   DateTime @default(now())
+
+  pondok Pondok @relation(fields: [pondok_id], references: [id])
+
+  @@map("lokasi_presensi")
+}
+
+model Pengurus {
+  id           String    @id @default(dbgenerated("gen_random_uuid()"))
+  nik          String?
+  nama_lengkap String
+  jabatan      String
+  unit         String    @default("PONDOK")
+  status       String    @default("AKTIF")
+  telepon      String?
+  alamat       String?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+
+  @@map("pengurus")
+}
+
+model Pengumuman {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  judul      String
+  isi        String
+  target     String   @default("SEMUA")
+  instansi   String   @default("SEMUA")
+  penulis    String?
+  penting    Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("pengumuman")
+}
 
 model TahunAjaran {
   id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  nama          String   @unique // e.g. "2025/2026"
-  semester      String   // "Ganjil" | "Genap"
+  nama          String
+  semester      String   @default("GANJIL")
   tanggal_mulai DateTime
   tanggal_akhir DateTime
   is_aktif      Boolean  @default(false)
@@ -581,42 +246,331 @@ model TahunAjaran {
   @@map("tahun_ajaran")
 }
 
-// ----------------------------------------------------
-// 10. ASRAMA
-// ----------------------------------------------------
-
-model Asrama {
-  id          String    @id @default(dbgenerated("gen_random_uuid()"))
-  nama_asrama String
-  kapasitas   Int       @default(20)
-  jenis       String    @default("PUTRA") // PUTRA | PUTRI
-  lantai      Int?
-  keterangan  String?
-  created_at  DateTime  @default(now())
-  deleted_at  DateTime?
-
-  penempatan PenempatanAsrama[]
-
-  @@map("asrama")
+enum StatusPegawai {
+  AKTIF
+  CUTI
+  NON_AKTIF
+  MUTASI
 }
 
-model PenempatanAsrama {
+enum JenisKelamin {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+model Guru {
+  id                  String        @id @default(dbgenerated("gen_random_uuid()"))
+  user_id             String?       @unique
+  nip                 String        @unique
+  nik                 String?       @unique
+  nama_lengkap        String
+  jenis_kelamin       JenisKelamin  @default(LAKI_LAKI)
+  tempat_lahir        String?
+  tanggal_lahir       DateTime?
+  no_hp               String?
+  telepon             String?
+  alamat_lengkap      String?
+  provinsi            String?
+  kabupaten           String?
+  kecamatan           String?
+  desa                String?
+  pendidikan_terakhir String?
+  status_pegawai      StatusPegawai @default(AKTIF)
+  tanggal_mulai_tugas DateTime?
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
+  deleted_at          DateTime?
+
+  user   User?             @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  jadwal JadwalPelajaran[]
+
+  @@map("guru")
+}
+
+enum StatusSantri {
+  AKTIF
+  LULUS
+  MUTASI
+  DO
+}
+
+enum JenjangSantri {
+  MI
+  MADRASAH_DINIYAH
+  PONDOK
+}
+
+model Santri {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()"))
+  user_id               String?       @unique
+  pondok_id             String?
+  nisp                  String        @unique
+  nisn                  String?       @unique
+  nis                   String?
+  nik                   String?       @unique
+  nama_lengkap          String
+  nama_panggilan        String?
+  jenis_kelamin         JenisKelamin  @default(LAKI_LAKI)
+  tempat_lahir          String?
+  tanggal_lahir         DateTime?
+  anak_ke               Int?
+  jumlah_saudara        Int?
+  alamat                String?
+  telepon               String?
+  jenjang               JenjangSantri @default(PONDOK)
+  kelas_id              String
+  kamar_id              String?
+  kamar                 String?
+  status_tempat_tinggal String?
+  status                StatusSantri  @default(AKTIF)
+  nik_wali              String?
+  nama_wali             String?
+  no_hp_wali            String?
+  telepon_wali          String?
+  hubungan_wali         String?
+  alamat_wali           String?
+  no_kk                 String?
+  provinsi              String?
+  kabupaten             String?
+  kecamatan             String?
+  desa                  String?
+  hafalan_juz           Int?          @default(0)
+  created_at            DateTime      @default(now())
+  updated_at            DateTime      @updatedAt
+  deleted_at            DateTime?
+
+  user          User?                    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  pondok        Pondok?                  @relation(fields: [pondok_id], references: [id])
+  kelas         Kelas                    @relation(fields: [kelas_id], references: [id])
+  kamar_rel     Kamar?                   @relation(fields: [kamar_id], references: [id])
+  wali_santri   HubunganWali[]
+  absensi       AbsensiLog[]
+  nilai         NilaiAkademik[]
+  perizinan     Perizinan[]
+  pelanggaran   Pelanggaran[]
+  penempatan    PenempatanKamarHistory[]
+  alumni_record AlumniRecord?
+  rapor         RaporSantri[]
+
+  @@map("santri")
+}
+
+model WaliSantri {
+  id             String   @id @default(dbgenerated("gen_random_uuid()"))
+  user_id        String?  @unique
+  nik            String   @unique
+  nama_lengkap   String
+  no_hp          String   @default("")
+  telepon        String?
+  alamat_lengkap String?
+  provinsi       String?
+  kabupaten      String?
+  kecamatan      String?
+  desa           String?
+  pekerjaan      String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  deleted_at     DateTime?
+
+  user   User?          @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  santri HubunganWali[]
+
+  @@map("wali_santri")
+}
+
+model OtpVerification {
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  nik          String
+  phone        String
+  otp_hash     String
+  status       String   @default("PENDING")
+  resend_count Int      @default(1)
+  attempts     Int      @default(0)
+  expires_at   DateTime
+  created_at   DateTime @default(now())
+
+  @@map("otp_verifications")
+}
+
+model HubunganWali {
+  id             String   @id @default(dbgenerated("gen_random_uuid()"))
+  wali_santri_id String
+  santri_id      String
+  hubungan       String   @default("AYAH")
+  is_primary     Boolean  @default(true)
+  created_at     DateTime @default(now())
+
+  wali_santri WaliSantri @relation(fields: [wali_santri_id], references: [id], onDelete: Cascade)
+  santri      Santri     @relation(fields: [santri_id], references: [id], onDelete: Cascade)
+
+  @@unique([wali_santri_id, santri_id])
+  @@map("hubungan_wali")
+}
+
+model Kelas {
+  id            String        @id @default(dbgenerated("gen_random_uuid()"))
+  madrasah_id   String?
+  nama_kelas    String
+  jenjang       JenjangSantri @default(PONDOK)
+  tingkat       Int
+  kapasitas     Int           @default(30)
+  wali_kelas_id String?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+
+  madrasah Madrasah?         @relation(fields: [madrasah_id], references: [id])
+  santri   Santri[]
+  jadwal   JadwalPelajaran[]
+
+  @@map("kelas")
+}
+
+model MataPelajaran {
+  id         String        @id @default(dbgenerated("gen_random_uuid()"))
+  kode_mapel String        @unique
+  nama_mapel String
+  jenjang    JenjangSantri @default(PONDOK)
+  kategori   String?
+  created_at DateTime      @default(now())
+
+  jadwal JadwalPelajaran[]
+  nilai  NilaiAkademik[]
+
+  @@map("mata_pelajaran")
+}
+
+model JadwalPelajaran {
+  id                String   @id @default(dbgenerated("gen_random_uuid()"))
+  kelas_id          String
+  mata_pelajaran_id String
+  guru_id           String
+  hari              String
+  jam_mulai         String
+  jam_selesai       String
+  ruangan           String?  @default("-")
+  tahun_ajaran       String   @default("2025/2026")
+  semester          String   @default("GANJIL")
+  created_at        DateTime @default(now())
+
+  kelas          Kelas         @relation(fields: [kelas_id], references: [id])
+  mata_pelajaran MataPelajaran @relation(fields: [mata_pelajaran_id], references: [id])
+  guru           Guru          @relation(fields: [guru_id], references: [id])
+
+  @@map("jadwal_pelajaran")
+}
+
+// ----------------------------------------------------
+// 3. ASRAMA & KEDISIPLINAN
+// ----------------------------------------------------
+
+model GedungAsrama {
+  id          String       @id @default(dbgenerated("gen_random_uuid()"))
+  nama_gedung String       @unique
+  gender      JenisKelamin @default(LAKI_LAKI)
+  keterangan  String?
+  created_at  DateTime     @default(now())
+
+  kamar Kamar[]
+
+  @@map("gedung_asrama")
+}
+
+model Kamar {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  gedung_id  String
+  nama_kamar String
+  kapasitas  Int      @default(10)
+  created_at DateTime @default(now())
+
+  gedung GedungAsrama             @relation(fields: [gedung_id], references: [id])
+  santri Santri[]
+  history PenempatanKamarHistory[]
+
+  @@map("kamar")
+}
+
+model PenempatanKamarHistory {
   id             String    @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id      String   
-  asrama_id      String   
+  santri_id      String
+  kamar_id       String
   tanggal_masuk  DateTime  @default(now())
   tanggal_keluar DateTime?
-  keterangan     String?
+  status         String    @default("AKTIF")
+  created_at     DateTime  @default(now())
 
-  santri Santri @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  asrama Asrama @relation(fields: [asrama_id], references: [id], onDelete: Cascade)
+  santri Santri @relation(fields: [santri_id], references: [id])
+  kamar  Kamar  @relation(fields: [kamar_id], references: [id])
 
-  @@map("penempatan_asrama")
+  @@map("penempatan_kamar_history")
 }
 
-// ----------------------------------------------------
-// 11. KEAMANAN: PELANGGARAN & PERIZINAN
-// ----------------------------------------------------
+enum StatusAbsensi {
+  HADIR
+  TERLAMBAT
+  IZIN
+  SAKIT
+  ALPA
+}
+
+model QrSession {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  qr_token   String   @unique
+  created_at DateTime @default(now())
+  expires_at DateTime
+
+  @@map("qr_sessions")
+}
+
+model AbsensiLog {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id          String
+  lokasi_presensi_id String?
+  tanggal            DateTime      @default(now())
+  status             StatusAbsensi @default(HADIR)
+  keterangan         String?
+  scan_by            String?
+  latitude_scan      Float?
+  longitude_scan     Float?
+  distance_meters    Float?
+  device_info        String?
+  created_at         DateTime      @default(now())
+
+  santri Santri @relation(fields: [santri_id], references: [id])
+
+  @@map("absensi_log")
+}
+
+enum StatusPerizinan {
+  PENDING
+  MENUNGGU
+  DISETUJUI
+  DITOLAK
+  KEMBALI
+  SELESAI
+}
+
+model Perizinan {
+  id              String          @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id       String
+  jenis           String?
+  alasan          String
+  tanggal_mulai   DateTime
+  tanggal_selesai DateTime?
+  tanggal_kembali DateTime?
+  status          StatusPerizinan @default(MENUNGGU)
+  approved_by_id  String?
+  disetujui_oleh  String?
+  keterangan      String?
+  catatan_petugas String?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  deleted_at      DateTime?
+
+  santri   Santri @relation(fields: [santri_id], references: [id])
+  approver User?  @relation("PerizinanApprover", fields: [approved_by_id], references: [id])
+
+  @@map("perizinan")
+}
 
 enum TingkatPelanggaran {
   RINGAN
@@ -625,105 +579,169 @@ enum TingkatPelanggaran {
 }
 
 model Pelanggaran {
-  id          String             @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id   String            
-  tanggal     DateTime           @default(now())
-  jenis       String
-  tingkat     TingkatPelanggaran @default(RINGAN)
-  tindakan    String?
-  petugas_id  String?           
-  keterangan  String?
-  created_at  DateTime           @default(now())
-  deleted_at  DateTime?
+  id               String             @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id        String
+  petugas_id       String?
+  jenis            String?
+  tingkat          TingkatPelanggaran @default(RINGAN)
+  deskripsi        String?
+  hukuman          String?
+  tindakan         String?
+  keterangan       String?
+  poin_pelanggaran Int                @default(5)
+  tanggal          DateTime           @default(now())
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
 
-  santri  Santri @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  petugas User?  @relation("PelanggaranPetugas", fields: [petugas_id], references: [id], onDelete: SetNull)
+  santri  Santri @relation(fields: [santri_id], references: [id])
+  petugas User?   @relation("PelanggaranPetugas", fields: [petugas_id], references: [id])
 
   @@map("pelanggaran")
 }
 
-enum StatusPerizinan {
-  PENDING
-  DISETUJUI
-  DITOLAK
-  SELESAI
+model NilaiAkademik {
+  id                String   @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id         String
+  mata_pelajaran_id String
+  tahun_ajaran       String
+  semester          String   @default("GANJIL")
+  nilai_harian      Float    @default(0)
+  nilai_uts         Float    @default(0)
+  nilai_uas         Float    @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  santri         Santri        @relation(fields: [santri_id], references: [id])
+  mata_pelajaran MataPelajaran @relation(fields: [mata_pelajaran_id], references: [id])
+
+  @@unique([santri_id, mata_pelajaran_id, tahun_ajaran, semester])
+  @@map("nilai_akademik")
 }
 
-model Perizinan {
-  id              String          @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id       String         
-  jenis           String          // "PULANG" | "KELUAR_KOTA" | "BEROBAT" | "LAINNYA"
-  alasan          String
-  tanggal_mulai   DateTime
-  tanggal_kembali DateTime
-  status          StatusPerizinan @default(PENDING)
-  disetujui_oleh  String?        
-  keterangan      String?
-  created_at      DateTime        @default(now())
-  updated_at      DateTime        @updatedAt
-  deleted_at      DateTime?
+model RaporSantri {
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id     String
+  tahun_ajaran   String
+  semester      String   @default("GANJIL")
+  hafalan_juz   Int      @default(0)
+  predikat_arab String?
+  catatan       String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
-  santri    Santri @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-  approver  User?  @relation("PerizinanApprover", fields: [disetujui_oleh], references: [id], onDelete: SetNull)
+  santri Santri @relation(fields: [santri_id], references: [id])
 
-  @@map("perizinan")
+  @@unique([santri_id, tahun_ajaran, semester])
+  @@map("rapor_santri")
 }
 
-// ----------------------------------------------------
-// 12. PENGURUS
-// ----------------------------------------------------
+model AlumniRecord {
+  id               String   @id @default(dbgenerated("gen_random_uuid()"))
+  santri_id        String   @unique
+  tahun_lulus      Int
+  ijazah_no        String?
+  status_alumni    String   @default("KULIAH")
+  profesi_saat_ini String?
+  kontak_alumni    String?
+  created_at       DateTime @default(now())
 
-model Pengurus {
-  id           String    @id @default(dbgenerated("gen_random_uuid()"))
-  nik          String?   @unique
-  nama_lengkap String
-  jabatan      String
-  unit         String    @default("PONDOK") // PONDOK | MADRASAH | MI
-  telepon      String?
-  alamat       String?
-  status       String    @default("AKTIF")
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
-  deleted_at   DateTime?
+  santri Santri @relation(fields: [santri_id], references: [id])
 
-  @@map("pengurus")
-}
-
-// ----------------------------------------------------
-// 13. ALUMNI
-// ----------------------------------------------------
-
-model Alumni {
-  id           String    @id @default(dbgenerated("gen_random_uuid()"))
-  santri_id    String    @unique
-  tahun_lulus  Int
-  unit_terakhir String   // MADRASAH | MI
-  kelas_terakhir String?
-  keterangan   String?
-  created_at   DateTime  @default(now())
-
-  santri Santri @relation(fields: [santri_id], references: [id], onDelete: Cascade)
-
-  @@map("alumni")
+  @@map("alumni_record")
 }
 
 // ----------------------------------------------------
-// 14. OTP VERIFICATION (WALI SANTRI & WHATSAPP FONNTE)
+// 4. MASTER WILAYAH INDONESIA (Kemendagri EMSIFA Cache)
 // ----------------------------------------------------
 
-model OtpVerification {
-  id           String   @id @default(dbgenerated("gen_random_uuid()"))
-  nik          String
-  phone        String
-  otp_hash     String
-  attempts     Int      @default(0)
-  resend_count Int      @default(0)
-  status       String   @default("PENDING") // PENDING | VERIFIED | EXPIRED | FAILED
-  expires_at   DateTime
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+model MasterProvinsi {
+  kode_provinsi String   @id
+  nama_provinsi String
+  created_at    DateTime @default(now())
 
-  @@index([nik, phone])
-  @@map("otp_verifications")
+  kabupaten MasterKabupaten[]
+
+  @@map("master_provinsi")
 }
 
+model MasterKabupaten {
+  kode_kabupaten String   @id
+  kode_provinsi  String
+  nama_kabupaten String
+  created_at     DateTime @default(now())
+
+  provinsi  MasterProvinsi    @relation(fields: [kode_provinsi], references: [kode_provinsi], onDelete: Cascade)
+  kecamatan MasterKecamatan[]
+
+  @@map("master_kabupaten")
+}
+
+model MasterKecamatan {
+  kode_kecamatan String   @id
+  kode_kabupaten String
+  nama_kecamatan String
+  created_at     DateTime @default(now())
+
+  kabupaten MasterKabupaten @relation(fields: [kode_kabupaten], references: [kode_kabupaten], onDelete: Cascade)
+  desa      MasterDesa[]
+
+  @@map("master_kecamatan")
+}
+
+model MasterDesa {
+  kode_desa      String   @id
+  kode_kecamatan String
+  nama_desa      String
+  created_at     DateTime @default(now())
+
+  kecamatan MasterKecamatan @relation(fields: [kode_kecamatan], references: [kode_kecamatan], onDelete: Cascade)
+
+  @@map("master_desa")
+}
+
+// ----------------------------------------------------
+// 5. MASTER SURAT & DOKUMEN ARSIP
+// ----------------------------------------------------
+
+enum JenisSurat {
+  SURAT_MASUK
+  SURAT_KELUAR
+  SURAT_KEPUTUSAN
+  SURAT_KETERANGAN
+}
+
+model SuratArsip {
+  id            String     @id @default(dbgenerated("gen_random_uuid()"))
+  nomor_surat   String     @unique
+  perihal       String
+  jenis         JenisSurat @default(SURAT_MASUK)
+  pengirim      String?
+  penerima      String?
+  tanggal_surat DateTime   @default(now())
+  file_url      String?
+  keterangan    String?
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+
+  @@map("surat_arsip")
+}
+
+model Surat {
+  id          String     @id @default(dbgenerated("gen_random_uuid()"))
+  pondok_id   String?
+  nomor_surat String     @unique
+  jenis_surat JenisSurat @default(SURAT_MASUK)
+  perihal     String
+  pengirim    String?
+  penerima    String?
+  tanggal     DateTime   @default(now())
+  file_url    String?
+  keterangan  String?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  pondok Pondok? @relation(fields: [pondok_id], references: [id])
+
+  @@map("surat")
+}

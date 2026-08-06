@@ -30,12 +30,13 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
  * Get user's primary role from UserRole table via session.
  * Falls back to reading from session metadata.
  */
+export type RouteContext = { params?: Promise<Record<string, string | string[]>> } | unknown;
+
 export async function getUserRole(request: NextRequest): Promise<string | null> {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session?.user) return null;
-    // Better Auth stores custom fields in user object
-    const user = session.user as any;
+    const user = session.user as AuthSession['user'];
     return user.role || null;
   } catch {
     return null;
@@ -63,10 +64,10 @@ const ROLE_HIERARCHY: Record<string, number> = {
  *   export const GET = withAuth(handler, ['SEKRETARIAT', 'ADMIN_INSTANSI']);
  */
 export function withAuth(
-  handler: (req: NextRequest, session: AuthSession, context?: any) => Promise<NextResponse>,
+  handler: (req: NextRequest, session: AuthSession, context?: RouteContext) => Promise<NextResponse>,
   allowedRoles?: string[]
 ) {
-  return async (req: NextRequest, context?: any): Promise<NextResponse> => {
+  return async (req: NextRequest, context?: RouteContext): Promise<NextResponse> => {
     const session = await getApiSession(req);
 
     if (!session) {
@@ -77,7 +78,7 @@ export function withAuth(
     }
 
     if (allowedRoles && allowedRoles.length > 0) {
-      const userRole = (session.user as any).role;
+      const userRole = session.user.role;
       if (!userRole || !allowedRoles.includes(userRole)) {
         return NextResponse.json(
           { success: false, error: 'Akses ditolak. Anda tidak memiliki izin untuk tindakan ini.' },

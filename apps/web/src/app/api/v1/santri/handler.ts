@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@darsa/database';
+import { prisma, Prisma } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
 // GET /api/v1/santri — List santri dengan pagination, filter, search
@@ -14,7 +14,7 @@ export const GET = withAuth(
     const jenjang = searchParams.get('jenjang') || '';
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.SantriWhereInput = {
       deleted_at: null,
     };
 
@@ -27,8 +27,8 @@ export const GET = withAuth(
       ];
     }
 
-    if (status) where.status = status;
-    if (jenjang) where.jenjang = jenjang;
+    if (status) where.status = status as Prisma.EnumStatusSantriFilter['equals'];
+    if (jenjang) where.jenjang = jenjang as Prisma.EnumJenjangSantriFilter['equals'];
 
     const [total, santri] = await Promise.all([
       prisma.santri.count({ where }),

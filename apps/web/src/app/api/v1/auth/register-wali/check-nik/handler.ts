@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       include: { user: { select: { email: true, deleted_at: true } } },
     });
 
-    if (existingWali && (!existingWali.user.deleted_at)) {
+    if (existingWali && existingWali.user && (!existingWali.user.deleted_at)) {
       await logAudit({
         action: 'VALIDASI_NIK_TERDAFTAR',
         entityType: 'WaliSantri',
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Ambil data anak & wali awal (tanpa ekspos data berlebihan)
     const namaWali = connectedSantri[0].nama_wali || 'Wali Santri';
-    const childrenList = connectedSantri.map((s: any) => ({
+    const childrenList = connectedSantri.map((s) => ({
       id: s.id,
       nama: s.nama_lengkap,
       nisp: s.nisp,
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       santri_list: childrenList,
     }, 'NIK valid dan terdaftar di Database Pondok.');
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('❌ Error check-nik:', err);
     return apiError('Terjadi kesalahan server saat memverifikasi NIK.', 500);
   }

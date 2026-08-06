@@ -32,39 +32,43 @@ import * as waliVerifikasiNik from '../wali/verifikasi-nik/handler';
 import * as wilayah from '../wilayah/handler';
 import * as authLogin from '../auth/login/handler';
 
+type ApiHandlerModule = Record<string, (...args: any[]) => Promise<Response>>;
+
 // Static route dispatch map
-const handlers: Record<string, any> = {
-  'health': health,
-  'auth/login': authLogin,
-  'auth/seed-default-accounts': seedAccounts,
-  'auth/register-wali/check-nik': checkNik,
-  'auth/register-wali/send-otp': sendOtp,
-  'auth/register-wali/verify-otp': verifyOtp,
-  'absensi/logs': absensiLogs,
-  'absensi/qr-session': absensiQr,
-  'absensi/scan': absensiScan,
-  'akademik/rapor': akademikRapor,
-  'akun': akun,
-  'audit-log': auditLog,
-  'dashboard/stats': dashboardStats,
-  'guru': guru,
-  'jadwal': jadwal,
-  'pelanggaran': pelanggaran,
-  'pengumuman': pengumuman,
-  'pengurus': pengurus,
-  'perizinan': perizinan,
-  'santri': santri,
-  'santri/pull-sync': santriPull,
-  'surat': surat,
-  'tahun-ajaran': tahunAjaran,
-  'wali/anak': waliAnak,
-  'wali/verifikasi-nik': waliVerifikasiNik,
-  'wilayah': wilayah,
+const handlers: Record<string, ApiHandlerModule> = {
+  'health': health as unknown as ApiHandlerModule,
+  'auth/login': authLogin as unknown as ApiHandlerModule,
+  'auth/seed-default-accounts': seedAccounts as unknown as ApiHandlerModule,
+  'auth/register-wali/check-nik': checkNik as unknown as ApiHandlerModule,
+  'auth/register-wali/send-otp': sendOtp as unknown as ApiHandlerModule,
+  'auth/register-wali/verify-otp': verifyOtp as unknown as ApiHandlerModule,
+  'absensi/logs': absensiLogs as unknown as ApiHandlerModule,
+  'absensi/qr-session': absensiQr as unknown as ApiHandlerModule,
+  'absensi/scan': absensiScan as unknown as ApiHandlerModule,
+  'akademik/rapor': akademikRapor as unknown as ApiHandlerModule,
+  'akun': akun as unknown as ApiHandlerModule,
+  'audit-log': auditLog as unknown as ApiHandlerModule,
+  'dashboard/stats': dashboardStats as unknown as ApiHandlerModule,
+  'guru': guru as unknown as ApiHandlerModule,
+  'jadwal': jadwal as unknown as ApiHandlerModule,
+  'pelanggaran': pelanggaran as unknown as ApiHandlerModule,
+  'pengumuman': pengumuman as unknown as ApiHandlerModule,
+  'pengurus': pengurus as unknown as ApiHandlerModule,
+  'perizinan': perizinan as unknown as ApiHandlerModule,
+  'santri': santri as unknown as ApiHandlerModule,
+  'santri/pull-sync': santriPull as unknown as ApiHandlerModule,
+  'surat': surat as unknown as ApiHandlerModule,
+  'tahun-ajaran': tahunAjaran as unknown as ApiHandlerModule,
+  'wali/anak': waliAnak as unknown as ApiHandlerModule,
+  'wali/verifikasi-nik': waliVerifikasiNik as unknown as ApiHandlerModule,
+  'wilayah': wilayah as unknown as ApiHandlerModule,
 };
+
+type RouteParamsContext = { params: Promise<{ route: string[] }> };
 
 async function handleDispatch(
   req: NextRequest,
-  context: { params: Promise<{ route: string[] }> },
+  context: RouteParamsContext,
   method: string
 ) {
   const paramsResolved = await context.params;
@@ -72,15 +76,15 @@ async function handleDispatch(
   const path = routeParts.join('/');
 
   let handlerModule = handlers[path];
-  let dynamicContext: any = undefined;
+  let dynamicContext: unknown = undefined;
 
   // Handle dynamic parameters like /api/v1/santri/[id] or /api/v1/jadwal/[id]
   if (!handlerModule && routeParts.length >= 2) {
     if (routeParts[0] === 'santri' && routeParts.length === 2) {
-      handlerModule = santriId;
+      handlerModule = santriId as ApiHandlerModule;
       dynamicContext = { params: Promise.resolve({ id: routeParts[1] }) };
     } else if (routeParts[0] === 'jadwal' && routeParts.length === 2) {
-      handlerModule = jadwalId;
+      handlerModule = jadwalId as ApiHandlerModule;
       dynamicContext = { params: Promise.resolve({ id: routeParts[1] }) };
     }
   }
@@ -95,22 +99,22 @@ async function handleDispatch(
   );
 }
 
-export async function GET(req: NextRequest, ctx: any) {
+export async function GET(req: NextRequest, ctx: RouteParamsContext) {
   return handleDispatch(req, ctx, 'GET');
 }
 
-export async function POST(req: NextRequest, ctx: any) {
+export async function POST(req: NextRequest, ctx: RouteParamsContext) {
   return handleDispatch(req, ctx, 'POST');
 }
 
-export async function PUT(req: NextRequest, ctx: any) {
+export async function PUT(req: NextRequest, ctx: RouteParamsContext) {
   return handleDispatch(req, ctx, 'PUT');
 }
 
-export async function PATCH(req: NextRequest, ctx: any) {
+export async function PATCH(req: NextRequest, ctx: RouteParamsContext) {
   return handleDispatch(req, ctx, 'PATCH');
 }
 
-export async function DELETE(req: NextRequest, ctx: any) {
+export async function DELETE(req: NextRequest, ctx: RouteParamsContext) {
   return handleDispatch(req, ctx, 'DELETE');
 }

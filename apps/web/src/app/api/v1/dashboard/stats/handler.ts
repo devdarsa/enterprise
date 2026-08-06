@@ -65,9 +65,9 @@ export const GET = withAuth(
         pelanggaranHariIni,
       },
       grafik: {
-        santriPerJenjang: santriPerJenjang.map((g: any) => ({
+        santriPerJenjang: santriPerJenjang.map((g) => ({
           jenjang: g.jenjang || 'Tidak Diketahui',
-          jumlah: (g._count as any).id || 0,
+          jumlah: g._count.id || 0,
         })),
       },
       pengumuman: pengumumanTerbaru,

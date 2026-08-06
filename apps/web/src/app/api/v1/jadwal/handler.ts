@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@darsa/database';
+import { prisma, Prisma } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
 // GET /api/v1/jadwal
@@ -12,7 +12,7 @@ export const GET = withAuth(
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.JadwalPelajaranWhereInput = {};
     if (hari) where.hari = hari;
     if (kelas_id) where.kelas_id = kelas_id;
 

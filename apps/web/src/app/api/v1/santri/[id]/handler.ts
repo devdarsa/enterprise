@@ -1,18 +1,19 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@darsa/database';
-import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
+import { withAuth, apiSuccess, apiError, logAudit, RouteContext } from '@/lib/api-auth';
 
 // GET /api/v1/santri/[id]
 export const GET = withAuth(
-  async (req: NextRequest, session, context?: any) => {
-    const id = context?.params ? (await context.params).id : req.url.split('/').slice(-1)[0];
+  async (req: NextRequest, session, context?: RouteContext) => {
+    const paramsResolved = (context && typeof context === 'object' && 'params' in context && context.params) ? await (context.params as Promise<{ id: string }>) : undefined;
+    const id = paramsResolved?.id || req.url.split('/').slice(-1)[0];
 
     const santri = await prisma.santri.findFirst({
       where: { id, deleted_at: null },
       include: {
         kelas: true,
         penempatan: { orderBy: { created_at: 'desc' } },
-        wali_links: { include: { wali_santri: true } },
+        wali_santri: { include: { wali_santri: true } },
         nilai: { include: { mata_pelajaran: true } },
         pelanggaran: { where: { deleted_at: null }, orderBy: { tanggal: 'desc' } },
         perizinan: { where: { deleted_at: null }, orderBy: { created_at: 'desc' } },
@@ -27,8 +28,9 @@ export const GET = withAuth(
 
 // PUT /api/v1/santri/[id]
 export const PUT = withAuth(
-  async (req: NextRequest, session, context?: any) => {
-    const id = context?.params ? (await context.params).id : req.url.split('/').slice(-1)[0];
+  async (req: NextRequest, session, context?: RouteContext) => {
+    const paramsResolved = (context && typeof context === 'object' && 'params' in context && context.params) ? await (context.params as Promise<{ id: string }>) : undefined;
+    const id = paramsResolved?.id || req.url.split('/').slice(-1)[0];
     const body = await req.json();
 
     const existing = await prisma.santri.findFirst({ where: { id, deleted_at: null } });
@@ -75,8 +77,9 @@ export const PUT = withAuth(
 
 // DELETE /api/v1/santri/[id] — Soft delete
 export const DELETE = withAuth(
-  async (req: NextRequest, session, context?: any) => {
-    const id = context?.params ? (await context.params).id : req.url.split('/').slice(-1)[0];
+  async (req: NextRequest, session, context?: RouteContext) => {
+    const paramsResolved = (context && typeof context === 'object' && 'params' in context && context.params) ? await (context.params as Promise<{ id: string }>) : undefined;
+    const id = paramsResolved?.id || req.url.split('/').slice(-1)[0];
 
     const existing = await prisma.santri.findFirst({ where: { id, deleted_at: null } });
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);

@@ -13,7 +13,7 @@ export async function POST() {
     const qrToken = `DARSA-QR-${randomHex.toUpperCase()}`;
 
     // Persist QR session to database for validation during scan
-    await prisma.qRSession.create({
+    await prisma.qrSession.create({
       data: {
         qr_token: qrToken,
         expires_at: expiresAt,

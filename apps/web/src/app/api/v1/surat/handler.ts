@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@darsa/database';
+import { prisma, Prisma, JenisSurat } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
 // GET /api/v1/surat
@@ -11,8 +11,8 @@ export const GET = withAuth(
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (jenis) where.jenis_surat = jenis;
+    const where: Prisma.SuratWhereInput = {};
+    if (jenis) where.jenis_surat = jenis as JenisSurat;
 
     const [total, data] = await Promise.all([
       prisma.surat.count({ where }),
@@ -52,7 +52,7 @@ export const POST = withAuth(
       data: {
         pondok_id: pondok.id,
         nomor_surat,
-        jenis_surat: jenis_surat as any,
+        jenis_surat: jenis_surat as JenisSurat,
         perihal,
         pengirim: pengirim || session.user.name || session.user.email,
         penerima: penerima || 'Sekretariat Utama',

@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
       cooldown: 60,   // 60s cooldown
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('❌ Error send-otp:', err);
     return apiError('Terjadi kesalahan server saat mengirimkan OTP WhatsApp.', 500);
   }

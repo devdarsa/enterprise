@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@darsa/database';
+import { prisma, Prisma } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
 // GET /api/v1/pelanggaran
@@ -13,8 +13,8 @@ export const GET = withAuth(
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: any = { deleted_at: null };
-    if (tingkat) where.tingkat = tingkat;
+    const where: Prisma.PelanggaranWhereInput = { deleted_at: null };
+    if (tingkat) where.tingkat = tingkat as Prisma.EnumTingkatPelanggaranFilter['equals'];
     if (santri_id) where.santri_id = santri_id;
     if (search) {
       where.santri = {

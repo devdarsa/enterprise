@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
     const namaWali = connectedSantri[0].nama_wali || connectedSantri[0].nama_lengkap + ' (Wali)';
 
     // 8. Buat Akun User via Better Auth
-    let newUser: any;
+    let newUser: { id: string; email: string; nama_lengkap?: string } | null = null;
     try {
       // Better Auth Sign Up API
       const authResult = await auth.api.signUpEmail({
@@ -154,8 +154,9 @@ export async function POST(req: NextRequest) {
       if (authResult?.user) {
         newUser = authResult.user;
       }
-    } catch (authErr: any) {
-      console.warn('⚠️ Better Auth API signup note:', authErr.message || authErr);
+    } catch (authErr: unknown) {
+      const errObj = authErr as { message?: string };
+      console.warn('⚠️ Better Auth API signup note:', errObj?.message || authErr);
     }
 
     // Fallback jika user belum dibuat oleh Better Auth API call
@@ -219,9 +220,9 @@ export async function POST(req: NextRequest) {
     for (const santri of connectedSantri) {
       await prisma.hubunganWali.upsert({
         where: {
-          santri_id_wali_santri_id: {
-            santri_id: santri.id,
+          wali_santri_id_santri_id: {
             wali_santri_id: waliSantriRecord.id,
+            santri_id: santri.id,
           },
         },
         update: {
@@ -246,7 +247,7 @@ export async function POST(req: NextRequest) {
         email: cleanEmail,
         namaWali,
         santriCount: connectedSantri.length,
-        connectedSantriIds: connectedSantri.map((s: any) => s.id),
+        connectedSantriIds: connectedSantri.map((s) => s.id),
       },
       ip: req.headers.get('x-forwarded-for') || undefined,
       userAgent: req.headers.get('user-agent') || undefined,

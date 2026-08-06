@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@darsa/database';
+import { prisma, Prisma } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
 // GET /api/v1/perizinan
@@ -12,12 +12,12 @@ export const GET = withAuth(
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: any = { deleted_at: null };
-    if (status) where.status = status;
+    const where: Prisma.PerizinanWhereInput = { deleted_at: null };
+    if (status) where.status = status as Prisma.EnumStatusPerizinanFilter['equals'];
     if (santri_id) where.santri_id = santri_id;
 
     // Wali santri hanya bisa lihat izin anaknya sendiri
-    const userRole = (session.user as any).role;
+    const userRole = session.user.role;
     if (userRole === 'WALI_SANTRI') {
       const wali = await prisma.waliSantri.findFirst({ where: { user_id: session.user.id } });
       if (wali) {
@@ -25,7 +25,7 @@ export const GET = withAuth(
           where: { wali_santri_id: wali.id },
           select: { santri_id: true },
         });
-        where.santri_id = { in: santriIds.map((h: any) => h.santri_id) };
+        where.santri_id = { in: santriIds.map((h) => h.santri_id) };
       }
     }
 
