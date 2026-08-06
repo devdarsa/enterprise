@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@darsa/database';
-import { scryptSync, randomBytes } from 'crypto';
-
-function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const key = scryptSync(password, salt, 64).toString('hex');
-  return `${salt}:${key}`;
-}
+import { auth } from '@darsa/auth';
 
 const DEFAULT_ACCOUNTS = [
   {
@@ -72,72 +66,63 @@ export async function POST() {
 
   for (const acc of DEFAULT_ACCOUNTS) {
     try {
-      // 1. Check or create User in PostgreSQL
-      let user = await prisma.user.findUnique({
+      // 1. Check if user exists
+      const existingUser = await prisma.user.findUnique({
         where: { email: acc.email },
       });
 
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            email: acc.email,
-            nama_lengkap: acc.nama_lengkap,
-            email_verified: true,
-          },
-        });
+      if (existingUser) {
+        // Delete existing accounts and user to recreate with native Better Auth hashing
+        await prisma.account.deleteMany({ where: { user_id: existingUser.id } });
+        await prisma.user.delete({ where: { id: existingUser.id } });
       }
 
-      // 2. Insert or Update Account using Direct SQL (avoids Prisma client model mapping issues)
-      const hashedPassword = hashPassword(acc.password);
-      const existingAccounts: any[] = await prisma.$queryRawUnsafe(
-        `SELECT id FROM accounts WHERE user_id = $1 AND provider = 'credential'`,
-        user.id
-      );
-
-      if (existingAccounts.length === 0) {
-        await prisma.$executeRawUnsafe(
-          `INSERT INTO accounts (id, user_id, provider, provider_account_id, password) VALUES (gen_random_uuid()::text, $1, 'credential', $1, $2)`,
-          user.id,
-          hashedPassword
-        );
-      } else {
-        await prisma.$executeRawUnsafe(
-          `UPDATE accounts SET password = $1 WHERE user_id = $2 AND provider = 'credential'`,
-          hashedPassword,
-          user.id
-        );
-      }
-
-      // 3. Upsert Role in roles table using Direct SQL
-      const targetRole = acc.role;
-      let roleObj = await prisma.role.findFirst({
-        where: { name: targetRole as any },
+      // 2. Create User & Account via native Better Auth API (guarantees exact password hash format)
+      await auth.api.signUpEmail({
+        body: {
+          email: acc.email,
+          password: acc.password,
+          name: acc.nama_lengkap,
+        },
       });
 
-      if (!roleObj) {
-        await prisma.$executeRawUnsafe(
-          `INSERT INTO roles (id, name, description) VALUES (gen_random_uuid()::text, $1, $2) ON CONFLICT DO NOTHING`,
-          targetRole,
-          `Role default ${acc.nama_lengkap}`
-        );
-        roleObj = await prisma.role.findFirst({
+      // Fetch created user
+      const user = await prisma.user.findUnique({
+        where: { email: acc.email },
+      });
+
+      if (user) {
+        // 3. Upsert Role in roles table using Direct SQL
+        const targetRole = acc.role;
+        let roleObj = await prisma.role.findFirst({
           where: { name: targetRole as any },
         });
-      }
 
-      // 4. Link User and Role in user_roles junction table
-      if (roleObj) {
-        const existingUserRole = await prisma.userRole.findFirst({
-          where: { user_id: user.id, role_id: roleObj.id },
-        });
-
-        if (!existingUserRole) {
-          await prisma.userRole.create({
-            data: {
-              user_id: user.id,
-              role_id: roleObj.id,
-            },
+        if (!roleObj) {
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO roles (id, name, description) VALUES (gen_random_uuid()::text, $1, $2) ON CONFLICT DO NOTHING`,
+            targetRole,
+            `Role default ${acc.nama_lengkap}`
+          );
+          roleObj = await prisma.role.findFirst({
+            where: { name: targetRole as any },
           });
+        }
+
+        // 4. Link User and Role in user_roles junction table
+        if (roleObj) {
+          const existingUserRole = await prisma.userRole.findFirst({
+            where: { user_id: user.id, role_id: roleObj.id },
+          });
+
+          if (!existingUserRole) {
+            await prisma.userRole.create({
+              data: {
+                user_id: user.id,
+                role_id: roleObj.id,
+              },
+            });
+          }
         }
       }
 
