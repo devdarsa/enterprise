@@ -12,7 +12,7 @@ export async function GET() {
     userCount = await prisma.user.count();
     accountCount = await prisma.account.count();
     const users = await prisma.user.findMany({ take: 5, select: { email: true } });
-    sampleEmails = users.map((u) => u.email);
+    sampleEmails = users.map((u: any) => u.email);
   } catch (e) {
     dbStatus = 'disconnected';
   }

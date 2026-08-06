@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
         email: cleanEmail,
         namaWali,
         santriCount: connectedSantri.length,
-        connectedSantriIds: connectedSantri.map((s) => s.id),
+        connectedSantriIds: connectedSantri.map((s: any) => s.id),
       },
       ip: req.headers.get('x-forwarded-for') || undefined,
       userAgent: req.headers.get('user-agent') || undefined,

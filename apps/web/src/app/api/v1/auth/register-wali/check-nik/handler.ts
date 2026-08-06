@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Ambil data anak & wali awal (tanpa ekspos data berlebihan)
     const namaWali = connectedSantri[0].nama_wali || 'Wali Santri';
-    const childrenList = connectedSantri.map((s) => ({
+    const childrenList = connectedSantri.map((s: any) => ({
       id: s.id,
       nama: s.nama_lengkap,
       nisp: s.nisp,

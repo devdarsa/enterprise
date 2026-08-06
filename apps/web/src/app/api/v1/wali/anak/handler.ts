@@ -28,7 +28,7 @@ export const GET = withAuth(
       },
     });
 
-    const anak = links.map((l) => ({
+    const anak = links.map((l: any) => ({
       hubungan: l.hubungan,
       santri: l.santri,
     }));

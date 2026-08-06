@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
       // DB Cache Query
       const dbProvs = await prisma.masterProvinsi.findMany({ orderBy: { kode_provinsi: 'asc' } });
-      const data = dbProvs.map(p => ({ id: p.kode_provinsi, name: p.nama_provinsi }));
+      const data = dbProvs.map((p: any) => ({ id: p.kode_provinsi, name: p.nama_provinsi }));
 
       return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
         where: cleanProvId ? { kode_provinsi: cleanProvId } : undefined,
         orderBy: { kode_kabupaten: 'asc' },
       });
-      const data = dbRegs.map(r => ({ id: r.kode_kabupaten, province_id: r.kode_provinsi, name: r.nama_kabupaten }));
+      const data = dbRegs.map((r: any) => ({ id: r.kode_kabupaten, province_id: r.kode_provinsi, name: r.nama_kabupaten }));
 
       return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
         where: cleanRegId ? { kode_kabupaten: cleanRegId } : undefined,
         orderBy: { kode_kecamatan: 'asc' },
       });
-      const data = dbDists.map(d => ({ id: d.kode_kecamatan, regency_id: d.kode_kabupaten, name: d.nama_kecamatan }));
+      const data = dbDists.map((d: any) => ({ id: d.kode_kecamatan, regency_id: d.kode_kabupaten, name: d.nama_kecamatan }));
 
       return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }
@@ -124,7 +124,7 @@ export async function GET(request: Request) {
         where: cleanDistId ? { kode_kecamatan: cleanDistId } : undefined,
         orderBy: { kode_desa: 'asc' },
       });
-      const data = dbVills.map(v => ({ id: v.kode_desa, district_id: v.kode_kecamatan, name: v.nama_desa }));
+      const data = dbVills.map((v: any) => ({ id: v.kode_desa, district_id: v.kode_kecamatan, name: v.nama_desa }));
 
       return NextResponse.json({ success: true, source: 'Live PostgreSQL Cache', data });
     }

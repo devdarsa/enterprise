@@ -28,10 +28,12 @@ import * as tahunAjaran from '../tahun-ajaran/handler';
 import * as waliAnak from '../wali/anak/handler';
 import * as waliVerifikasiNik from '../wali/verifikasi-nik/handler';
 import * as wilayah from '../wilayah/handler';
+import * as authLogin from '../auth/login/handler';
 
 // Static route dispatch map
 const handlers: Record<string, any> = {
   'health': health,
+  'auth/login': authLogin,
   'auth/seed-default-accounts': seedAccounts,
   'auth/register-wali/check-nik': checkNik,
   'auth/register-wali/send-otp': sendOtp,

@@ -45,11 +45,11 @@ export const GET = withAuth(
 
     // Hitung statistik kehadiran
     const totalAbsensi = santri.absensi.length;
-    const hadir = santri.absensi.filter((a) => a.status === 'HADIR').length;
-    const terlambat = santri.absensi.filter((a) => a.status === 'TERLAMBAT').length;
-    const izin = santri.absensi.filter((a) => a.status === 'IZIN').length;
-    const sakit = santri.absensi.filter((a) => a.status === 'SAKIT').length;
-    const alpa = santri.absensi.filter((a) => a.status === 'ALPA').length;
+    const hadir = santri.absensi.filter((a: any) => a.status === 'HADIR').length;
+    const terlambat = santri.absensi.filter((a: any) => a.status === 'TERLAMBAT').length;
+    const izin = santri.absensi.filter((a: any) => a.status === 'IZIN').length;
+    const sakit = santri.absensi.filter((a: any) => a.status === 'SAKIT').length;
+    const alpa = santri.absensi.filter((a: any) => a.status === 'ALPA').length;
 
     const raporData = santri.rapor[0] || null;
 
@@ -68,7 +68,7 @@ export const GET = withAuth(
         hafalan_juz: raporData?.hafalan_juz ?? santri.hafalan_juz ?? 0,
         predikat: raporData?.predikat_arab || 'BELUM_DINILAI',
       },
-      akademik: santri.nilai.map((n) => ({
+      akademik: santri.nilai.map((n: any) => ({
         mata_pelajaran: n.mata_pelajaran.nama_mapel,
         nilai_harian: n.nilai_harian,
         UTS: n.nilai_uts,

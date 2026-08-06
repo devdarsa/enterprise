@@ -79,7 +79,7 @@ export default function RoleLoginPage({
     },
   };
 
-  const currentInstansi = instansiData[instansi];
+  const currentInstansi = (instansiData as Record<string, any>)[instansi] || instansiData.pondok;
   const activeAccent = accentGradient || currentInstansi.accent;
   const activeLogo = logoUrl || currentInstansi.logo;
 
@@ -90,17 +90,37 @@ export default function RoleLoginPage({
     setStep('verifying');
 
     try {
-      const result = await signIn.email({
-        email: email.toLowerCase().trim(),
-        password,
-        callbackURL: '/admin/dashboard',
-      });
+      let loginSuccess = false;
 
-      if (result?.error) {
-        setError(result.error.message || 'Email atau kata sandi salah.');
-        setStep('idle');
-        setLoading(false);
-        return;
+      // 1. Try Better Auth client signIn.email
+      try {
+        const result = await signIn.email({
+          email: email.toLowerCase().trim(),
+          password,
+          callbackURL: '/admin/dashboard',
+        });
+        if (!result?.error) {
+          loginSuccess = true;
+        }
+      } catch {}
+
+      // 2. Fallback to /api/v1/auth/login if client call errored
+      if (!loginSuccess) {
+        const customRes = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
+        });
+
+        if (customRes.ok) {
+          loginSuccess = true;
+        } else {
+          const errorData = await customRes.json().catch(() => ({}));
+          setError(errorData?.message || 'Email atau kata sandi salah. Silakan periksa kembali.');
+          setStep('idle');
+          setLoading(false);
+          return;
+        }
       }
 
       // Login kredensial sukses — Ambil session untuk verifikasi Role (BAB V & VI)

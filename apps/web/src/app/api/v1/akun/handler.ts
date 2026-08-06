@@ -34,11 +34,11 @@ export const GET = withAuth(
       }),
     ]);
 
-    const mapped = users.map((u) => ({
+    const mapped = users.map((u: any) => ({
       id: u.id,
       email: u.email,
       nama: u.nama_lengkap,
-      roles: u.user_roles.map((r) => r.role.name),
+      roles: u.user_roles.map((r: any) => r.role.name),
       primaryRole: u.user_roles[0]?.role.name || 'TANPA_ROLE',
       email_verified: u.email_verified,
       created_at: u.created_at,

@@ -25,7 +25,7 @@ export const GET = withAuth(
           where: { wali_santri_id: wali.id },
           select: { santri_id: true },
         });
-        where.santri_id = { in: santriIds.map((h) => h.santri_id) };
+        where.santri_id = { in: santriIds.map((h: any) => h.santri_id) };
       }
     }
 
