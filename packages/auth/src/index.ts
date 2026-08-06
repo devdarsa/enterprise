@@ -5,13 +5,19 @@ import { prisma } from '@darsa/database';
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || 'darsa-enterprise-secret-prod-2026-lirboyo-neon-ok',
-  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://web-red-tau-84.vercel.app',
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://darsa.develzy.my.id',
   trustedOrigins: [
-    'https://web-red-tau-84.vercel.app',
     'https://darsa.develzy.my.id',
+    'https://web-red-tau-84.vercel.app',
     'http://localhost:3000',
     'http://localhost:3005',
   ],
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || 'dummy-google-client-id',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy-google-client-secret',
+    },
+  },
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
