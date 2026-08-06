@@ -12,11 +12,11 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^6.3.0"
+    "@prisma/client": "6.19.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "prisma": "^6.3.0",
+    "prisma": "6.19.3",
     "typescript": "^5.7.0"
   }
 }
