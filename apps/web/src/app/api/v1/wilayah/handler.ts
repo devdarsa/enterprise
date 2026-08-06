@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     // 1. PROVINSI
     if (type === 'provinces') {
       try {
-        const res = await fetch(`${EMSIFA_BASE_URL}/provinces.json`, { next: { revalidate: 86400 } });
+        const res = await fetch(`${EMSIFA_BASE_URL}/provinces.json`, { next: { revalidate: 86400 } } as any);
         if (res.ok) {
           const raw = await res.json();
           const data = raw.map((item: any) => ({
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     if (type === 'regencies') {
       const cleanProvId = provId.replace(/[^0-9]/g, '');
       try {
-        const res = await fetch(`${EMSIFA_BASE_URL}/regencies/${cleanProvId || '35'}.json`, { next: { revalidate: 86400 } });
+        const res = await fetch(`${EMSIFA_BASE_URL}/regencies/${cleanProvId || '35'}.json`, { next: { revalidate: 86400 } } as any);
         if (res.ok) {
           const raw = await res.json();
           const data = raw.map((item: any) => ({
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
     if (type === 'districts') {
       const cleanRegId = regId.replace(/[^0-9]/g, '');
       try {
-        const res = await fetch(`${EMSIFA_BASE_URL}/districts/${cleanRegId || '3571'}.json`, { next: { revalidate: 86400 } });
+        const res = await fetch(`${EMSIFA_BASE_URL}/districts/${cleanRegId || '3571'}.json`, { next: { revalidate: 86400 } } as any);
         if (res.ok) {
           const raw = await res.json();
           const data = raw.map((item: any) => ({
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     if (type === 'villages') {
       const cleanDistId = distId.replace(/[^0-9]/g, '');
       try {
-        const res = await fetch(`${EMSIFA_BASE_URL}/villages/${cleanDistId || '3571010'}.json`, { next: { revalidate: 86400 } });
+        const res = await fetch(`${EMSIFA_BASE_URL}/villages/${cleanDistId || '3571010'}.json`, { next: { revalidate: 86400 } } as any);
         if (res.ok) {
           const raw = await res.json();
           const data = raw.map((item: any) => ({
