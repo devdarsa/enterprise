@@ -33,6 +33,7 @@ export const auth = betterAuth({
       userId: 'user_id',
       providerId: 'provider',
       accountId: 'provider_account_id',
+      password: 'password',
       refreshToken: 'refresh_token',
       accessToken: 'access_token',
       expiresAt: 'expires_at',
