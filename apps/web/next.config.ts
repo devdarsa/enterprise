@@ -4,14 +4,6 @@ import path from 'path';
 const nextConfig: NextConfig = {
   serverExternalPackages: ['@prisma/client', '@darsa/database'],
   outputFileTracingRoot: path.join(__dirname, '../../'),
-  outputFileTracingIncludes: {
-    '**/*': [
-      '../../node_modules/.pnpm/@prisma+client*/**/*',
-      '../../node_modules/.pnpm/@prisma+engines*/**/*',
-      '../../node_modules/.prisma/client/**/*',
-      '../../packages/database/**/*',
-    ],
-  },
   transpilePackages: ['@darsa/auth', '@darsa/types', '@darsa/ui', '@darsa/utils'],
   images: {
     remotePatterns: [
