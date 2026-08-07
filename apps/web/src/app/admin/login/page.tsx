@@ -46,6 +46,7 @@ export default function SekretariatAdminLoginPage() {
         body: JSON.stringify({
           email,
           password,
+          portal: 'ADMIN',
         }),
       });
 

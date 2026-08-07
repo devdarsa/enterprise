@@ -136,7 +136,7 @@ export default function RoleLoginPage({
       const customRes = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
+        body: JSON.stringify({ email: email.toLowerCase().trim(), password, portal: 'UMUM' }),
       });
 
       if (!customRes.ok) {

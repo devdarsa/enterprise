@@ -136,12 +136,15 @@ export default function DetailSantriPage() {
           <span>/</span>
           <span className="text-slate-900 font-bold truncate max-w-[200px]">{santri.nama_lengkap}</span>
         </div>
-        <button
-          onClick={() => setEditOpen(true)}
-          className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-sm transition-all flex items-center gap-2"
-        >
-          ✏️ Edit Data
-        </button>
+          <button
+            onClick={() => {
+              if (santri) setEditForm({ ...santri });
+              setEditOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
+          >
+            <span>✏️</span> Edit Profil Santri
+          </button>
       </div>
 
       {/* Hero Card */}
@@ -344,12 +347,12 @@ export default function DetailSantriPage() {
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Kelamin</label>
               <select
-                value={editForm.jenis_kelamin || ''}
+                value={editForm.jenis_kelamin === 'L' ? 'LAKI_LAKI' : editForm.jenis_kelamin === 'P' ? 'PEREMPUAN' : (editForm.jenis_kelamin || 'LAKI_LAKI')}
                 onChange={e => setEditForm(f => ({ ...f, jenis_kelamin: e.target.value }))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
               >
-                <option value="LAKI_LAKI">Laki-laki</option>
-                <option value="PEREMPUAN">Perempuan</option>
+                <option value="LAKI_LAKI">Laki-laki (L)</option>
+                <option value="PEREMPUAN">Perempuan (P)</option>
               </select>
             </div>
             <div>
