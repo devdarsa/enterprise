@@ -15,6 +15,14 @@ export interface PageHeaderProps {
   /** Badge label di kanan judul (misal: "DATABASE PONDOK") */
   badge?: string;
 
+  /** Banner informasi terintegrasi di dalam header card */
+  infoBanner?: {
+    icon?: string;
+    title?: string;
+    content: React.ReactNode;
+    variant?: 'brand' | 'warning' | 'info' | 'gold';
+  };
+
   // ── Tombol Utama ──────────────────────────────────────────────────────────
   /** Tombol aksi utama (Registrasi / Tambah Baru) */
   primaryAction?: {
@@ -58,6 +66,7 @@ export function PageHeader({
   subtitle,
   icon,
   badge,
+  infoBanner,
   primaryAction,
   secondaryAction,
   search,
@@ -89,13 +98,15 @@ export function PageHeader({
   return (
     <div className="space-y-3">
       {/* ── Hero Header Card ─────────────────────────────────────────────── */}
-      <div className="page-header">
+      <div className="page-header space-y-3">
         <div className="relative flex items-start justify-between gap-4 flex-wrap">
           {/* Left: Icon + Title */}
           <div className="flex items-center gap-3 min-w-0">
             {icon && (
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl shrink-0"
-                   style={{ background: 'rgba(245,197,24,0.18)', border: '1.5px solid rgba(245,197,24,0.4)' }}>
+              <div
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl shrink-0"
+                style={{ background: 'rgba(245,197,24,0.18)', border: '1.5px solid rgba(245,197,24,0.4)' }}
+              >
                 {icon}
               </div>
             )}
@@ -113,7 +124,11 @@ export function PageHeader({
                 type="button"
                 onClick={secondaryAction.onClick}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150"
-                style={{ background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.22)', color: 'rgba(255,255,255,0.92)' }}
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1.5px solid rgba(255,255,255,0.22)',
+                  color: 'rgba(255,255,255,0.92)',
+                }}
               >
                 {secondaryAction.icon && <span>{secondaryAction.icon}</span>}
                 {secondaryAction.label}
@@ -140,6 +155,15 @@ export function PageHeader({
             )}
           </div>
         </div>
+
+        {/* Integrated Info Banner */}
+        {infoBanner && (
+          <div className="pt-2 border-t border-white/10">
+            <InfoBanner icon={infoBanner.icon} title={infoBanner.title} variant={infoBanner.variant || 'brand'}>
+              {infoBanner.content}
+            </InfoBanner>
+          </div>
+        )}
       </div>
 
       {/* ── Toolbar Bar (Search + Export/Import) ──────────────────────────── */}

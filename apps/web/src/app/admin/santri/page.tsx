@@ -306,6 +306,13 @@ export default function MasterSantriPage() {
             : `Referensi Data Akademik & Penempatan Unit ${instansiFilter.toUpperCase()}`
         }
         badge="DATABASE PONDOK"
+        infoBanner={{
+          icon: '🏛️',
+          title: 'BAB I PASAL 1 — SINGLE SOURCE OF TRUTH:',
+          content:
+            'Pondok merupakan Master Database seluruh Santri/Santriwati. Identitas santri hanya dibuat 1 kali pada Database Pondok. Unit Madrasah & MI tidak membuat data santri baru, hanya memanggil/mereferensikan data penempatan pendidikan.',
+          variant: 'brand',
+        }}
         primaryAction={
           instansiFilter === 'pondok'
             ? { label: '📝 Registrasi Master Santri', onClick: () => (window.location.href = '/admin/santri/baru') }
@@ -321,12 +328,6 @@ export default function MasterSantriPage() {
         onImport={instansiFilter === 'pondok' ? handleImport : undefined}
         onRefresh={fetchSantri}
       />
-
-      {/* SSoT Banner */}
-      <InfoBanner icon="🏛️" title="BAB I PASAL 1 — SINGLE SOURCE OF TRUTH:" variant="brand">
-        Pondok merupakan Master Database seluruh Santri/Santriwati. Identitas santri hanya dibuat 1 kali pada Database Pondok.
-        Unit Madrasah & MI tidak membuat data santri baru, hanya memanggil/mereferensikan data penempatan pendidikan.
-      </InfoBanner>
 
       {/* Table */}
       <div className="table-container overflow-x-auto">
