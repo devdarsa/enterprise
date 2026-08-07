@@ -31,10 +31,11 @@ export default function AdminDashboardPage() {
   const [aktivitas, setAktivitas] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [tahunAjaran, setTahunAjaran] = useState<string>('');
 
   useEffect(() => {
+    setCurrentTime(new Date());
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
@@ -52,7 +53,7 @@ export default function AdminDashboardPage() {
         fetch('/api/v1/tahun-ajaran'),
       ]);
 
-      if (statsRes.status === 401 || statsRes.status === 403) {
+      if (statsRes.status === 401 || statsRes.status === 403 || taRes.status === 401 || taRes.status === 403) {
         window.location.href = '/auth/login/pondok';
         return;
       }
@@ -166,9 +167,9 @@ export default function AdminDashboardPage() {
         </div>
         <div className="text-right shrink-0 font-mono text-xs text-emerald-200 bg-white/10 px-4 py-2 rounded-2xl border border-white/20">
           <span className="block font-bold text-white text-sm">
-            {currentTime.toLocaleTimeString('id-ID')} WIB
+            {currentTime ? currentTime.toLocaleTimeString('id-ID') : '--:--:--'} WIB
           </span>
-          <span>{currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <span>{currentTime ? currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}</span>
         </div>
       </div>
 
