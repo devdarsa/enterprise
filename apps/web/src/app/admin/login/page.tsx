@@ -50,34 +50,17 @@ export default function SekretariatAdminLoginPage() {
         }),
       });
 
-      if (!res.ok) {
-        const errorJson = await res.json().catch(() => ({}));
-        setError(errorJson.message || errorJson.error || 'Autentikasi Sekretariat gagal. Periksa username dan password.');
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json.success) {
+        setError(json.message || json.error || 'Autentikasi Sekretariat gagal. Periksa username dan password.');
         setLoading(false);
         return;
       }
 
-      // Ambil profil user & role terdaftar di database dari /api/v1/auth/me
-      const meRes = await fetch('/api/v1/auth/me');
-      const meJson = meRes.ok ? await meRes.json() : null;
-      const u = meJson?.user;
-
-      const instansi = (u?.instansi || (email.includes('madrasah') ? 'MADRASAH' : email.includes('.mi') ? 'MI' : 'PONDOK'));
-
-      const sessionData = {
-        userId: u?.id || 'sekretariat',
-        nama: u?.name || 'Sekretariat Utama',
-        email: u?.email || email,
-        role: u?.role || 'SEKRETARIAT',
-        instansi,
-      };
-
-      document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=86400`;
-      document.cookie = `darsa_instansi=${instansi.toLowerCase()}; path=/; max-age=86400`;
-
-      setTimeout(() => {
-        router.push('/admin/dashboard');
-      }, 300);
+      // Login sukses — cookie otomatis diset oleh server via Set-Cookie headers.
+      // Lakukan full redirect ke Dashboard Admin untuk memuat sesi baru
+      window.location.href = '/admin/dashboard';
     } catch {
       setError('Terjadi kesalahan koneksi ke server database.');
       setLoading(false);

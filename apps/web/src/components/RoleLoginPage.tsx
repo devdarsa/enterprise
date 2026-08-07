@@ -182,7 +182,7 @@ export default function RoleLoginPage({
         } catch {}
       }
 
-      router.push(redirectTo);
+      window.location.href = redirectTo;
     } catch (err: any) {
       setError(err?.message || 'Terjadi kesalahan saat masuk. Silakan coba lagi.');
       setStep('idle');
