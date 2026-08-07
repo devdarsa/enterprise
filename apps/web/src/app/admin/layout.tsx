@@ -60,6 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [tahunAjaran, setTahunAjaran] = useState('2025/2026 (Ganjil)');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [activeInstansi, setActiveInstansi] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
 
   // Popover States
   const [notifOpen, setNotifOpen] = useState(false);
@@ -133,11 +134,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               return;
             }
 
+            const detectedInstansi = (u.instansi || 'PONDOK').toLowerCase() as 'pondok' | 'madrasah' | 'mi';
+            setActiveInstansi(detectedInstansi);
+
             setUser({
               email: u.email,
               nama: u.name || u.email,
               role: role,
-              instansi: 'PONDOK',
+              instansi: u.instansi || 'PONDOK',
               loginAt: new Date().toISOString(),
             });
           }
@@ -191,12 +195,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push(item.link);
   };
 
-  const currentInstansi = {
-    nama: "Pondok Pesantren Ma'had Darussa'adah",
-    sub: 'LIRBOYO KOTA KEDIRI',
-    logo: '/logo-pondok.png',
-    badge: 'Sekretariat Utama Enterprise',
+  const instansiConfig = {
+    pondok: {
+      nama: "Ma'had Darussa'adah Lirboyo",
+      sub: 'PONDOK PESANTREN LIRBOYO KOTA KEDIRI',
+      logo: '/logo-pondok.png',
+      badge: 'Sekretariat Utama Pondok',
+    },
+    madrasah: {
+      nama: "Madrasah Diniyah Darussa'adah",
+      sub: 'MADRASAH DINIYAH LIRBOYO KOTA KEDIRI',
+      logo: '/logo-madrasah.png',
+      badge: 'Sekretariat Madrasah Diniyah',
+    },
+    mi: {
+      nama: "MI Formal Darussa'adah",
+      sub: 'MADRASAH IBTIDAIYAH FORMAL KEDIRI',
+      logo: '/logo-mi.png',
+      badge: 'Sekretariat Formal MI',
+    },
   };
+
+  const currentInstansi = instansiConfig[activeInstansi] || instansiConfig.pondok;
 
   const navigationGroups = [
     {
@@ -220,6 +240,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { label: 'Perizinan Santri', path: '/admin/surat', icon: '✉️' },
         { label: 'Pelanggaran & Takzir', path: '/admin/pelanggaran', icon: '⚠️' },
+        { label: 'Kartu Santri Digital', path: '/admin/kartu-santri', icon: '🪪' },
       ],
     },
     {
@@ -228,6 +249,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { label: 'Arsip Historis', path: '/admin/arsip', icon: '📦' },
         { label: 'Tahun Ajaran', path: '/admin/tahun-ajaran', icon: '📅' },
         { label: 'Manajemen Akun', path: '/admin/akun', icon: '🔐' },
+        { label: 'Manajemen Role & RBAC', path: '/admin/roles', icon: '🔑' },
         { label: 'Audit Log & Recycle Bin', path: '/admin/audit-log', icon: '📋' },
         { label: 'Panduan & SOP', path: '/admin/sop', icon: '📖' },
         { label: 'Konfigurasi Sistem', path: '/admin/konfigurasi', icon: '⚙️' },
@@ -329,9 +351,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
               <span className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wider block mb-0.5">
-                PORTAL SEKRETARIAT
+                PORTAL {currentInstansi.badge.toUpperCase()}
               </span>
-              <p className="text-xs font-black text-emerald-950">Pondok Pesantren Ma'had Darussa'adah</p>
+              <p className="text-xs font-black text-emerald-950">{currentInstansi.nama}</p>
             </div>
           </div>
 
@@ -404,8 +426,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </nav>
             </div>
 
-            {/* Right Top Actions Row: [Tahun Ajaran] -> [Lonceng Notifikasi] -> [Profile & Logout Dropdown] */}
+            {/* Right Top Actions Row: [Instansi Selector] -> [Tahun Ajaran] -> [Lonceng Notifikasi] -> [Profile & Logout Dropdown] */}
             <div className="flex items-center gap-2 md:gap-3">
+              {/* 0. Instansi Switcher Selector */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs shadow-xs">
+                <span className="text-xs">🏛️</span>
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider hidden lg:inline">
+                  Instansi:
+                </span>
+                <select
+                  value={activeInstansi}
+                  onChange={(e) => {
+                    const val = e.target.value as 'pondok' | 'madrasah' | 'mi';
+                    setActiveInstansi(val);
+                    document.cookie = `darsa_instansi=${val}; path=/; max-age=86400`;
+                    showToast('info', 'Instansi Dialihkan', `Portal dialihkan ke Sekretariat ${val.toUpperCase()}.`);
+                  }}
+                  className="bg-transparent text-xs font-black text-emerald-950 focus:outline-none cursor-pointer pr-1"
+                >
+                  <option value="pondok">Pondok Pesantren</option>
+                  <option value="madrasah">Madrasah Diniyah</option>
+                  <option value="mi">MI Formal</option>
+                </select>
+              </div>
+
               {/* 1. Tahun Ajaran Selector */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/90 text-xs shadow-xs">
                 <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />

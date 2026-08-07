@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar } from '@/components/Loading';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
 
 interface ArsipItem {
   id: string;
@@ -52,59 +53,75 @@ export default function ArsipHistorisPage() {
     fetchArsipLive();
   }, []);
 
+  const handleExport = () => {
+    const csv = [['Kode Arsip','Judul Dokumen','Kategori','Tahun Ajaran','Tanggal'],
+      ...filtered.map(a => [a.kodeArsip, a.judul, a.kategori, a.tahunAjaran, a.tanggalArsip])
+    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: `arsip-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    a.click();
+    showToast('success', 'Export Berhasil', `${filtered.length} data arsip diexport.`);
+  };
+
   const filtered = list.filter((a) => a.judul.toLowerCase().includes(search.toLowerCase()) || a.kodeArsip.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">
-            SISTEM & UTILITAS
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Arsip Historis Pesantren</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Penyimpanan Dokumen & Data Akademik Historis Non-Aktif
-          </p>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="📦"
+        title="Arsip Historis Pesantren"
+        subtitle="Penyimpanan Dokumen & Data Akademik Historis Non-Aktif"
+        badge="SISTEM & UTILITAS"
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari judul dokumen atau kode arsip..."
+        count={loading ? undefined : filtered.length}
+        countLabel="dokumen"
+        onExportExcel={handleExport}
+        onRefresh={() => setSearch('')}
+      />
 
-      <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <SearchBar value={search} onChange={setSearch} placeholder="Cari judul dokumen atau kode arsip..." />
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="table-container">
         {loading ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-500">Memuat arsip dari database...</div>
+          <div className="p-6"><SkeletonTable rows={5} cols={6} /></div>
         ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-400">Belum ada arsip historis tercatat di database.</div>
+          <EmptyState
+            icon="📦"
+            title="Belum Ada Arsip Historis"
+            description="Belum ada arsip historis yang tercatat di database."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold border-b uppercase tracking-wider text-[10px]">
+            <table className="table-premium">
+              <thead>
                 <tr>
-                  <th className="p-3.5">Kode Arsip</th>
-                  <th className="p-3.5">Judul Dokumen</th>
-                  <th className="p-3.5">Kategori</th>
-                  <th className="p-3.5">Tahun Ajaran</th>
-                  <th className="p-3.5">Tanggal</th>
-                  <th className="p-3.5 text-right">Aksi</th>
+                  <th>Kode Arsip</th>
+                  <th>Judul Dokumen</th>
+                  <th>Kategori</th>
+                  <th>Tahun Ajaran</th>
+                  <th>Tanggal</th>
+                  <th className="text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody>
                 {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50">
-                    <td className="p-3.5 font-mono text-slate-600">{item.kodeArsip}</td>
-                    <td className="p-3.5 font-bold text-slate-900">{item.judul}</td>
-                    <td className="p-3.5 text-slate-600">{item.kategori}</td>
-                    <td className="p-3.5 text-slate-600">{item.tahunAjaran}</td>
-                    <td className="p-3.5 text-slate-600">{item.tanggalArsip}</td>
-                    <td className="p-3.5 text-right">
+                  <tr key={item.id}>
+                    <td className="font-mono text-xs font-bold text-[#135e35]">{item.kodeArsip}</td>
+                    <td className="font-bold text-slate-900">{item.judul}</td>
+                    <td className="text-slate-600">{item.kategori}</td>
+                    <td className="text-slate-600">{item.tahunAjaran}</td>
+                    <td className="text-slate-600">{item.tanggalArsip}</td>
+                    <td className="text-right pr-4">
                       <button
                         type="button"
                         onClick={() => showToast('info', 'Unduh Arsip', item.judul)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold text-[10px] border border-emerald-200 transition-all"
+                        className="btn-action-detail"
                       >
                         📥 Unduh
                       </button>

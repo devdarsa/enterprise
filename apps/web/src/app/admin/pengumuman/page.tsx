@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
+import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface Pengumuman {
   id: string;
@@ -37,18 +39,28 @@ export default function PusatPengumumanPage() {
     fetchPengumuman();
   }, []);
 
+  useEffect(() => {
+    fetchPengumuman();
+  }, []);
+
   const fetchPengumuman = async () => {
-    setLoading(true);
+    const cached = await getIndexedDBCache<Pengumuman[]>('general', 'pengumuman_list');
+    if (cached && cached.length > 0) {
+      setPengumumanList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const res = await fetch('/api/v1/pengumuman?limit=50');
       const json = await res.json();
-      if (json.success) {
+      if (json.success && Array.isArray(json.data)) {
         setPengumumanList(json.data);
-      } else {
-        showToast('error', 'Gagal Memuat Data', json.error || 'Tidak dapat mengambil pengumuman dari database.');
+        setIndexedDBCache('general', 'pengumuman_list', json.data);
       }
     } catch {
-      showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil pengumuman dari database.');
+      if (!cached) showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil pengumuman dari database.');
     } finally {
       setLoading(false);
     }
@@ -92,25 +104,18 @@ export default function PusatPengumumanPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Pusat Pengumuman & Broadcast Sekretariat</h1>
-          <p className="text-xs text-slate-500">
-            Terbitkan informasi resmi real-time dari Database ke Wali Santri, Guru, maupun seluruh civitas.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-all flex items-center gap-2"
-        >
-          <span>📢</span> + Terbitkan Pengumuman Baru
-        </button>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="📢"
+        title="Pusat Pengumuman & Broadcast Sekretariat"
+        subtitle="Terbitkan informasi resmi real-time dari Database ke Wali Santri, Guru, maupun seluruh civitas."
+        badge="INFORMASI & BROADCAST"
+        primaryAction={{ label: '📢 + Terbitkan Pengumuman Baru', onClick: () => setIsModalOpen(true) }}
+        onRefresh={fetchPengumuman}
+      />
 
       {/* List Pengumuman */}
       {loading ? (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { PageHeader } from '@/components/PageHeader';
 
 interface RaporData {
   santri: {
@@ -91,22 +92,16 @@ export default function RaporDigitalPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Cetak Rapor Digital Santri</h1>
-          <p className="text-xs text-slate-500">
-            Pratinjau lembar hasil belajar santri terpadu (Akademik & Tahfidz Al-Qur'an)
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handlePrint}
-          className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-600/30 hover:bg-emerald-700 transition-all flex items-center gap-2"
-        >
-          <span>🖨️</span> Cetak / Unduh PDF Rapor
-        </button>
+    <div className="space-y-5">
+      {/* Page Header */}
+      <div className="print:hidden">
+        <PageHeader
+          icon="📜"
+          title="Cetak Rapor Digital Santri"
+          subtitle="Pratinjau lembar hasil belajar santri terpadu (Akademik & Tahfidz Al-Qur'an)"
+          badge="AKADEMIK & RAPOR"
+          primaryAction={{ label: '🖨️ Cetak / Unduh PDF Rapor', onClick: handlePrint }}
+        />
       </div>
 
       {/* Printable Report Document Card */}

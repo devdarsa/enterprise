@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar, SkeletonTable } from '@/components/Loading';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
 
 interface Alumni {
   id: string;
@@ -55,70 +55,98 @@ export default function DataAlumniPage() {
     fetchAlumniLive();
   }, []);
 
+  const handleExport = () => {
+    const csv = [['NISP Stambuk','Nama Alumni','Tahun Lulus','Jenjang Terakhir','Status Alumni','Telepon'],
+      ...filtered.map(a => [a.nisp, a.nama, String(a.tahunLulus), a.jenjangTerakhir, a.statusAlumni, a.telepon])
+    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: `alumni-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    a.click();
+    showToast('success', 'Export Berhasil', `${filtered.length} data alumni diexport.`);
+  };
+
   const filtered = alumniList.filter(
     (a) => a.nama.toLowerCase().includes(search.toLowerCase()) || a.nisp.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <h1 className="text-xl font-black text-slate-900 leading-tight">Pendataan Alumni & Kelulusan</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Direktori Alumni Lulusan Pondok Pesantren & Khidmah</p>
-        </div>
-        <ImportExportToolbar addLabel="Tambah Alumni" />
-      </div>
-
-      {/* Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-3">
-        <div className="flex-1">
-          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama alumni atau NISP..." />
-        </div>
-        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border">
-          {filtered.length} Alumni
-        </span>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="🎓"
+        title="Pendataan Alumni & Kelulusan"
+        subtitle="Direktori Alumni Lulusan Pondok Pesantren & Khidmah"
+        badge="DATABASE PONDOK"
+        primaryAction={{ label: '+ Tambah Data Alumni', onClick: () => showToast('info', 'Tambah Alumni', 'Form alumni baru.') }}
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari nama alumni atau NISP..."
+        count={loading ? undefined : filtered.length}
+        countLabel="alumni"
+        onExportExcel={handleExport}
+        onRefresh={() => setSearch('')}
+      />
 
       {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="table-container">
         {loading ? (
-          <SkeletonTable label="Memuat data alumni dari database..." />
+          <div className="p-6"><SkeletonTable rows={5} cols={6} /></div>
         ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-400">Belum ada alumni lulusan tercatat di database.</div>
+          <EmptyState
+            icon="🎓"
+            title="Belum Ada Alumni Lulusan"
+            description="Belum ada alumni lulusan yang tercatat di database."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold border-b uppercase tracking-wider text-[10px]">
+            <table className="table-premium">
+              <thead>
                 <tr>
-                  <th className="p-3.5">Nama Alumni</th>
-                  <th className="p-3.5">NISP Stambuk</th>
-                  <th className="p-3.5">Tahun Lulus</th>
-                  <th className="p-3.5">Jenjang Terakhir</th>
-                  <th className="p-3.5">Status Alumni</th>
-                  <th className="p-3.5 text-right">Aksi</th>
+                  <th>Nama Alumni</th>
+                  <th>NISP Stambuk</th>
+                  <th>Tahun Lulus</th>
+                  <th>Jenjang Terakhir</th>
+                  <th>Status Alumni</th>
+                  <th className="text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody>
                 {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50">
-                    <td className="p-3.5 font-bold text-slate-900">{item.nama}</td>
-                    <td className="p-3.5 font-mono text-slate-600">{item.nisp}</td>
-                    <td className="p-3.5 font-bold text-slate-700">{item.tahunLulus}</td>
-                    <td className="p-3.5 text-slate-600">{item.jenjangTerakhir}</td>
-                    <td className="p-3.5">
-                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase">
+                  <tr key={item.id}>
+                    <td className="font-bold text-slate-900">{item.nama}</td>
+                    <td className="font-mono text-xs font-bold text-[#135e35]">{item.nisp}</td>
+                    <td className="font-bold text-slate-700">{item.tahunLulus}</td>
+                    <td className="text-slate-600">{item.jenjangTerakhir}</td>
+                    <td>
+                      <span className="badge-aktif">
                         {item.statusAlumni}
                       </span>
                     </td>
-                    <td className="p-3.5 text-right">
-                      <TableActions
-                        onDetail={() => showToast('info', 'Detail Alumni', item.nama)}
-                        onEdit={() => showToast('info', 'Edit Alumni', item.nama)}
-                        onDelete={() => showToast('info', 'Soft Delete', item.nama)}
-                      />
+                    <td className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => showToast('info', 'Detail Alumni', item.nama)}
+                          className="btn-action-detail"
+                        >
+                          🔍 Detail
+                        </button>
+                        <button
+                          onClick={() => showToast('info', 'Edit Alumni', item.nama)}
+                          className="btn-action-edit"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => showToast('info', 'Soft Delete', item.nama)}
+                          className="btn-action-danger"
+                        >
+                          🗑️ Hapus
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

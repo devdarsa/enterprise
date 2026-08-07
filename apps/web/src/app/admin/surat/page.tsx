@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
-import { LoadingSpinner, SkeletonTable } from '@/components/Loading';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { LoadingSpinner, SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface Surat {
   id: string;
@@ -63,19 +64,26 @@ export default function PersuratanDigitalPage() {
   }, [instansiFilter]);
 
   const fetchSurat = async () => {
-    setLoading(true);
+    const cacheKey = `list_${instansiFilter}`;
+    const cached = await getIndexedDBCache<Surat[]>('surat', cacheKey);
+    if (cached && cached.length > 0) {
+      setSuratList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const res = await fetch(`/api/v1/surat?limit=50`);
       const json = await res.json();
-      setLoading(false);
-      if (json.success) {
+      if (json.success && Array.isArray(json.data)) {
         setSuratList(json.data);
-      } else {
-        showToast('error', 'Gagal Memuat Surat', json.error || 'Terjadi kesalahan database.');
+        setIndexedDBCache('surat', cacheKey, json.data);
       }
     } catch {
+      if (!cached) showToast('error', 'Gagal Memuat Surat', 'Terjadi kesalahan koneksi database.');
+    } finally {
       setLoading(false);
-      showToast('error', 'Gagal Memuat Surat', 'Terjadi kesalahan koneksi database.');
     }
   };
 
@@ -123,85 +131,84 @@ export default function PersuratanDigitalPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            MODUL KEAMANAN
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Perizinan & Persuratan Santri</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Pengajuan Izin Pulang/Keluar, Verifikasi Keamanan, & Cetak Surat Izin Resmi
-          </p>
-        </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="✉️"
+        title="Perizinan & Persuratan Santri"
+        subtitle="Pengajuan Izin Pulang/Keluar, Verifikasi Keamanan, & Cetak Surat Izin Resmi"
+        badge="MODUL KEAMANAN"
+        primaryAction={{ label: '✉️ + Tambah Izin Baru', onClick: () => setIsModalOpen(true) }}
+        onExportExcel={() => showToast('info', 'Export Data', 'Mengeksport rekap perizinan ke Excel.')}
+        onExportPDF={() => showToast('info', 'Cetak Surat', 'Mencetak surat izin resmi ke PDF.')}
+        onRefresh={fetchSurat}
+      />
 
-        <ImportExportToolbar
-          onAdd={() => setIsModalOpen(true)}
-          addLabel="✉️ + Tambah Izin Baru"
-          onExport={() => showToast('info', 'Export Data', 'Mengeksport rekap perizinan.')}
-          onPrint={() => showToast('info', 'Cetak Surat', 'Mencetak surat izin resmi.')}
-        />
-      </div>
-
-      {/* Table Data Grid */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="table-container">
         {loading ? (
-          <div className="p-4">
-            <SkeletonTable rows={4} cols={6} />
-          </div>
+          <div className="p-6"><SkeletonTable rows={4} cols={6} /></div>
         ) : (
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Nomor Surat</th>
-                <th>Jenis / Perihal</th>
-                <th>Pemohon (Wali/Santri)</th>
-                <th>Tanggal</th>
-                <th>Status Izin</th>
-                <th className="text-right">Aksi Standards (RBAC)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {suratList.map((surat) => (
-                <tr key={surat.id} className="hover:bg-slate-50/80">
-                  <td className="font-mono text-xs font-bold text-emerald-800">{surat.nomor}</td>
-                  <td className="font-bold text-slate-900">{surat.perihal}</td>
-                  <td className="text-xs text-slate-600">{surat.pengirim}</td>
-                  <td className="text-xs text-slate-500">{surat.tanggal}</td>
-                  <td>
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold border ${
-                      surat.status === 'DISETUJUI' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                      surat.status === 'DITOLAK' ? 'bg-rose-50 text-rose-800 border-rose-200' :
-                      'bg-amber-50 text-amber-800 border-amber-200'
-                    }`}>
-                      {surat.status}
-                    </span>
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {surat.status === 'PENDING' && (
-                        <>
-                          <button onClick={() => handleApprove(surat.id)} className="px-2 py-1 rounded bg-emerald-700 text-white text-[10px] font-bold">✓ Setujui</button>
-                          <button onClick={() => handleReject(surat.id)} className="px-2 py-1 rounded bg-rose-700 text-white text-[10px] font-bold">✕ Tolak</button>
-                        </>
-                      )}
-                      <TableActions
-                        onDetail={() => setDetailSurat(surat)}
-                        onRiwayat={() => showToast('info', 'Riwayat Perizinan', `Riwayat perizinan ${surat.nomor}`)}
-                        onDelete={() => {
-                          setSuratList((prev) => prev.filter((s) => s.id !== surat.id));
-                          showToast('success', 'Soft Delete', `Surat ${surat.nomor} dipindahkan ke Recycle Bin.`);
-                        }}
-                      />
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Nomor Surat</th>
+                  <th>Jenis / Perihal</th>
+                  <th>Pemohon (Wali/Santri)</th>
+                  <th>Tanggal</th>
+                  <th>Status Izin</th>
+                  <th className="text-right">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {suratList.map((surat) => (
+                  <tr key={surat.id}>
+                    <td className="font-mono text-xs font-bold text-[#135e35]">{surat.nomor}</td>
+                    <td className="font-bold text-slate-900">{surat.perihal}</td>
+                    <td className="text-xs text-slate-600">{surat.pengirim}</td>
+                    <td className="text-xs text-slate-500">{surat.tanggal}</td>
+                    <td>
+                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold border ${
+                        surat.status === 'DISETUJUI' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                        surat.status === 'DITOLAK'   ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                        'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}>
+                        {surat.status}
+                      </span>
+                    </td>
+                    <td className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {surat.status === 'PENDING' && (
+                          <>
+                            <button onClick={() => handleApprove(surat.id)} className="btn-action-detail">✓ Setujui</button>
+                            <button onClick={() => handleReject(surat.id)} className="btn-action-danger">✕ Tolak</button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => setDetailSurat(surat)}
+                          className="btn-action-secondary"
+                        >
+                          🔍 Detail
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSuratList((prev) => prev.filter((s) => s.id !== surat.id));
+                            showToast('success', 'Dihapus', `Surat ${surat.nomor} dipindahkan ke Recycle Bin.`);
+                          }}
+                          className="btn-action-danger"
+                        >
+                          🗑️ Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

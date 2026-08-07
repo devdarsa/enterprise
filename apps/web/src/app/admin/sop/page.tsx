@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function SOPGuidePage() {
   const [search, setSearch] = useState('');
@@ -20,32 +20,22 @@ export default function SOPGuidePage() {
   const filtered = sopItems.filter((s) => s.title.toLowerCase().includes(search.toLowerCase()) || s.desc.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            SISTEM & UTILITAS
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Panduan & Standar Operasional Prosedur (SOP)</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Dokumentasi Resmi Penggunaan Sistem Darsa Enterprise, Petunjuk Operasional, & FAQ
-          </p>
-        </div>
-
-        <button
-          onClick={() => window.print()}
-          className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition-all flex items-center gap-1.5 shrink-0"
-        >
-          <span>🖨️</span> Cetak Seluruh SOP
-        </button>
-      </div>
-
-      <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <SearchBar value={search} onChange={setSearch} placeholder="Cari judul SOP atau kata kunci..." />
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="📖"
+        title="Panduan & Standar Operasional Prosedur (SOP)"
+        subtitle="Dokumentasi Resmi Penggunaan Sistem Darsa Enterprise, Petunjuk Operasional, & FAQ"
+        badge="SISTEM & UTILITAS"
+        primaryAction={{ label: '🖨️ Cetak Seluruh SOP', onClick: () => window.print() }}
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari judul SOP atau kata kunci..."
+        count={filtered.length}
+        countLabel="dokumen"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((item, idx) => (

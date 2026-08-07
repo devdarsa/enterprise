@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar } from '@/components/Loading';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
 
 interface Pelanggaran {
   id: string;
@@ -141,51 +141,64 @@ export default function PelanggaranPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-widest block mb-1">
-            MODUL KEAMANAN & KETERTIBAN
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Kedisiplinan & Pelanggaran Santri</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Pencatatan Jenis Pelanggaran, Tingkat Hukuman, & Riwayat Tindakan Takzir
-            <span className="ml-2 text-emerald-700 font-bold">({total} catatan)</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Page Header */}
+      <PageHeader
+        icon="⚠️"
+        title="Kedisiplinan & Pelanggaran Santri"
+        subtitle="Pencatatan Jenis Pelanggaran, Tingkat Hukuman, & Riwayat Tindakan Takzir"
+        badge="MODUL KEAMANAN"
+        primaryAction={{ label: '+ Catat Pelanggaran', onClick: () => setIsModalOpen(true) }}
+        search={search}
+        onSearch={(v) => { setSearch(v); }}
+        searchPlaceholder="Cari nama santri atau jenis pelanggaran..."
+        count={total}
+        countLabel="catatan"
+        onExportExcel={() => {
+          const csv = [['Tanggal','Santri','NISP','Jenis','Tingkat','Tindakan','Petugas'],
+            ...list.map(p => [
+              new Date(p.tanggal).toLocaleDateString('id-ID'),
+              p.santri?.nama_lengkap || '', p.santri?.nisp || '',
+              p.jenis, p.tingkat, p.tindakan || '', p.petugas?.nama_lengkap || '',
+            ])
+          ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+          const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
+            download: `pelanggaran-${new Date().toISOString().slice(0,10)}.csv`,
+          });
+          a.click();
+          showToast('success', 'Export Berhasil', `${list.length} data pelanggaran diexport.`);
+        }}
+        onRefresh={() => { setPage(1); fetchPelanggaran(); }}
+        toolbarExtra={
           <select
             value={tingkatFilter}
             onChange={(e) => { setTingkatFilter(e.target.value); setPage(1); }}
-            className="text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white font-semibold text-slate-700"
+            className="text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white font-semibold text-slate-700 shrink-0"
           >
             <option value="">Semua Tingkat</option>
             <option value="RINGAN">🟡 Ringan</option>
             <option value="SEDANG">🟠 Sedang</option>
             <option value="BERAT">🔴 Berat</option>
           </select>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-rose-800 hover:bg-rose-900 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
-          >
-            <span>⚠️</span> + Catat Pelanggaran
-          </button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama santri atau jenis pelanggaran..." />
-          <button type="submit" className="px-4 py-2 rounded-xl bg-emerald-800 text-white font-bold text-xs">Cari</button>
-        </form>
-      </div>
+        }
+      />
 
       {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="table-container">
+        {loading ? (
+          <div className="p-6"><SkeletonTable rows={5} cols={7} /></div>
+        ) : list.length === 0 ? (
+          <EmptyState
+            icon="⚠️"
+            title="Belum Ada Catatan Pelanggaran"
+            description="Catatan pelanggaran santri akan tampil di sini setelah ditambahkan."
+            action={{ label: '+ Catat Pelanggaran Baru', onClick: () => setIsModalOpen(true) }}
+          />
+        ) : (
+        <div className="overflow-x-auto">
         <table className="table-premium">
           <thead>
             <tr>
@@ -199,51 +212,37 @@ export default function PelanggaranPage() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j}><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>
-                  ))}
-                </tr>
-              ))
-            ) : list.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-12 text-slate-400">
-                  <p className="text-sm font-medium">Tidak ada catatan pelanggaran.</p>
+            {list.map((p) => (
+              <tr key={p.id}>
+                <td className="font-mono text-xs text-slate-600">
+                  {new Date(p.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </td>
+                <td>
+                  <div className="font-bold text-slate-900 text-xs">{p.santri?.nama_lengkap || '-'}</div>
+                  <div className="text-[10px] text-slate-500 font-mono">{p.santri?.nisp || ''}</div>
+                </td>
+                <td className="text-xs font-semibold text-slate-700">{p.jenis}</td>
+                <td>
+                  <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold ${TINGKAT_COLOR[p.tingkat]}`}>
+                    {p.tingkat}
+                  </span>
+                </td>
+                <td className="text-xs text-slate-600">{p.tindakan || '-'}</td>
+                <td className="text-xs text-slate-600">{p.petugas?.nama_lengkap || '-'}</td>
+                <td className="text-right pr-4">
+                  <button
+                    onClick={() => handleSoftDelete(p.id)}
+                    className="btn-action-danger"
+                  >
+                    🗑️ Hapus
+                  </button>
                 </td>
               </tr>
-            ) : (
-              list.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/80">
-                  <td className="font-mono text-xs text-slate-600">
-                    {new Date(p.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </td>
-                  <td>
-                    <div className="font-bold text-slate-900 text-xs">{p.santri?.nama_lengkap || '-'}</div>
-                    <div className="text-[10px] text-slate-500 font-mono">{p.santri?.nisp || ''}</div>
-                  </td>
-                  <td className="text-xs font-semibold text-slate-700">{p.jenis}</td>
-                  <td>
-                    <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold ${TINGKAT_COLOR[p.tingkat]}`}>
-                      {p.tingkat}
-                    </span>
-                  </td>
-                  <td className="text-xs text-slate-600">{p.tindakan || '-'}</td>
-                  <td className="text-xs text-slate-600">{p.petugas?.nama_lengkap || '-'}</td>
-                  <td className="text-right">
-                    <button
-                      onClick={() => handleSoftDelete(p.id)}
-                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold border border-rose-200"
-                    >
-                      Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
+        </div>
+        )}
       </div>
 
       {/* Pagination */}

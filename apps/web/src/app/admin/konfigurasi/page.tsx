@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
+import { PageHeader } from '@/components/PageHeader';
 import { FormActions } from '@/components/TableActions';
 
 export default function KonfigurasiSistemPage() {
@@ -57,38 +58,18 @@ export default function KonfigurasiSistemPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            SISTEM & UTILITAS
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Konfigurasi & Parameter Sistem</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Pengaturan Identitas Lembaga, Preferensi QR Code Presensi, & Backup/Restore Parameter
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleBackup}
-            className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition-all flex items-center gap-1.5"
-          >
-            <span>💾</span> Backup
-          </button>
-          <button
-            type="button"
-            onClick={handleRestore}
-            className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition-all flex items-center gap-1.5"
-          >
-            <span>🔄</span> Restore
-          </button>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="⚙️"
+        title="Konfigurasi & Parameter Sistem"
+        subtitle="Pengaturan Identitas Lembaga, Preferensi QR Code Presensi, & Backup/Restore Parameter"
+        badge="SISTEM & UTILITAS"
+        primaryAction={{ label: '💾 Backup Konfigurasi', onClick: handleBackup }}
+        secondaryAction={{ label: '🔄 Restore Backup', onClick: handleRestore, icon: '📥' }}
+      />
 
       <form onSubmit={handleSaveConfig} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
         <div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/PageHeader';
 
 interface SantriOption {
   nisp: string;
@@ -90,28 +91,15 @@ export default function TarikDataSantriPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Top Banner Warning Single Source of Truth */}
-      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs font-semibold flex items-start gap-3 shadow-sm">
-        <span className="text-xl shrink-0">🏛️</span>
-        <div>
-          <strong className="block font-bold mb-0.5">BAB I PASAL 1 — SINGLE SOURCE OF TRUTH (SSOT):</strong>
-          Data santri Pondok Pesantren adalah Master Utama. Madrasah & MI Formal dilarang membuat data santri baru secara manual. Gunakan modul ini untuk menarik penempatan data akademik dari Pondok Pesantren SSOT.
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl font-black text-slate-900">Tarik Data Penempatan Santri Pondok</h1>
-          <p className="text-xs text-slate-500 mt-1">Sinkronisasi Referensi Data Master Pondok ➔ {targetInstansi}</p>
-        </div>
-        <Link
-          href="/admin/santri"
-          className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition-all"
-        >
-          ← Kembali ke Master Santri
-        </Link>
-      </div>
+    <div className="space-y-5">
+      {/* Page Header */}
+      <PageHeader
+        icon="📥"
+        title="Tarik Data Penempatan Santri Pondok"
+        subtitle={`Sinkronisasi Referensi Data Master Pondok ➔ ${targetInstansi}`}
+        badge="SINGLE SOURCE OF TRUTH (SSOT)"
+        secondaryAction={{ label: '← Kembali ke Master Santri', onClick: () => window.location.href = '/admin/santri', icon: '🔙' }}
+      />
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
         <div>

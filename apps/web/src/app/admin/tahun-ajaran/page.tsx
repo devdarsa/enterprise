@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface TahunAjaran {
   id: string;
@@ -22,32 +24,41 @@ export default function TahunAjaranPage() {
     setToast({ isOpen: true, type, title, message });
 
   useEffect(() => {
-    async function fetchTahunAjaranLive() {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/v1/tahun-ajaran');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.data)) {
-            const mapped = json.data.map((t: any) => ({
-              id: t.id,
-              nama: t.nama,
-              semester: t.semester as 'Ganjil' | 'Genap',
-              status: t.is_aktif ? 'AKTIF' : 'NON_AKTIF',
-              tglMulai: t.tanggal_mulai ? new Date(t.tanggal_mulai).toLocaleDateString('id-ID') : '-',
-              tglSelesai: t.tanggal_akhir ? new Date(t.tanggal_akhir).toLocaleDateString('id-ID') : '-',
-            }));
-            setList(mapped);
-          }
-        }
-      } catch (e) {
-        console.error('Gagal memuat tahun ajaran live:', e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchTahunAjaranLive();
+    fetchTahunAjaran();
   }, []);
+
+  const fetchTahunAjaran = async () => {
+    const cached = await getIndexedDBCache<TahunAjaran[]>('general', 'tahun_ajaran_list');
+    if (cached && cached.length > 0) {
+      setList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const res = await fetch('/api/v1/tahun-ajaran');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const mapped = json.data.map((t: any) => ({
+            id: t.id,
+            nama: t.nama,
+            semester: t.semester as 'Ganjil' | 'Genap',
+            status: t.is_aktif ? 'AKTIF' : 'NON_AKTIF',
+            tglMulai: t.tanggal_mulai ? new Date(t.tanggal_mulai).toLocaleDateString('id-ID') : '-',
+            tglSelesai: t.tanggal_akhir ? new Date(t.tanggal_akhir).toLocaleDateString('id-ID') : '-',
+          }));
+          setList(mapped);
+          setIndexedDBCache('general', 'tahun_ajaran_list', mapped);
+        }
+      }
+    } catch (e) {
+      if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat memuat data tahun ajaran.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSetAktif = async (id: string) => {
     try {
@@ -59,83 +70,98 @@ export default function TahunAjaranPage() {
       const json = await res.json();
       if (json.success) {
         setList((prev) =>
-          prev.map((item) => ({
-            ...item,
-            status: item.id === id ? 'AKTIF' : 'NON_AKTIF',
-          }))
+          prev.map((t) => ({ ...t, status: t.id === id ? 'AKTIF' : 'NON_AKTIF' }))
         );
-        showToast('success', 'Tahun Ajaran Diperbarui', 'Tahun ajaran aktif sistem telah diubah.');
-      } else {
-        showToast('error', 'Gagal Mengubah', json.error);
+        showToast('success', 'Tahun Ajaran Aktif', 'Tahun ajaran aktif berhasil diperbarui & dicatat pada Audit Log.');
       }
     } catch {
-      showToast('error', 'Gagal Mengubah', 'Terjadi kesalahan jaringan.');
+      showToast('error', 'Gagal', 'Terjadi kesalahan sistem.');
     }
   };
 
+  const handleExport = () => {
+    const csv = [['Nama Tahun Ajaran','Semester','Status','Tanggal Mulai','Tanggal Selesai'],
+      ...list.map(t => [t.nama, t.semester, t.status, t.tglMulai, t.tglSelesai])
+    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: `tahun-ajaran-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    a.click();
+    showToast('success', 'Export Berhasil', `${list.length} data tahun ajaran diexport.`);
+  };
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            SISTEM & UTILITAS
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Manajemen Tahun Ajaran & Semester</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Pengaturan Periode Akademik Aktif Seluruh Unit Pesantren (Pondok, Madrasah Diniyyah, & MI Formal)
-          </p>
-        </div>
-        <ImportExportToolbar addLabel="Tambah Tahun Ajaran" />
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="📅"
+        title="Manajemen Tahun Ajaran & Kalender Akademik"
+        subtitle="Pengaturan Periode Aktif Tahun Ajaran & Kalender Pendidikan Pesantren"
+        badge="SISTEM & UTILITAS"
+        primaryAction={{ label: '+ Tambah Tahun Ajaran Baru', onClick: () => showToast('info', 'Tambah Periode', 'Form pendaftaran tahun ajaran baru.') }}
+        count={loading ? undefined : list.length}
+        countLabel="periode"
+        onExportExcel={handleExport}
+        onRefresh={fetchTahunAjaran}
+      />
 
       {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="table-container">
         {loading ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-500">Memuat tahun ajaran dari database...</div>
+          <div className="p-6"><SkeletonTable rows={4} cols={5} /></div>
+        ) : list.length === 0 ? (
+          <EmptyState
+            icon="📅"
+            title="Belum Ada Tahun Ajaran"
+            description="Periode akademik akan tampil di sini."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold border-b uppercase tracking-wider text-[10px]">
+            <table className="table-premium">
+              <thead>
                 <tr>
-                  <th className="p-3.5">Tahun Ajaran</th>
-                  <th className="p-3.5">Semester</th>
-                  <th className="p-3.5">Tanggal Mulai</th>
-                  <th className="p-3.5">Tanggal Selesai</th>
-                  <th className="p-3.5">Status Sistem</th>
-                  <th className="p-3.5 text-right">Aksi</th>
+                  <th>Tahun Ajaran</th>
+                  <th>Semester</th>
+                  <th>Status Periode</th>
+                  <th>Tanggal Mulai</th>
+                  <th>Tanggal Selesai</th>
+                  <th className="text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody>
                 {list.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50">
-                    <td className="p-3.5 font-black text-slate-900 text-sm">{item.nama}</td>
-                    <td className="p-3.5 font-bold text-slate-700">{item.semester}</td>
-                    <td className="p-3.5 text-slate-600">{item.tglMulai}</td>
-                    <td className="p-3.5 text-slate-600">{item.tglSelesai}</td>
-                    <td className="p-3.5">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${
-                          item.status === 'AKTIF'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-slate-100 text-slate-600 border-slate-200'
-                        }`}
-                      >
+                  <tr key={item.id}>
+                    <td className="font-bold text-slate-900">{item.nama}</td>
+                    <td className="font-semibold text-slate-700">{item.semester}</td>
+                    <td>
+                      <span className={item.status === 'AKTIF' ? 'badge-aktif' : 'badge-danger'}>
                         {item.status}
                       </span>
                     </td>
-                    <td className="p-3.5 text-right">
-                      {item.status !== 'AKTIF' && (
+                    <td className="text-slate-600 font-mono text-xs">{item.tglMulai}</td>
+                    <td className="text-slate-600 font-mono text-xs">{item.tglSelesai}</td>
+                    <td className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {item.status !== 'AKTIF' && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetAktif(item.id)}
+                            className="btn-action-detail"
+                          >
+                            ⚡ Set Aktif
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => handleSetAktif(item.id)}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] shadow-sm transition-all"
+                          onClick={() => showToast('info', 'Edit Periode', item.nama)}
+                          className="btn-action-edit"
                         >
-                          Set Aktif
+                          ✏️ Edit
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}

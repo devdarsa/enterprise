@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SkeletonTable } from '@/components/Loading';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
 import Modal from '@/components/Modal';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { PageHeader } from '@/components/PageHeader';
 
 interface KamarAsrama {
   id: string;
@@ -95,28 +95,19 @@ export default function ManajemenAsramaPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            DATABASE PONDOK
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Data Asrama, Kamar & Pembina</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Pengelolaan Gedung Asrama, Kamar Santri, Penempatan Kamar, & Pembina Asrama
-          </p>
-        </div>
-
-        <ImportExportToolbar
-          onAdd={() => setIsModalOpen(true)}
-          addLabel="+ Tambah Kamar / Asrama Baru"
-          onExport={() => showToast('info', 'Export Data', 'Mengeksport data kamar ke Excel.')}
-          onPrint={() => showToast('info', 'Cetak Data', 'Mencetak denah & alokasi kamar santri.')}
-        />
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="🏢"
+        title="Data Asrama, Kamar & Pembina"
+        subtitle="Pengelolaan Gedung Asrama, Kamar Santri, Penempatan Kamar, & Pembina Asrama"
+        badge="DATABASE PONDOK"
+        primaryAction={{ label: '+ Tambah Kamar / Asrama Baru', onClick: () => setIsModalOpen(true) }}
+        onExportExcel={() => showToast('info', 'Export Data', 'Mengeksport data kamar ke Excel.')}
+        onRefresh={() => showToast('info', 'Refresh', 'Data refreshed.')}
+      />
 
       {/* Grid Status Quick Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -134,11 +125,12 @@ export default function ManajemenAsramaPage() {
         </div>
       </div>
 
-      {/* Table Data Grid */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="table-container">
         {loading ? (
-          <SkeletonTable label="Memuat data gedung asrama & kamar dari database..." />
+          <div className="p-6"><SkeletonTable rows={4} cols={6} /></div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="table-premium">
           <thead>
             <tr>
@@ -147,7 +139,7 @@ export default function ManajemenAsramaPage() {
               <th>Wali / Pembina Kamar</th>
               <th>Kapasitas</th>
               <th>Status</th>
-              <th className="text-right">Aksi Standards (RBAC)</th>
+              <th className="text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -168,19 +160,27 @@ export default function ManajemenAsramaPage() {
                     {kamar.status}
                   </span>
                 </td>
-                <td className="text-right">
-                  <TableActions
-                    onDetail={() => setDetailKamar(kamar)}
-                    onEdit={() => showToast('info', 'Edit Kamar', `Mengedit kamar ${kamar.nomorKamar}`)}
-                    onPenempatan={() => showToast('info', 'Pindah Kamar', `Penempatan / Pindah kamar ${kamar.nomorKamar}`)}
-                    onArsip={() => showToast('info', 'Arsip Kamar', `Diarsipkan.`)}
-                    onDelete={() => handleDelete(kamar.id, kamar.nomorKamar)}
-                  />
+                <td className="text-right pr-4">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => setDetailKamar(kamar)}
+                      className="btn-action-detail"
+                    >
+                      🔍 Detail
+                    </button>
+                    <button
+                      onClick={() => handleDelete(kamar.id, kamar.nomorKamar)}
+                      className="btn-action-danger"
+                    >
+                      🗑️ Hapus
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+          </div>
         )}
       </div>
 

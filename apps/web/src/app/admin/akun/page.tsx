@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar } from '@/components/Loading';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface UserAccount {
   id: string;
@@ -46,23 +47,28 @@ export default function ManajemenAkunPage() {
   }, []);
 
   const fetchAccounts = async () => {
+    const cached = await getIndexedDBCache<UserAccount[]>('general', 'accounts_list');
+    if (cached && cached.length > 0) {
+      setUsers(cached);
+    }
+
     try {
       const res = await fetch('/api/v1/akun?limit=100');
       const json = await res.json();
       if (json.success && json.data) {
-        setUsers(
-          json.data.map((u: any) => ({
-            id: u.id,
-            nama: u.nama,
-            email: u.email,
-            role: u.primaryRole,
-            instansi: 'PONDOK',
-            status: u.email_verified ? 'AKTIF' : 'AKTIF',
-          }))
-        );
+        const mapped = json.data.map((u: any) => ({
+          id: u.id,
+          nama: u.nama,
+          email: u.email,
+          role: u.primaryRole,
+          instansi: 'PONDOK',
+          status: u.email_verified ? 'AKTIF' : 'AKTIF',
+        }));
+        setUsers(mapped);
+        setIndexedDBCache('general', 'accounts_list', mapped);
       }
     } catch {
-      showToast('error', 'Gagal Memuat', 'Tidak dapat memuat daftar akun.');
+      if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat memuat daftar akun.');
     }
   };
 
@@ -172,82 +178,89 @@ export default function ManajemenAkunPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            SISTEM & UTILITAS (BAB III & IV - ACCOUNT MANAGEMENT STANDARD)
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Manajemen Akun & Role RBAC</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Pembuatan Akun Berbasis Master Database (Data Pengajar & Pengurus) & Reset Password
-          </p>
-        </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="🔐"
+        title="Manajemen Akun & Role RBAC"
+        subtitle="Pembuatan Akun Berbasis Master Database (Data Pengajar & Pengurus) & Reset Password"
+        badge="SISTEM & UTILITAS"
+        primaryAction={{ label: '+ Akun Guru', onClick: () => handleOpenCreateModal('GURU') }}
+        secondaryAction={{ label: '+ Akun Pengurus', onClick: () => handleOpenCreateModal('PENGURUS'), icon: '👥' }}
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari nama pengguna, email, atau role..."
+        count={filtered.length}
+        countLabel="akun"
+        onExportExcel={() => {
+          const csv = [['Nama Pengguna','Email','Role','Instansi','Status'],
+            ...filtered.map(u => [u.nama, u.email, u.role, u.instansi, u.status])
+          ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+          const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+            download: `master-akun-${new Date().toISOString().slice(0, 10)}.csv`,
+          });
+          a.click();
+          showToast('success', 'Export Berhasil', `${filtered.length} data akun diexport.`);
+        }}
+        onRefresh={fetchAccounts}
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleOpenCreateModal('GURU')}
-            className="px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
-          >
-            <span>👨‍🏫</span> + Akun Guru
-          </button>
-          <button
-            onClick={() => handleOpenCreateModal('PENGURUS')}
-            className="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
-          >
-            <span>👥</span> + Akun Pengurus
-          </button>
-        </div>
+      {/* Table */}
+      <div className="table-container">
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon="🔐"
+            title="Belum Ada Akun Terdaftar"
+            description="Daftar akun pengguna akan tampil di sini."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Nama Pengguna</th>
+                  <th>Email Address</th>
+                  <th>Role Hak Akses</th>
+                  <th>Instansi Scope</th>
+                  <th>Status Akun</th>
+                  <th className="text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((u) => (
+                  <tr key={u.id}>
+                    <td className="font-bold text-slate-900">{u.nama}</td>
+                    <td className="font-mono text-xs text-slate-600">{u.email}</td>
+                    <td><span className="badge-aktif">{u.role}</span></td>
+                    <td className="text-xs font-semibold text-slate-700">{u.instansi}</td>
+                    <td><span className={u.status === 'AKTIF' ? 'badge-aktif' : 'badge-danger'}>{u.status}</span></td>
+                    <td className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleResetPassword(u.email)}
+                          className="btn-action-edit"
+                        >
+                          🔑 Reset Pass
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(u.id, u.email)}
+                          className={u.status === 'AKTIF' ? 'btn-action-danger' : 'btn-action-detail'}
+                        >
+                          {u.status === 'AKTIF' ? '⚡ Nonaktifkan' : '⚡ Aktifkan'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <SearchBar value={search} onChange={setSearch} placeholder="Cari nama pengguna, email, atau role..." />
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <table className="table-premium">
-          <thead>
-            <tr>
-              <th>Nama Pengguna</th>
-              <th>Email Address</th>
-              <th>Role Hak Akses</th>
-              <th>Instansi Scope</th>
-              <th>Status Akun</th>
-              <th className="text-right">Aksi Standards (RBAC)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((u) => (
-              <tr key={u.id} className="hover:bg-slate-50/80">
-                <td className="font-bold text-slate-900">{u.nama}</td>
-                <td className="font-mono text-xs text-slate-600">{u.email}</td>
-                <td><span className="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">{u.role}</span></td>
-                <td className="text-xs font-semibold text-slate-700">{u.instansi}</td>
-                <td><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${u.status === 'AKTIF' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>{u.status}</span></td>
-                <td className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={() => handleResetPassword(u.email)}
-                      className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-200"
-                    >
-                      🔑 Reset Pass
-                    </button>
-                    <button
-                      onClick={() => handleToggleStatus(u.id, u.email)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${u.status === 'AKTIF' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}
-                    >
-                      {u.status === 'AKTIF' ? '⚡ Nonaktifkan' : '⚡ Aktifkan'}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
       {/* Modal Pembuatan Akun Dari Master Database (BAB III & IV) */}
       {isModalOpen && (

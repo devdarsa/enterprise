@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Toast, { ToastProps } from '@/components/Toast';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface Guru {
   id: string;
@@ -16,118 +17,177 @@ interface Guru {
 }
 
 export default function MasterGuruPage() {
-  const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
   const [guruList, setGuruList] = useState<Guru[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
-  const showToast = (type: ToastProps['type'], title: string, message?: string) => setToast({ isOpen: true, type, title, message });
+  const showToast = (type: ToastProps['type'], title: string, message?: string) =>
+    setToast({ isOpen: true, type, title, message });
 
-  useEffect(() => {
-    fetchGuru();
-  }, [instansiFilter]);
+  useEffect(() => { fetchGuru(); }, []);
 
   const fetchGuru = async () => {
-    setLoading(true);
+    const cached = await getIndexedDBCache<Guru[]>('guru', 'master_list');
+    if (cached && cached.length > 0) {
+      setGuruList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const params = new URLSearchParams({ limit: '100' });
-      const res = await fetch(`/api/v1/guru?${params}`);
+      const res = await fetch(`/api/v1/guru?limit=100`);
       const json = await res.json();
       if (json.success) {
-        setGuruList(
-          json.data.map((g: any) => ({
-            id: g.id,
-            nip: g.nip || '-',
-            nama: g.nama_lengkap,
-            tugas: g.jadwal?.[0]?.mata_pelajaran?.nama_mapel || 'Pengajar',
-            telepon: g.telepon || '-',
-            instansi: g.user?.user_roles?.[0]?.role?.name || 'MADRASAH',
-            status: 'AKTIF',
-          }))
-        );
-      } else {
-        showToast('error', 'Gagal Memuat Data', json.error || 'Tidak dapat mengambil data pengajar.');
+        const mapped = json.data.map((g: any) => ({
+          id: g.id,
+          nip: g.nip || '-',
+          nama: g.nama_lengkap,
+          tugas: g.jadwal?.[0]?.mata_pelajaran?.nama_mapel || 'Pengajar',
+          telepon: g.telepon || '-',
+          instansi: g.user?.user_roles?.[0]?.role?.name || 'MADRASAH',
+          status: 'AKTIF',
+        }));
+        setGuruList(mapped);
+        setIndexedDBCache('guru', 'master_list', mapped);
       }
     } catch {
-      showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data pengajar.');
+      if (!cached) showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data pengajar.');
     } finally {
       setLoading(false);
     }
   };
 
-
   const handleToggleStatus = (id: string, name: string) => {
     setGuruList((prev) =>
       prev.map((g) => (g.id === id ? { ...g, status: g.status === 'NON_AKTIF' ? 'AKTIF' : 'NON_AKTIF' } : g))
     );
-    showToast('success', 'Status Pengajar Diperbarui', `Status ${name} diperbarui.`);
+    showToast('success', 'Status Diperbarui', `Status ${name} berhasil diperbarui.`);
   };
 
+  const handleExport = () => {
+    const csv = [['NIP','Nama','Tugas','Telepon','Instansi','Status'],
+      ...guruList.map(g => [g.nip, g.nama, g.tugas, g.telepon, g.instansi, g.status || ''])
+    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: `data-pengajar-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    a.click();
+    showToast('success', 'Export Berhasil', `${guruList.length} data pengajar diexport.`);
+  };
+
+  const handleDownloadTemplate = () => {
+    const csv = [['NIP','NAMA_LENGKAP','TUGAS_PENGAMPUAN','NO_HP','INSTANSI(MADRASAH/MI/PONDOK)','STATUS(AKTIF/NON_AKTIF)'],
+      ['G.001','USTADZ AHMAD KHOIRI','Fiqh','08123456789','MADRASAH','AKTIF']
+    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: 'template-import-pengajar.csv',
+    });
+    a.click();
+    showToast('info', 'Template Diunduh', 'Isi template lalu import kembali.');
+  };
+
+  const filtered = search
+    ? guruList.filter(g =>
+        g.nama.toLowerCase().includes(search.toLowerCase()) ||
+        g.nip.toLowerCase().includes(search.toLowerCase()) ||
+        g.tugas.toLowerCase().includes(search.toLowerCase())
+      )
+    : guruList;
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            DATABASE PONDOK
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Data Pengajar, Mustahiq & Munawwib</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Direktori Tenaga Pengajar, Dewan Mustahiq Diniyah, Munawwib, & Guru MI Formal
-          </p>
-        </div>
+      <PageHeader
+        icon="👨‍🏫"
+        title="Data Pengajar, Mustahiq & Munawwib"
+        subtitle="Direktori Tenaga Pengajar, Dewan Mustahiq Diniyah, Munawwib, & Guru MI Formal"
+        badge="DATABASE PONDOK"
+        primaryAction={{ label: '+ Tambah Tenaga Pengajar', onClick: () => showToast('info', 'Tambah Guru', 'Form pendaftaran pengajar baru.') }}
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari nama pengajar, NIP, atau bidang pengampuan..."
+        count={loading ? undefined : filtered.length}
+        countLabel="pengajar"
+        onExportExcel={handleExport}
+        onDownloadTemplate={handleDownloadTemplate}
+        onImport={(file) => showToast('info', 'Import Diterima', `File "${file.name}" sedang diproses.`)}
+        onRefresh={fetchGuru}
+      />
 
-        <ImportExportToolbar
-          onAdd={() => showToast('info', 'Tambah Guru', 'Pendaftaran pengajar baru.')}
-          addLabel="+ Tambah Tenaga Pengajar Baru"
-          onExport={() => showToast('info', 'Export Data', 'Mengeksport data guru.')}
-          onPrint={() => showToast('info', 'Cetak Data', 'Mencetak jadwal & daftar pengajar.')}
-        />
-      </div>
-
-      {/* Table Data Grid */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <table className="table-premium">
-          <thead>
-            <tr>
-              <th>NIP / Kode Guru</th>
-              <th>Nama Pengajar</th>
-              <th>Tugas & Pengampuan</th>
-              <th>No. HP</th>
-              <th>Instansi</th>
-              <th className="text-right">Aksi Standards (RBAC)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {guruList.map((g) => (
-              <tr key={g.id} className="hover:bg-slate-50/80">
-                <td className="font-mono text-xs font-bold text-emerald-800">{g.nip}</td>
-                <td className="font-bold text-slate-900">{g.nama}</td>
-                <td className="text-xs text-slate-700 font-semibold">{g.tugas}</td>
-                <td className="font-mono text-xs text-slate-600">{g.telepon}</td>
-                <td>
-                  <span className="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold text-[10px] border border-emerald-200">
-                    {g.instansi}
-                  </span>
-                </td>
-                <td className="text-right">
-                  <TableActions
-                    onDetail={() => showToast('info', 'Detail Pengajar', `Detail ${g.nama}`)}
-                    onEdit={() => showToast('info', 'Edit Pengajar', `Edit ${g.nama}`)}
-                    onPenempatan={() => showToast('info', 'Penempatan Mengajar', `Penempatan mengajar & jadwal ${g.nama}`)}
-                    onToggleStatus={() => handleToggleStatus(g.id, g.nama)}
-                    statusActive={g.status !== 'NON_AKTIF'}
-                    onDelete={() => {
-                      setGuruList((prev) => prev.filter((item) => item.id !== g.id));
-                      showToast('success', 'Soft Delete', `Data pengajar ${g.nama} dipindahkan ke Recycle Bin.`);
-                    }}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Table */}
+      <div className="table-container">
+        {loading ? (
+          <div className="p-6"><SkeletonTable rows={5} cols={6} /></div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon="👨‍🏫"
+            title="Belum Ada Data Pengajar"
+            description="Data tenaga pengajar akan tampil di sini."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>NIP / Kode</th>
+                  <th>Nama Pengajar</th>
+                  <th>Tugas & Pengampuan</th>
+                  <th>No. HP</th>
+                  <th>Instansi</th>
+                  <th>Status</th>
+                  <th className="text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((g) => (
+                  <tr key={g.id}>
+                    <td className="font-mono text-xs font-bold text-[#135e35]">{g.nip}</td>
+                    <td className="font-bold text-slate-900">{g.nama}</td>
+                    <td className="text-xs text-slate-700 font-semibold">{g.tugas}</td>
+                    <td className="font-mono text-xs text-slate-600">{g.telepon}</td>
+                    <td>
+                      <span className="badge-aktif">{g.instansi}</span>
+                    </td>
+                    <td>
+                      <span className={g.status === 'NON_AKTIF' ? 'badge-nonaktif' : 'badge-aktif'}>
+                        {g.status || 'AKTIF'}
+                      </span>
+                    </td>
+                    <td className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => showToast('info', 'Detail Pengajar', `Detail ${g.nama}`)}
+                          className="btn-action-detail"
+                        >
+                          🔍 Detail
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => showToast('info', 'Edit Pengajar', `Edit ${g.nama}`)}
+                          className="btn-action-edit"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(g.id, g.nama)}
+                          className={g.status === 'NON_AKTIF' ? 'btn-action-secondary' : 'btn-action-secondary'}
+                        >
+                          {g.status === 'NON_AKTIF' ? '⚡ Aktifkan' : '⏸ Nonaktif'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

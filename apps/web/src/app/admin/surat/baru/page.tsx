@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function GeneratorSuratPage() {
   const [nomor, setNomor] = useState(() => `SRT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(100 + Math.random() * 900)}`);
@@ -47,19 +48,15 @@ export default function GeneratorSuratPage() {
 
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Generator Surat Izin Santri</h1>
-          <p className="text-xs text-slate-500">Penerbitan surat resmi dan penyimpanan ke Database Lokal</p>
-        </div>
-        <Link
-          href="/admin/surat"
-          className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-all"
-        >
-          ← Kembali ke Tabel Surat
-        </Link>
-      </div>
+    <div className="space-y-5">
+      {/* Page Header */}
+      <PageHeader
+        icon="✍️"
+        title="Generator Surat Izin Santri"
+        subtitle="Penerbitan surat perizinan resmi dan penyimpanan ke Database Server"
+        badge="PERSURATAN DIGITAL"
+        secondaryAction={{ label: '← Kembali ke Persuratan', onClick: () => window.location.href = '/admin/surat', icon: '🔙' }}
+      />
 
       <div className="p-6 rounded-2xl bg-white border border-emerald-100 shadow-sm">
         {message && (

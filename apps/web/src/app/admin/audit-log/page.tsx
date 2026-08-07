@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SkeletonTable } from '@/components/Loading';
-import { ImportExportToolbar } from '@/components/TableActions';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
 
 interface AuditItem {
   id: string;
@@ -89,32 +89,23 @@ export default function AuditLogRecycleBinPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block mb-1">
-            SISTEM & UTILITAS
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Audit Log System & Recycle Bin</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Jejak Rekam Aktivitas Perubahan Data Real-Time (Immutable) & Pemulihan Berkas Terhapus
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ImportExportToolbar
-            onExport={() => showToast('info', 'Export Audit Log', 'Mengeksport rekap audit log.')}
-            onPrint={() => showToast('info', 'Cetak Audit Log', 'Mencetak laporan audit log.')}
-            onRefresh={fetchData}
-          />
+      {/* Page Header */}
+      <PageHeader
+        icon="📋"
+        title="Audit Log System & Recycle Bin"
+        subtitle="Jejak Rekam Aktivitas Perubahan Data Real-Time (Immutable) & Pemulihan Berkas Terhapus"
+        badge="SISTEM & UTILITAS"
+        onExportExcel={() => showToast('info', 'Export Audit Log', 'Mengeksport rekap audit log ke Excel.')}
+        onRefresh={fetchData}
+        toolbarExtra={
           <div className="flex gap-1.5 shrink-0">
             <button
               onClick={() => setActiveTab('audit')}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'audit' ? 'bg-slate-900 text-white shadow' : 'bg-slate-100 text-slate-700'
+                activeTab === 'audit' ? 'bg-[#0f4928] text-white shadow' : 'bg-slate-100 text-slate-700'
               }`}
             >
               📋 Audit Log ({auditList.length})
@@ -128,15 +119,15 @@ export default function AuditLogRecycleBinPage() {
               🗑️ Recycle Bin ({recycleList.length})
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {loading ? (
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="table-container p-6">
           <SkeletonTable rows={4} cols={5} />
         </div>
       ) : activeTab === 'audit' ? (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="table-container">
           <div className="p-3 bg-amber-50/80 border-b border-amber-200 text-amber-900 text-xs font-bold flex items-center justify-between">
             <span>🛡️ AUDIT LOG IMMUTABLE STANDARD: Audit log dicatat secara otomatis dari database & TIDAK DAPAT diubah maupun dihapus.</span>
           </div>

@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, KeyRound, Eye, EyeOff, ArrowRight, Lock, RefreshCw, Globe, Sparkles } from 'lucide-react';
+import { User, KeyRound, Eye, EyeOff, ArrowRight, Lock, RefreshCw, Sparkles } from 'lucide-react';
 import { LoadingSpinner } from '@/components/Loading';
 
 export default function SekretariatAdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('sekretariat');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,6 @@ export default function SekretariatAdminLoginPage() {
   const [currentDateStr, setCurrentDateStr] = useState('');
 
   useEffect(() => {
-    // Format live date in Indonesian locale
     const now = new Date();
     const formatted = now.toLocaleDateString('id-ID', {
       weekday: 'long',
@@ -39,35 +38,45 @@ export default function SekretariatAdminLoginPage() {
     setError(null);
 
     try {
-      // Call authentication endpoint
+      const email = username.includes('@') ? username.trim() : `${username.toLowerCase().trim()}@darsa.my.id`;
+
       const res = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: username.includes('@') ? username : `${username.toLowerCase()}@darsa.my.id`,
+          email,
           password,
         }),
       });
 
-      const json = await res.json();
-      if (json.success && json.data) {
-        // Save session cookie
-        const sessionData = {
-          userId: json.data.user.id,
-          nama: json.data.user.nama_lengkap || 'Sekretariat Utama',
-          email: json.data.user.email,
-          role: json.data.user.role || 'SEKRETARIAT',
-          instansi: json.data.user.instansi || 'PONDOK',
-        };
-        document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=86400`;
-
-        setTimeout(() => {
-          router.push('/admin/dashboard');
-        }, 500);
-      } else {
-        setError(json.error || 'Autentikasi Sekretariat gagal. Periksa username dan password.');
+      if (!res.ok) {
+        const errorJson = await res.json().catch(() => ({}));
+        setError(errorJson.message || errorJson.error || 'Autentikasi Sekretariat gagal. Periksa username dan password.');
         setLoading(false);
+        return;
       }
+
+      // Ambil profil user & role terdaftar di database dari /api/v1/auth/me
+      const meRes = await fetch('/api/v1/auth/me');
+      const meJson = meRes.ok ? await meRes.json() : null;
+      const u = meJson?.user;
+
+      const instansi = (u?.instansi || (email.includes('madrasah') ? 'MADRASAH' : email.includes('.mi') ? 'MI' : 'PONDOK'));
+
+      const sessionData = {
+        userId: u?.id || 'sekretariat',
+        nama: u?.name || 'Sekretariat Utama',
+        email: u?.email || email,
+        role: u?.role || 'SEKRETARIAT',
+        instansi,
+      };
+
+      document.cookie = `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=86400`;
+      document.cookie = `darsa_instansi=${instansi.toLowerCase()}; path=/; max-age=86400`;
+
+      setTimeout(() => {
+        router.push('/admin/dashboard');
+      }, 300);
     } catch {
       setError('Terjadi kesalahan koneksi ke server database.');
       setLoading(false);
@@ -76,7 +85,7 @@ export default function SekretariatAdminLoginPage() {
 
   return (
     <div className="min-h-screen relative flex flex-col justify-between p-6 sm:p-10 font-sans text-white bg-slate-950 overflow-hidden select-none">
-      {/* Background Image with Dark Vignette & Blur Layer */}
+      {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
           src="/bg-mahad.jpg"
@@ -105,7 +114,6 @@ export default function SekretariatAdminLoginPage() {
           </div>
         </Link>
 
-        {/* Live Date Badge */}
         <div className="hidden sm:flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/80 backdrop-blur-md shadow-lg text-xs font-semibold text-slate-200">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" />
           <span>{currentDateStr || "Jum'at, 7 Agustus 2026"}</span>
@@ -117,7 +125,6 @@ export default function SekretariatAdminLoginPage() {
         {/* Left Column: Glassmorphism Login Card */}
         <div className="lg:col-span-5 w-full max-w-md mx-auto lg:mx-0">
           <div className="bg-slate-900/85 border border-slate-700/80 rounded-3xl p-7 sm:p-8 shadow-2xl shadow-black/80 backdrop-blur-xl relative overflow-hidden space-y-6">
-            {/* Top Border Glow Effect */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400" />
 
             {/* Title & Badge */}
@@ -131,13 +138,13 @@ export default function SekretariatAdminLoginPage() {
                   SOFTWARE CLIENT
                 </span>
                 <h1 className="text-2xl font-black tracking-tight text-white">Portal Sekretariat</h1>
-                <p className="text-xs text-slate-400 font-medium">Super Admin • Sek.Pondok • Sek.Madrasah</p>
+                <p className="text-xs text-slate-400 font-medium">Sekretariat Pondok • Madrasah Diniyah • MI Formal</p>
               </div>
             </div>
 
             {/* Error Banner */}
             {error && (
-              <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-700/80 text-rose-200 text-xs font-semibold flex items-start gap-2.5 animate-shake">
+              <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-700/80 text-rose-200 text-xs font-semibold flex items-start gap-2.5">
                 <span className="text-rose-400 text-sm shrink-0">⚠️</span>
                 <p className="leading-relaxed">{error}</p>
               </div>
@@ -147,7 +154,7 @@ export default function SekretariatAdminLoginPage() {
             <form onSubmit={handleLogin} className="space-y-4 text-xs">
               <div>
                 <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-300 mb-1.5">
-                  USERNAME SEKRETARIAT
+                  USERNAME / EMAIL SEKRETARIAT
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
@@ -158,7 +165,7 @@ export default function SekretariatAdminLoginPage() {
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Masukkan username sekretariat..."
+                    placeholder="Masukkan email / username..."
                     className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-xs font-medium placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:bg-slate-800 focus:ring-1 focus:ring-emerald-500 transition-all"
                   />
                 </div>
@@ -193,10 +200,10 @@ export default function SekretariatAdminLoginPage() {
               <button
                 type="submit"
                 disabled={loading || !username || !password}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-950/50 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-950/50 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2 cursor-pointer"
               >
                 {loading ? (
-                  <LoadingSpinner size="sm" />
+                  <LoadingSpinner size="sm" variant="white" />
                 ) : (
                   <>
                     <span>Masuk Aplikasi Sekretariat</span>
@@ -204,20 +211,11 @@ export default function SekretariatAdminLoginPage() {
                   </>
                 )}
               </button>
-
-              <button
-                type="button"
-                onClick={() => alert('Gunakan username & password Sekretariat resmi yang terdaftar di database.')}
-                className="w-full py-3 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95"
-              >
-                <Globe className="w-4 h-4 text-emerald-400" />
-                <span>Masuk Sekretariat dengan Google</span>
-              </button>
             </form>
           </div>
         </div>
 
-        {/* Right Column: Hero Information Banner & Feature Cards */}
+        {/* Right Column: Hero Information Banner */}
         <div className="lg:col-span-7 space-y-6 text-left hidden lg:block pl-6">
           <div className="space-y-3">
             <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-extrabold text-xs tracking-wider uppercase backdrop-blur-md">
@@ -231,7 +229,6 @@ export default function SekretariatAdminLoginPage() {
             </p>
           </div>
 
-          {/* Feature Cards Grid */}
           <div className="grid grid-cols-2 gap-4 max-w-xl pt-2">
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-1.5 shadow-xl">
               <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
@@ -252,7 +249,6 @@ export default function SekretariatAdminLoginPage() {
         </div>
       </main>
 
-      {/* Bottom Footer */}
       <footer className="relative z-10 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2 border-t border-slate-800/80 pt-4">
         <p>© 2026 Pondok Pesantren Ma'had Darussa'adah Lirboyo Kediri. All rights reserved.</p>
         <p className="font-mono text-slate-500">Dev: DEVELZY Indonesia 2026</p>

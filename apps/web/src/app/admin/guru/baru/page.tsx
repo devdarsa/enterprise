@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function TambahGuruPage() {
   const [nip, setNip] = useState('');
@@ -71,19 +72,15 @@ export default function TambahGuruPage() {
 
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Registrasi Guru & Ustadz Baru</h1>
-          <p className="text-xs text-slate-500">Pendaftaran NIP dan penyimpanan langsung ke Database Lokal</p>
-        </div>
-        <Link
-          href="/admin/guru"
-          className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-all"
-        >
-          ← Kembali ke Tabel
-        </Link>
-      </div>
+    <div className="space-y-5">
+      {/* Page Header */}
+      <PageHeader
+        icon="👨‍🏫"
+        title="Registrasi Pengajar Baru"
+        subtitle="Pendaftaran Tenaga Pengajar, Dewan Mustahiq Diniyah, Munawwib, & Guru MI Formal"
+        badge="DATABASE PONDOK"
+        secondaryAction={{ label: '← Kembali ke Data Pengajar', onClick: () => window.location.href = '/admin/guru', icon: '🔙' }}
+      />
 
       <div className="p-6 rounded-2xl bg-white border border-emerald-100 shadow-sm">
         {message && (

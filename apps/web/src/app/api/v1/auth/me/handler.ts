@@ -4,9 +4,7 @@ import { prisma } from '@darsa/database';
 
 /**
  * GET /api/v1/auth/me
- * Mengembalikan data sesi pengguna yang sedang login beserta role-nya dari database.
- * Diperlukan karena Better Auth GET /api/auth/get-session tidak menyertakan field `role`
- * (role disimpan di tabel user_roles terpisah, bukan di tabel users).
+ * Mengembalikan data sesi pengguna yang sedang login beserta role & instansi dari database.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +20,15 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    const email = (session.user.email || '').toLowerCase();
+
+    // Deteksi instansi berdasarkan email atau cookie
+    let instansi = 'PONDOK';
+    if (email.includes('madrasah')) {
+      instansi = 'MADRASAH';
+    } else if (email.includes('.mi') || email.includes('mi@')) {
+      instansi = 'MI';
+    }
 
     // Ambil role dari tabel user_roles → roles
     const userRoleRecord = await prisma.userRole.findFirst({
@@ -39,6 +46,7 @@ export async function GET(request: NextRequest) {
         email: session.user.email,
         name: (session.user as any).nama_lengkap || session.user.name || session.user.email,
         role,
+        instansi,
       },
     });
   } catch (err: unknown) {

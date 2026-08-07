@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
-import { LoadingSpinner, SkeletonTable, EmptyState, SearchBar } from '@/components/Loading';
-import RegionSelector from '@/components/RegionSelector';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader, InfoBanner } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface PenempatanPendidikan {
   id: string;
@@ -27,7 +28,7 @@ interface Santri {
   nik?: string;
   nama: string;
   nama_panggilan?: string;
-  jenis_kelamin: 'L' | 'P';
+  jenis_kelamin: 'L' | 'P' | 'LAKI_LAKI' | 'PEREMPUAN';
   tempat_lahir?: string;
   tanggal_lahir?: string;
   anak_ke?: number;
@@ -50,45 +51,38 @@ interface Santri {
   penempatan?: PenempatanPendidikan[];
 }
 
+// ─── Tipe Mutasi ─────────────────────────────────────────────────────────────
+type MutasiTipe = 'BOYONG' | 'CUTI' | 'PINDAH' | 'LULUS' | 'PURGE';
+
+const MUTASI_OPTIONS: Array<{
+  tipe: MutasiTipe;
+  label: string;
+  desc: string;
+  icon: string;
+  color: string;
+  group: 'pondok' | 'madrasah';
+}> = [
+  { tipe: 'BOYONG', label: 'Boyong',       desc: 'Keluar permanen dari pondok pesantren',         icon: '🚶', color: 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200',   group: 'pondok'    },
+  { tipe: 'CUTI',   label: 'Cuti',         desc: 'Izin tidak hadir sementara dari pondok',         icon: '⏸️', color: 'bg-amber-50  border-amber-300  text-amber-800  hover:bg-amber-100',  group: 'pondok'    },
+  { tipe: 'PINDAH', label: 'Pindah Unit',  desc: 'Pindah ke unit / madrasah / sekolah lain',       icon: '🔀', color: 'bg-blue-50   border-blue-300   text-blue-800   hover:bg-blue-100',   group: 'madrasah'  },
+  { tipe: 'LULUS',  label: 'Lulus / Tamat',desc: 'Dinyatakan lulus dari madrasah / MI',            icon: '🎓', color: 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100', group: 'madrasah' },
+  { tipe: 'PURGE',  label: 'Hapus Data',   desc: 'Pindahkan ke Recycle Bin (tidak dapat dibatalkan)', icon: '🗑️', color: 'bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100',    group: 'pondok'    },
+];
+
 export default function MasterSantriPage() {
   const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
   const [userRole, setUserRole] = useState<string>('ADMIN_INSTANSI');
   const [santriList, setSantriList] = useState<Santri[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cardTarget, setCardTarget] = useState<Santri | null>(null);
-  const [detailTarget, setDetailTarget] = useState<Santri | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Santri | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
 
-  // Form State — Lengkap BAB II-V
-  const [nisn, setNisn] = useState('');
-  const [nis, setNis] = useState('');
-  const [nisp, setNisp] = useState('');
-  const [nik, setNik] = useState('');
-  const [nama, setNama] = useState('');
-  const [namaPanggilan, setNamaPanggilan] = useState('');
-  const [jenisKelamin, setJenisKelamin] = useState<'L' | 'P'>('L');
-  const [tempatLahir, setTempatLahir] = useState('');
-  const [tanggalLahir, setTanggalLahir] = useState('');
-  const [anakKe, setAnakKe] = useState(1);
-  const [jumlahSaudara, setJumlahSaudara] = useState(1);
-  const [telepon, setTelepon] = useState('');
-  const [jenjang, setJenjang] = useState('Tsanawiyyah');
-  const [kelas, setKelas] = useState('10-A (Tahfidz & Diniyah)');
-  const [kamar, setKamar] = useState('Asrama Abu Bakar 1');
-  const [hafalanJuz, setHafalanJuz] = useState(0);
-  const [alamat, setAlamat] = useState('');
-
-  // Data Wali
-  const [noKk, setNoKk] = useState('');
-  const [nikWali, setNikWali] = useState('');
-  const [namaWali, setNamaWali] = useState('');
-  const [teleponWali, setTeleponWali] = useState('');
-  const [hubunganWali, setHubunganWali] = useState<'AYAH' | 'IBU' | 'WALI'>('AYAH');
-
-  const [submitting, setSubmitting] = useState(false);
+  // Mutasi state
+  const [mutasiTarget, setMutasiTarget] = useState<Santri | null>(null);
+  const [mutasiTipe, setMutasiTipe] = useState<MutasiTipe | null>(null);
+  const [mutasiAlasan, setMutasiAlasan] = useState('');
+  const [mutasiTanggal, setMutasiTanggal] = useState(new Date().toISOString().slice(0, 10));
+  const [mutasiSubmitting, setMutasiSubmitting] = useState(false);
+  const [mutasiConfirmOpen, setMutasiConfirmOpen] = useState(false);
 
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
@@ -102,31 +96,32 @@ export default function MasterSantriPage() {
         if (s.role) setUserRole(s.role);
         if (s.instansi) {
           const inst = s.instansi.toLowerCase() as 'pondok' | 'madrasah' | 'mi';
-          if (['pondok', 'madrasah', 'mi'].includes(inst)) {
-            setInstansiFilter(inst);
-          }
+          if (['pondok', 'madrasah', 'mi'].includes(inst)) setInstansiFilter(inst);
         }
       }
     } catch {}
   }, []);
 
-  useEffect(() => {
-    fetchSantri();
-  }, [instansiFilter]);
+  useEffect(() => { fetchSantri(); }, [instansiFilter]);
 
   const fetchSantri = async () => {
-    setLoading(true);
+    const cacheKey = `list_${instansiFilter}`;
+    // 1. Baca cache IndexedDB lebih dulu (Zero-delay transition)
+    const cached = await getIndexedDBCache<Santri[]>('santri', cacheKey);
+    if (cached && cached.length > 0) {
+      setSantriList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // 2. Fetch server DB (Single Source of Truth) untuk pembaruan
     try {
-      const params = new URLSearchParams({
-        page: '1',
-        limit: '50',
-        ...(search && { search }),
-      });
+      const params = new URLSearchParams({ page: '1', limit: '50', ...(search && { search }) });
       const res = await fetch(`/api/v1/santri?${params}`);
       const json = await res.json();
       if (json.success) {
-        // Map DB fields to component interface
-        const mapped = json.data.map((s: any) => ({
+        const mapped: Santri[] = json.data.map((s: any) => ({
           id: s.id,
           nisp: s.nisp,
           nisn: s.nisn,
@@ -142,7 +137,7 @@ export default function MasterSantriPage() {
           alamat: s.alamat,
           telepon: s.telepon,
           jenjang: s.jenjang,
-          kelas: s.kelas?.nama_kelas || s.kelas_id,
+          kelas: s.kelas?.nama_kelas || s.kelas_id || '-',
           kamar: s.kamar,
           status_tempat_tinggal: s.status_tempat_tinggal,
           instansi: 'PONDOK',
@@ -156,98 +151,50 @@ export default function MasterSantriPage() {
           penempatan: s.penempatan,
         }));
         setSantriList(mapped);
-      } else {
-        showToast('error', 'Gagal Memuat', json.error || 'Tidak dapat mengambil data santri.');
+        setIndexedDBCache('santri', cacheKey, mapped);
       }
     } catch {
-      showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
+      if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddSantri = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nisn.trim() || !nama.trim()) {
-      showToast('warning', 'Form Belum Lengkap', 'NISN dan Nama Santri wajib diisi.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // Ambil pondok_id dan kelas_id dari session/config
-      const sessionRes = await fetch('/api/auth/get-session');
-      const sessionData = sessionRes.ok ? await sessionRes.json() : null;
-
-      const res = await fetch('/api/v1/santri', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nisp: nisp.trim() || `PNDK-${Date.now()}`,
-          nisn: nisn.trim(),
-          nis: nis.trim() || undefined,
-          nik: nik.trim() || undefined,
-          nama_lengkap: nama.trim(),
-          nama_panggilan: namaPanggilan.trim() || undefined,
-          jenis_kelamin: jenisKelamin,
-          tempat_lahir: tempatLahir.trim() || undefined,
-          tanggal_lahir: tanggalLahir || undefined,
-          anak_ke: anakKe,
-          jumlah_saudara: jumlahSaudara,
-          alamat: alamat.trim() || undefined,
-          telepon: telepon.trim() || undefined,
-          jenjang,
-          kamar,
-          status_tempat_tinggal: 'PONDOK_PESANTREN',
-          hafalan_juz: hafalanJuz,
-          nik_wali: nikWali.trim() || undefined,
-          nama_wali: namaWali.trim() || undefined,
-          telepon_wali: teleponWali.trim() || undefined,
-          hubungan_wali: hubunganWali,
-          no_kk: noKk.trim() || undefined,
-          // Sementara gunakan ID pondok/kelas dari env atau query
-          pondok_id: process.env.NEXT_PUBLIC_PONDOK_ID || '',
-          kelas_id: '',
-        }),
-      });
-
-      const json = await res.json();
-      if (json.success) {
-        setIsModalOpen(false);
-        fetchSantri();
-        showToast('success', 'Santri Berhasil Ditambahkan', `Data santri ${nama} tersimpan di database.`);
-      } else {
-        showToast('error', 'Gagal Menyimpan', json.error || 'Terjadi kesalahan.');
-      }
-    } catch {
-      showToast('error', 'Gagal Menyimpan', 'Terjadi kesalahan sistem.');
-    } finally {
-      setSubmitting(false);
-    }
+  // ─── Mutasi Handler ────────────────────────────────────────────────────────
+  const openMutasi = (santri: Santri) => {
+    setMutasiTarget(santri);
+    setMutasiTipe(null);
+    setMutasiAlasan('');
+    setMutasiTanggal(new Date().toISOString().slice(0, 10));
+    setMutasiConfirmOpen(false);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
+  const handleMutasiSubmit = async () => {
+    if (!mutasiTarget || !mutasiTipe) return;
+    setMutasiSubmitting(true);
     try {
-      const res = await fetch(`/api/v1/santri/${deleteTarget.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/v1/santri/${mutasiTarget.id}/mutasi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipe: mutasiTipe, alasan: mutasiAlasan, tanggal_efektif: mutasiTanggal }),
+      });
       const json = await res.json();
       if (json.success) {
-        setDeleteTarget(null);
+        setMutasiTarget(null);
+        setMutasiConfirmOpen(false);
         fetchSantri();
-        showToast('success', 'Soft Delete Berhasil', `Data ${deleteTarget.nama} dipindahkan ke Recycle Bin.`);
+        showToast('success', 'Mutasi Berhasil', json.message || 'Status santri berhasil diperbarui.');
       } else {
-        showToast('error', 'Gagal Menghapus', json.error);
+        showToast('error', 'Gagal Mutasi', json.error);
       }
     } catch {
       showToast('error', 'Error', 'Gagal terhubung ke server.');
     } finally {
-      setDeleting(false);
+      setMutasiSubmitting(false);
     }
   };
 
   const filtered = useMemo(() => {
-
     if (!search.trim()) return santriList;
     const q = search.toLowerCase();
     return santriList.filter(
@@ -260,76 +207,102 @@ export default function MasterSantriPage() {
     );
   }, [santriList, search]);
 
+  const genderBadge = (g: string) =>
+    g === 'L' || g === 'LAKI_LAKI'
+      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+      : 'bg-pink-50 text-pink-700 border border-pink-200';
+  const genderLabel = (g: string) =>
+    g === 'L' || g === 'LAKI_LAKI' ? 'LAKI_LAKI' : 'PEREMPUAN';
+
+  const selectedMutasiOption = MUTASI_OPTIONS.find(o => o.tipe === mutasiTipe);
+
+  // ── Export / Import helpers ────────────────────────────────────────────────
+  const handleExportExcel = () => {
+    const rows = filtered.map(s => ([
+      s.nisp || '', s.nisn, s.nama, s.jenis_kelamin === 'LAKI_LAKI' || s.jenis_kelamin === 'L' ? 'L' : 'P',
+      s.kelas, s.kamar || '', s.status, s.nama_wali || '', s.nik_wali || '',
+    ]));
+    const header = ['NISP Stambuk','NISN','Nama Lengkap','L/P','Kelas','Kamar','Status','Wali Santri','NIK Wali'];
+    const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `master-santri-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast('success', 'Export Berhasil', `${filtered.length} data santri berhasil diexport.`);
+  };
+
+  const handleDownloadTemplate = () => {
+    const header = ['NISP_STAMBUK','NISN','NAMA_LENGKAP','NAMA_PANGGILAN','JENIS_KELAMIN(LAKI_LAKI/PEREMPUAN)',
+      'TEMPAT_LAHIR','TANGGAL_LAHIR(YYYY-MM-DD)','ALAMAT','NAMA_WALI','NIK_WALI','NO_HP_WALI','HUBUNGAN_WALI(AYAH/IBU/WALI)'];
+    const example = ['181101','0012345678','AHMAD FATIH NAJA','Fatih','LAKI_LAKI','Kediri','2012-07-03',
+      'Jl. Pesantren No 1 Kediri','Bapak Santri','3571010101800001','08123456789','AYAH'];
+    const csv = [header, example].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'template-import-santri.csv'; a.click(); URL.revokeObjectURL(url);
+    showToast('info', 'Template Diunduh', 'Isi template CSV lalu gunakan tombol Import Excel.');
+  };
+
+  const handleImport = async (file: File) => {
+    showToast('info', 'Import Diterima', `File "${file.name}" sedang diproses...`);
+    // TODO: implement server-side import
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Single Source of Truth Banner */}
-      <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs font-medium flex items-start gap-3">
-        <span className="text-base shrink-0">🏛️</span>
-        <div>
-          <strong className="block font-bold mb-0.5">BAB I PASAL 1 — SINGLE SOURCE OF TRUTH:</strong>
-          Pondok merupakan Master Database seluruh Santri/Santriwati. Identitas santri hanya dibuat 1 kali pada Database Pondok. Unit Madrasah & MI tidak membuat data santri baru, hanya memanggil/mereferensikan data penempatan pendidikan.
-        </div>
-      </div>
+      {/* Page Header + Toolbar */}
+      <PageHeader
+        icon="🎓"
+        title={`Master Data Santri (${instansiFilter.toUpperCase()})`}
+        subtitle={
+          instansiFilter === 'pondok'
+            ? 'Pondok Pesantren — Single Source of Truth Seluruh Siswa/Siswi'
+            : `Referensi Data Akademik & Penempatan Unit ${instansiFilter.toUpperCase()}`
+        }
+        badge="DATABASE PONDOK"
+        primaryAction={
+          instansiFilter === 'pondok'
+            ? { label: '📝 Registrasi Master Santri', onClick: () => (window.location.href = '/admin/santri/baru') }
+            : { label: '📥 Tarik Data Pondok', onClick: () => (window.location.href = '/admin/santri/tarik'), gold: true }
+        }
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari nama, NISN, NISP stambuk, NIK Wali, atau kelas..."
+        count={loading ? undefined : filtered.length}
+        countLabel="santri"
+        onExportExcel={handleExportExcel}
+        onDownloadTemplate={handleDownloadTemplate}
+        onImport={handleImport}
+        onRefresh={fetchSantri}
+        canWrite={instansiFilter === 'pondok'}
+      />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <h1 className="text-xl font-black text-slate-900 leading-tight">Master Data Santri ({instansiFilter.toUpperCase()})</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            {instansiFilter === 'pondok'
-              ? 'Pondok Pesantren - Master Single Source of Truth Seluruh Siswa/Siswi'
-              : `Referensi Data Akademik & Penempatan Unit ${instansiFilter.toUpperCase()}`
-            }
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {instansiFilter === 'pondok' ? (
-            <Link
-              href="/admin/santri/baru"
-              className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2"
-            >
-              <span>📝</span> Registrasi Master Santri (Pondok)
-            </Link>
-          ) : (
-            <Link
-              href="/admin/santri/tarik"
-              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all inline-flex items-center gap-2"
-            >
-              <span>📥</span> Tarik Penempatan Data Santri Pondok
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Search Bar & Count */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="flex-1 w-full">
-          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama, NISN, NISP stambuk, NIK Wali, atau kelas..." />
-        </div>
-        {!loading && (
-          <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl">
-            {filtered.length} santri
-          </span>
-        )}
-      </div>
+      {/* SSoT Banner */}
+      <InfoBanner icon="🏛️" title="BAB I PASAL 1 — SINGLE SOURCE OF TRUTH:" variant="brand">
+        Pondok merupakan Master Database seluruh Santri/Santriwati. Identitas santri hanya dibuat 1 kali pada Database Pondok.
+        Unit Madrasah & MI tidak membuat data santri baru, hanya memanggil/mereferensikan data penempatan pendidikan.
+      </InfoBanner>
 
       {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="table-container overflow-x-auto">
         {loading ? (
-          <div className="p-4">
-            <SkeletonTable rows={5} cols={6} />
-          </div>
+          <div className="p-6"><SkeletonTable rows={5} cols={6} /></div>
         ) : filtered.length === 0 ? (
           <EmptyState
             icon="🎓"
             title={search ? 'Santri Tidak Ditemukan' : 'Belum Ada Data Santri'}
-            description={search
-              ? `Tidak ada santri yang cocok dengan pencarian "${search}".`
-              : `Belum ada santri terdaftar di instansi ${instansiFilter}.`
+            description={
+              search
+                ? `Tidak ada santri yang cocok dengan pencarian "${search}".`
+                : `Belum ada santri terdaftar di instansi ${instansiFilter}.`
             }
-            action={instansiFilter === 'pondok' ? { label: '📝 Registrasi Santri Baru', onClick: () => window.location.href = '/admin/santri/baru' } : undefined}
+            action={instansiFilter === 'pondok'
+              ? { label: '📝 Registrasi Santri Baru', onClick: () => (window.location.href = '/admin/santri/baru') }
+              : undefined}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -354,10 +327,8 @@ export default function MasterSantriPage() {
                       <div className="text-[11px] text-slate-500 font-mono">NISN: {santri.nisn}</div>
                     </td>
                     <td>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        santri.jenis_kelamin === 'L' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-pink-50 text-pink-700 border border-pink-200'
-                      }`}>
-                        {santri.jenis_kelamin}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${genderBadge(santri.jenis_kelamin)}`}>
+                        {genderLabel(santri.jenis_kelamin)}
                       </span>
                     </td>
                     <td>
@@ -375,32 +346,31 @@ export default function MasterSantriPage() {
                     </td>
                     <td className="text-xs text-slate-500">{santri.kamar || 'Asrama Utama'}</td>
                     <td>
-                      <div className="font-bold text-slate-800 text-xs">{santri.nama_wali || 'Bapak Hendra'}</div>
-                      <div className="text-[10px] text-amber-800 font-mono font-bold">NIK: {santri.nik_wali || '3571012304850001'}</div>
+                      <div className="font-bold text-slate-800 text-xs">{santri.nama_wali || '-'}</div>
+                      <div className="text-[10px] text-amber-800 font-mono font-bold">NIK: {santri.nik_wali || '-'}</div>
                     </td>
-                    <td className="text-right">
+
+                    {/* ── AKSI KOLOM ── */}
+                    <td className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setDetailTarget(santri)}
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[11px] font-bold border border-emerald-200 transition-all flex items-center gap-1"
+                        {/* Detail → halaman detail */}
+                        <Link
+                          href={`/admin/santri/${santri.id}`}
+                          className="btn-action-detail"
+                          title="Lihat detail profil santri"
                         >
-                          <span>🔍</span> Detail BAB VI
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCardTarget(santri)}
-                          className="px-2.5 py-1.5 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 text-[11px] font-bold border border-teal-200 transition-all flex items-center gap-1"
-                        >
-                          <span>📱</span> Kartu
-                        </button>
+                          🔍 Detail
+                        </Link>
+
+                        {/* Mutasi */}
                         {instansiFilter === 'pondok' && (
                           <button
                             type="button"
-                            onClick={() => setDeleteTarget(santri)}
-                            className="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-[11px] font-bold border border-rose-200 transition-all"
+                            onClick={() => openMutasi(santri)}
+                            className="btn-action-mutasi"
+                            title="Mutasi santri (Boyong/Cuti/Pindah/Lulus)"
                           >
-                            Hapus
+                            🔄 Mutasi
                           </button>
                         )}
                       </div>
@@ -413,171 +383,157 @@ export default function MasterSantriPage() {
         )}
       </div>
 
-      {/* Modal Detail Profil Santri & Penempatan Dual-Enrollment (BAB VI) */}
+      {/* ── MODAL MUTASI ─────────────────────────────────────────────────────── */}
       <Modal
-        isOpen={!!detailTarget}
-        onClose={() => setDetailTarget(null)}
-        title="Tampilan Profil Santri & Penempatan Pendidikan (BAB VI)"
+        isOpen={!!mutasiTarget && !mutasiConfirmOpen}
+        onClose={() => setMutasiTarget(null)}
+        title={`🔄 Mutasi Santri — ${mutasiTarget?.nama ?? ''}`}
       >
-        {detailTarget && (
-          <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-            {/* Header info */}
-            <div className="p-4 rounded-2xl bg-emerald-900 text-white space-y-2">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block">SINGLE SOURCE OF TRUTH PONDOK</span>
-                  <h3 className="text-lg font-black">{detailTarget.nama}</h3>
-                  <p className="text-xs text-emerald-200 font-mono">Nomor Stambuk : {detailTarget.nisp || '240001'}</p>
-                </div>
-                <span className="px-2.5 py-1 rounded bg-amber-400 text-emerald-950 font-black text-[10px]">
-                  {detailTarget.status}
-                </span>
+        {mutasiTarget && (
+          <div className="space-y-5">
+            {/* Info Santri */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center font-black text-emerald-800 text-sm shrink-0">
+                {mutasiTarget.nama.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-black text-slate-900">{mutasiTarget.nama}</p>
+                <p className="text-slate-500 font-mono">NISP: {mutasiTarget.nisp} • Status: <strong className="text-emerald-700">{mutasiTarget.status}</strong></p>
               </div>
             </div>
 
-            {/* Identitas Permanen (BAB II) */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-              <h4 className="font-bold text-slate-800 border-b pb-1">👤 Identitas Dasar Permanen (BAB II)</h4>
-              <div className="grid grid-cols-2 gap-2 text-slate-600">
-                <div><span className="text-slate-400">NIK Santri:</span> {detailTarget.nik || '-'}</div>
-                <div><span className="text-slate-400">NISN:</span> {detailTarget.nisn || '-'}</div>
-                <div><span className="text-slate-400">Jenis Kelamin:</span> {detailTarget.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
-                <div><span className="text-slate-400">Tempat, Tgl Lahir:</span> {detailTarget.tempat_lahir || 'Kediri'}, {detailTarget.tanggal_lahir || '2008-08-15'}</div>
-                <div><span className="text-slate-400">Anak Ke / Saudara:</span> {detailTarget.anak_ke || 1} dari {detailTarget.jumlah_saudara || 3} bersaudara</div>
-                <div><span className="text-slate-400">Status Asrama:</span> {detailTarget.status_tempat_tinggal || 'PONDOK_PESANTREN'}</div>
-              </div>
-              <div className="pt-1 text-slate-700">
-                <span className="text-slate-400 block mb-0.5">Alamat Kependudukan Lengkap (BAB IV):</span>
-                <strong className="block text-[11px] text-slate-900 bg-white p-2 rounded-xl border border-slate-200">
-                  {detailTarget.alamat || 'Jl. KH. Abdul Karim No. 12 RT 02/RW 03, Desa/Kel. LIRBOYO, Kec. MOJOROTO, KOTA KEDIRI, Prov. JAWA TIMUR, Kode Pos 64117'}
-                </strong>
-              </div>
-            </div>
+            {/* Pilih Tipe Mutasi */}
+            <div>
+              <p className="text-xs font-black text-slate-700 mb-3">Pilih Jenis Mutasi:</p>
 
-            {/* Data Orang Tua / Wali (BAB III) */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-              <h4 className="font-bold text-slate-800 border-b pb-1">👨‍👩‍👧 Data Orang Tua / Wali (BAB III)</h4>
-              <div className="grid grid-cols-2 gap-2 text-slate-600">
-                <div><span className="text-slate-400">Nama Wali:</span> {detailTarget.nama_wali || 'Bapak Hendra'}</div>
-                <div><span className="text-slate-400">NIK Wali (Portal Sync):</span> <strong className="font-mono text-amber-800">{detailTarget.nik_wali || '3571012304850001'}</strong></div>
-                <div><span className="text-slate-400">No. HP Wali:</span> {detailTarget.telepon_wali || '081399887766'}</div>
-                <div><span className="text-slate-400">Hubungan:</span> {detailTarget.hubungan_wali || 'AYAH'}</div>
-                <div><span className="text-slate-400">No. KK:</span> {detailTarget.no_kk || '3571019908050012'}</div>
-              </div>
-            </div>
-
-            {/* Tampilan Penempatan Pendidikan Santri (BAB VI & BAB VIII) */}
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3 text-xs">
-              <div className="flex justify-between items-center border-b border-emerald-200 pb-2">
-                <h4 className="font-black text-emerald-950">📚 Tampilan Penempatan Pendidikan Santri (BAB VI)</h4>
-                <span className="text-[10px] text-emerald-800 font-bold">Dual-Enrollment Support</span>
-              </div>
-
-              {detailTarget.penempatan && detailTarget.penempatan.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {detailTarget.penempatan.map((p) => (
-                    <div key={p.id} className="p-3 rounded-xl bg-white border border-emerald-200 space-y-1">
-                      <span className="px-2 py-0.5 rounded bg-emerald-700 text-white font-extrabold text-[10px]">
-                        Unit: {p.unit}
-                      </span>
-                      <div className="pt-1">
-                        <span className="text-slate-500 block">Tingkat: <strong className="text-slate-800">{p.tingkat}</strong></span>
-                        <span className="text-slate-500 block">Kelas: <strong className="text-slate-800">{p.kelas}</strong></span>
-                        <span className="text-slate-500 block">Tahun Ajaran: <strong className="text-slate-800">{p.tahun_ajaran}</strong></span>
-                        <span className="text-slate-500 block">Wali Kelas / Mustahiq: <strong className="text-slate-800">{p.wali_kelas}</strong></span>
+              <div className="mb-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">🕌 Pondok Pesantren</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {MUTASI_OPTIONS.filter(o => o.group === 'pondok').map(opt => (
+                    <button
+                      key={opt.tipe}
+                      type="button"
+                      onClick={() => setMutasiTipe(opt.tipe)}
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left text-xs font-semibold transition-all ${
+                        mutasiTipe === opt.tipe
+                          ? (opt.tipe === 'PURGE' ? 'border-rose-500 bg-rose-50' : 'border-emerald-500 bg-emerald-50 text-emerald-900')
+                          : opt.color
+                      }`}
+                    >
+                      <span className="text-base shrink-0 mt-0.5">{opt.icon}</span>
+                      <div>
+                        <span className="font-black block">{opt.label}</span>
+                        <span className="text-[10px] opacity-80">{opt.desc}</span>
                       </div>
-                    </div>
+                      {mutasiTipe === opt.tipe && (
+                        <span className="ml-auto shrink-0 mt-0.5 text-emerald-600 font-black">✓</span>
+                      )}
+                    </button>
                   ))}
                 </div>
-              ) : (
-                <div className="p-3 rounded-xl bg-white border border-emerald-200 space-y-1">
-                  <span className="px-2 py-0.5 rounded bg-emerald-700 text-white font-extrabold text-[10px]">
-                    Unit: MADRASAH DINIYAH
-                  </span>
-                  <div className="pt-1">
-                    <span className="text-slate-500 block">Tingkat: <strong className="text-slate-800">Tsanawiyyah</strong></span>
-                    <span className="text-slate-500 block">Kelas: <strong className="text-slate-800">{detailTarget.kelas}</strong></span>
-                    <span className="text-slate-500 block">Tahun Ajaran: <strong className="text-slate-800">2025/2026 (Ganjil)</strong></span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setDetailTarget(null)}
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
-            >
-              Tutup Detail Profil
-            </button>
-          </div>
-        )}
-      </Modal>
-
-      {/* Kartu Santri Digital Modal */}
-      <Modal
-        isOpen={!!cardTarget}
-        onClose={() => setCardTarget(null)}
-        title="Kartu Digital Santri (QR Presensi)"
-      >
-        {cardTarget && (
-          <div className="space-y-6 text-center py-2">
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white border-2 border-amber-400 shadow-2xl relative overflow-hidden text-left space-y-4">
-              <div className="flex items-center justify-between border-b border-emerald-700/80 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full border border-amber-400 bg-white/10 flex items-center justify-center font-bold text-xs">
-                    🕌
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-amber-300 uppercase tracking-widest block">KARTU PRESENSI DIGITAL</span>
-                    <h4 className="text-xs font-black">MA'HAD DARUSSA'ADAH LIRBOYO</h4>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono bg-amber-400 text-emerald-950 px-2 py-0.5 rounded font-black">ACTIVE</span>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl font-black shrink-0">
-                  {cardTarget.nama.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-black text-white">{cardTarget.nama}</h3>
-                  <p className="text-xs text-emerald-200 font-mono">NISN: {cardTarget.nisn} • Stambuk: {cardTarget.nisp}</p>
-                  <p className="text-[11px] text-amber-300 font-semibold">{cardTarget.kelas} • Wali: {cardTarget.nama_wali || 'Bapak Hendra'}</p>
-                </div>
-              </div>
-
-              <div className="p-3 bg-white rounded-2xl flex items-center justify-between gap-3 text-slate-900">
-                <div className="w-16 h-16 bg-slate-900 rounded-xl flex items-center justify-center text-white text-3xl font-black font-mono shadow-inner shrink-0">
-                  QR
-                </div>
-                <div className="text-right text-[10px] font-mono text-slate-500">
-                  <span className="block font-bold text-emerald-800">TOTP DYNAMIC GEOLOCATION</span>
-                  <span className="block">Radius: 200 Meter Pos Utama</span>
-                  <span className="block text-[9px] text-slate-400 mt-0.5">NIK Wali: {cardTarget.nik_wali || '3571012304850001'}</span>
+              <div className="mt-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">📚 Madrasah & MI</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {MUTASI_OPTIONS.filter(o => o.group === 'madrasah').map(opt => (
+                    <button
+                      key={opt.tipe}
+                      type="button"
+                      onClick={() => setMutasiTipe(opt.tipe)}
+                      className={`flex items-start gap-2 p-3 rounded-xl border-2 text-left text-xs font-semibold transition-all ${
+                        mutasiTipe === opt.tipe
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
+                          : opt.color
+                      }`}
+                    >
+                      <span className="text-base shrink-0 mt-0.5">{opt.icon}</span>
+                      <div>
+                        <span className="font-black block">{opt.label}</span>
+                        <span className="text-[10px] opacity-80">{opt.desc}</span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2"
-            >
-              <span>🖨️</span> Cetak / Simpan Kartu Santri Digital
-            </button>
+            {/* Form Mutasi — muncul setelah pilih tipe */}
+            {mutasiTipe && (
+              <div className="space-y-3 pt-1 border-t border-slate-100">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Efektif</label>
+                  <input
+                    type="date"
+                    value={mutasiTanggal}
+                    onChange={e => setMutasiTanggal(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Alasan / Keterangan {mutasiTipe === 'PURGE' ? '(wajib)' : '(opsional)'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={mutasiAlasan}
+                    onChange={e => setMutasiAlasan(e.target.value)}
+                    placeholder={
+                      mutasiTipe === 'BOYONG' ? 'Contoh: Pulang kampung atas permintaan keluarga...' :
+                      mutasiTipe === 'CUTI'   ? 'Contoh: Sakit, keperluan keluarga mendesak...' :
+                      mutasiTipe === 'PINDAH' ? 'Contoh: Pindah ke MI Wahid Hasyim...' :
+                      mutasiTipe === 'LULUS'  ? 'Contoh: Lulus Kelas 6 Madin Ibtidaiyah...' :
+                                                'Wajib sebutkan alasan penghapusan data...'
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+                  />
+                </div>
+
+                {/* Warning untuk PURGE */}
+                {mutasiTipe === 'PURGE' && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-medium flex items-start gap-2">
+                    <span className="shrink-0">⚠️</span>
+                    <span>Data akan dipindahkan ke Recycle Bin. Admin dapat memulihkan dari menu Audit Log & Recycle Bin.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tombol Aksi */}
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setMutasiTarget(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={!mutasiTipe || (mutasiTipe === 'PURGE' && !mutasiAlasan.trim())}
+                onClick={() => setMutasiConfirmOpen(true)}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                  mutasiTipe === 'PURGE'
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                    : 'bg-orange-500 hover:bg-orange-600 text-white'
+                }`}
+              >
+                {selectedMutasiOption ? `${selectedMutasiOption.icon} Proses ${selectedMutasiOption.label}` : 'Pilih Jenis Mutasi'}
+              </button>
+            </div>
           </div>
         )}
       </Modal>
 
-      {/* Delete Confirm Dialog */}
+      {/* Confirm Mutasi */}
       <ConfirmDialog
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
-        title={`Hapus Santri: ${deleteTarget?.nama ?? ''}`}
-        message={`Data santri ${deleteTarget?.nama ?? ''} (NISN: ${deleteTarget?.nisn ?? ''}) akan dihapus permanen dari Database Lokal. Tindakan ini tidak dapat dibatalkan.`}
-        confirmLabel="Ya, Hapus Santri"
-        loading={deleting}
+        isOpen={mutasiConfirmOpen}
+        onClose={() => setMutasiConfirmOpen(false)}
+        onConfirm={handleMutasiSubmit}
+        title={`Konfirmasi: ${selectedMutasiOption?.label ?? ''} — ${mutasiTarget?.nama ?? ''}`}
+        message={`Anda akan memproses mutasi "${selectedMutasiOption?.label}" untuk santri ${mutasiTarget?.nama} (NISP: ${mutasiTarget?.nisp}). ${mutasiTipe === 'PURGE' ? 'Data akan dihapus ke Recycle Bin.' : 'Status santri akan diperbarui di database.'} Apakah Anda yakin?`}
+        confirmLabel={`Ya, ${selectedMutasiOption?.label ?? 'Proses'}`}
+        loading={mutasiSubmitting}
       />
     </div>
   );

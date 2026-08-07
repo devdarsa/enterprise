@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar, SkeletonTable } from '@/components/Loading';
-import { TableActions, ImportExportToolbar } from '@/components/TableActions';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface Pengurus {
   id: string;
@@ -25,33 +26,42 @@ export default function DataPengurusPage() {
     setToast({ isOpen: true, type, title, message });
 
   useEffect(() => {
-    async function fetchPengurus() {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/v1/pengurus');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.data)) {
-            const mapped = json.data.map((p: any) => ({
-              id: p.id,
-              nik: p.nik || '-',
-              nama: p.nama_lengkap,
-              jabatan: p.jabatan,
-              unit: (p.unit as any) || 'PONDOK',
-              telepon: p.telepon || '-',
-              status: (p.status as any) || 'AKTIF',
-            }));
-            setList(mapped);
-          }
-        }
-      } catch (e) {
-        console.error('Gagal memuat pengurus:', e);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchPengurus();
   }, []);
+
+  const fetchPengurus = async () => {
+    const cached = await getIndexedDBCache<Pengurus[]>('general', 'pengurus_list');
+    if (cached && cached.length > 0) {
+      setList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const res = await fetch('/api/v1/pengurus');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const mapped = json.data.map((p: any) => ({
+            id: p.id,
+            nik: p.nik || '-',
+            nama: p.nama_lengkap,
+            jabatan: p.jabatan,
+            unit: (p.unit as any) || 'PONDOK',
+            telepon: p.telepon || '-',
+            status: (p.status as any) || 'AKTIF',
+          }));
+          setList(mapped);
+          setIndexedDBCache('general', 'pengurus_list', mapped);
+        }
+      }
+    } catch (e) {
+      if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat mengambil data pengurus.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = list.filter(
     (p) => p.nama.toLowerCase().includes(search.toLowerCase()) || p.jabatan.toLowerCase().includes(search.toLowerCase())
@@ -59,84 +69,101 @@ export default function DataPengurusPage() {
 
   const handleToggleStatus = (id: string, name: string) => {
     setList((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: p.status === 'AKTIF' ? 'NON_AKTIF' : 'AKTIF' } : p))
+      prev.map((p) => (p.id === id ? { ...p, status: p.status === 'NON_AKTIF' ? 'AKTIF' : 'NON_AKTIF' } : p))
     );
-    showToast('success', 'Status Pengurus Diperbarui', `Status ${name} berhasil diubah.`);
+    showToast('success', 'Status Diperbarui', `Status ${name} diperbarui.`);
+  };
+
+  const handleExport = () => {
+    const csv = [['NIK','Nama Pengurus','Jabatan / Divisi','Unit Instansi','No. HP','Status'],
+      ...filtered.map(p => [p.nik, p.nama, p.jabatan, p.unit, p.telepon, p.status])
+    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: `pengurus-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    a.click();
+    showToast('success', 'Export Berhasil', `${filtered.length} data pengurus diexport.`);
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <h1 className="text-xl font-black text-slate-900 leading-tight">Data Pengurus Pesantren & Instansi</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Struktur Pengurus Pondok, Madrasah Diniyyah, & MI Formal</p>
-        </div>
-        <ImportExportToolbar addLabel="Tambah Pengurus" />
-      </div>
-
-      {/* Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-3">
-        <div className="flex-1">
-          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama pengurus atau jabatan..." />
-        </div>
-        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border">
-          {filtered.length} Pengurus
-        </span>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="👥"
+        title="Data Pengurus & Pengelola Pesantren"
+        subtitle="Direktori Pengurus Pondok Pesantren, Sekretariat, & Pengurus Komplek"
+        badge="DATABASE PONDOK"
+        primaryAction={{ label: '+ Tambah Pengurus Baru', onClick: () => showToast('info', 'Tambah Pengurus', 'Form pendaftaran pengurus baru.') }}
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari nama pengurus atau jabatan..."
+        count={loading ? undefined : filtered.length}
+        countLabel="pengurus"
+        onExportExcel={handleExport}
+        onRefresh={fetchPengurus}
+      />
 
       {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="table-container">
         {loading ? (
-          <SkeletonTable label="Memuat data pengurus dari database..." />
+          <div className="p-6"><SkeletonTable rows={5} cols={6} /></div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon="👥"
+            title="Belum Ada Data Pengurus"
+            description="Daftar pengurus pesantren akan tampil di sini."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold border-b uppercase tracking-wider text-[10px]">
+            <table className="table-premium">
+              <thead>
                 <tr>
-                  <th className="p-3.5">Nama & Jabatan</th>
-                  <th className="p-3.5">NIK</th>
-                  <th className="p-3.5">Unit Instansi</th>
-                  <th className="p-3.5">Telepon</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5 text-right">Aksi</th>
+                  <th>NIK Pengurus</th>
+                  <th>Nama Lengkap</th>
+                  <th>Jabatan / Divisi</th>
+                  <th>Unit Instansi</th>
+                  <th>No. HP</th>
+                  <th>Status</th>
+                  <th className="text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody>
                 {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50">
-                    <td className="p-3.5">
-                      <span className="font-bold text-slate-900 block text-sm">{item.nama}</span>
-                      <span className="text-[11px] text-slate-500">{item.jabatan}</span>
-                    </td>
-                    <td className="p-3.5 font-mono text-slate-600">{item.nik}</td>
-                    <td className="p-3.5">
-                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase">
-                        {item.unit}
+                  <tr key={item.id}>
+                    <td className="font-mono text-xs font-bold text-[#135e35]">{item.nik}</td>
+                    <td className="font-bold text-slate-900">{item.nama}</td>
+                    <td className="font-semibold text-slate-700">{item.jabatan}</td>
+                    <td><span className="badge-aktif">{item.unit}</span></td>
+                    <td className="font-mono text-xs text-slate-600">{item.telepon}</td>
+                    <td>
+                      <span className={item.status === 'NON_AKTIF' ? 'badge-danger' : 'badge-aktif'}>
+                        {item.status}
                       </span>
                     </td>
-                    <td className="p-3.5 text-slate-600">{item.telepon}</td>
-                    <td className="p-3.5">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(item.id, item.nama)}
-                        className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${
-                          item.status === 'AKTIF'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}
-                      >
-                        {item.status}
-                      </button>
-                    </td>
-                    <td className="p-3.5 text-right">
-                      <TableActions
-                        onDetail={() => showToast('info', 'Detail Pengurus', item.nama)}
-                        onEdit={() => showToast('info', 'Edit Pengurus', item.nama)}
-                        onDelete={() => showToast('info', 'Soft Delete', item.nama)}
-                      />
+                    <td className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => showToast('info', 'Detail Pengurus', item.nama)}
+                          className="btn-action-detail"
+                        >
+                          🔍 Detail
+                        </button>
+                        <button
+                          onClick={() => showToast('info', 'Edit Pengurus', item.nama)}
+                          className="btn-action-edit"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(item.id, item.nama)}
+                          className={item.status === 'NON_AKTIF' ? 'btn-action-detail' : 'btn-action-danger'}
+                        >
+                          {item.status === 'NON_AKTIF' ? '⚡ Aktifkan' : '⏸ Nonaktif'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

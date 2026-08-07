@@ -3,7 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SkeletonTable, EmptyState, SearchBar } from '@/components/Loading';
+import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface SlotJadwal {
   id: string;
@@ -73,28 +75,34 @@ export default function JadwalKBMPage() {
   useEffect(() => { fetchJadwal(); }, [instansiFilter]);
 
   const fetchJadwal = async () => {
-    setLoading(true);
+    const cacheKey = `list_${instansiFilter}`;
+    const cached = await getIndexedDBCache<SlotJadwal[]>('general', cacheKey);
+    if (cached && cached.length > 0) {
+      setJadwalList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const res = await fetch(`/api/v1/jadwal?limit=100`);
+      const res = await fetch(`/api/v1/jadwal?instansi=${instansiFilter}`);
       const json = await res.json();
-      if (json.success) {
-        setJadwalList(
-          json.data.map((j: any) => ({
-            id: j.id,
-            hari: j.hari,
-            jam: j.jam_mulai ? `${j.jam_mulai} - ${j.jam_selesai}` : '-',
-            mapel: j.mata_pelajaran?.nama_mapel || '-',
-            guru: j.guru?.nama_lengkap || '-',
-            ruang: j.ruang || '-',
-            kelas: j.kelas?.nama_kelas || '-',
-            jenis: j.jenis || 'WAJIB',
-          }))
-        );
-      } else {
-        showToast('error', 'Gagal Memuat', json.error || 'Tidak dapat mengambil data jadwal.');
+      if (json.success && Array.isArray(json.data)) {
+        const mapped = json.data.map((j: any) => ({
+          id: j.id,
+          hari: j.hari,
+          jam: `${j.jam_mulai} - ${j.jam_selesai}`,
+          mapel: j.mata_pelajaran?.nama_mapel || j.nama_mapel || 'Mata Pelajaran',
+          guru: j.guru?.nama_lengkap || j.nama_guru || 'Ustadz Pengajar',
+          ruang: j.ruang || 'Ruang KBM',
+          kelas: j.kelas?.nama_kelas || j.nama_kelas || 'Kelas',
+          jenis: j.jenis || 'WAJIB',
+        }));
+        setJadwalList(mapped);
+        setIndexedDBCache('general', cacheKey, mapped);
       }
     } catch {
-      showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
+      if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
     } finally {
       setLoading(false);
     }
@@ -173,63 +181,63 @@ export default function JadwalKBMPage() {
   }, [jadwalList, selectedHari, search]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <h1 className="text-xl font-black text-slate-900 leading-tight">Jadwal KBM & Pelajaran</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Pengaturan jadwal kegiatan belajar mengajar per instansi dari Database Lokal
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary inline-flex items-center gap-2 shrink-0"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Tambah Slot Jadwal
-        </button>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="📅"
+        title="Jadwal KBM & Pelajaran"
+        subtitle="Pengaturan jadwal kegiatan belajar mengajar per instansi dari Database"
+        badge="AKADEMIK & JADWAL"
+        primaryAction={{ label: '+ Tambah Slot Jadwal', onClick: () => setIsModalOpen(true) }}
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari mapel, guru, ruang, kelas..."
+        count={loading ? undefined : filtered.length}
+        countLabel="jadwal"
+        onExportExcel={() => {
+          const csv = [['Hari','Jam','Mata Pelajaran','Guru Pengajar','Ruang','Kelas','Jenis'],
+            ...filtered.map(j => [j.hari, j.jam, j.mapel, j.guru, j.ruang, j.kelas, j.jenis])
+          ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+          const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+            download: `jadwal-kbm-${new Date().toISOString().slice(0, 10)}.csv`,
+          });
+          a.click();
+          showToast('success', 'Export Berhasil', `${filtered.length} jadwal diexport.`);
+        }}
+        onRefresh={fetchJadwal}
+        toolbarExtra={
+          <div className="flex items-center gap-2 shrink-0">
+            <select
+              value={selectedHari}
+              onChange={e => setSelectedHari(e.target.value)}
+              className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer"
+            >
+              <option value="Semua">Semua Hari</option>
+              {HARI_LIST.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
 
-      {/* Filter + Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="flex-1 w-full">
-          <SearchBar value={search} onChange={setSearch} placeholder="Cari mapel, guru, ruang, kelas..." />
-        </div>
-
-        {/* Hari Selector */}
-        <select
-          value={selectedHari}
-          onChange={e => setSelectedHari(e.target.value)}
-          className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer shrink-0"
-        >
-          <option value="Semua">Semua Hari</option>
-          {HARI_LIST.map(h => <option key={h} value={h}>{h}</option>)}
-        </select>
-
-        {/* View Mode Toggle */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500'}`}
-          >
-            📋 Grid
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500'}`}
-          >
-            ☰ Tabel
-          </button>
-        </div>
-      </div>
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500'}`}
+              >
+                📋 Grid
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500'}`}
+              >
+                ☰ Tabel
+              </button>
+            </div>
+          </div>
+        }
+      />
 
       {/* Main Display */}
       {loading ? (

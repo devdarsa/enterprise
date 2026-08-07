@@ -9,11 +9,13 @@
     "postinstall": "prisma generate --schema=prisma/schema.prisma",
     "db:push": "prisma db push",
     "db:seed": "npx tsx src/seed.ts",
+    "db:import-excel": "npx tsx src/import-real-excel.ts",
     "db:studio": "prisma studio",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3"
+    "@prisma/client": "6.19.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

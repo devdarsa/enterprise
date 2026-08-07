@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import RegionSelector from '@/components/RegionSelector';
 import Toast, { ToastProps } from '@/components/Toast';
+import { PageHeader } from '@/components/PageHeader';
 
 interface SantriPondokCandidate {
   id: string;
@@ -196,37 +197,18 @@ export default function RegistrasiSantriBaruPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+    <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            FORMULIR REGISTRASI TERPADU MPHM / DARSA
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Registrasi Santri Baru</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Pendaftaran Biodata Lengkap, Wilayah Indonesia API, dan Penyambungan NIK Wali
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {instansi !== 'PONDOK' && (
-            <button
-              onClick={() => setShowPondokPullModal(true)}
-              className="px-4 py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shadow-md hover:bg-amber-300 transition-all flex items-center gap-1.5"
-            >
-              <span>📥</span> Tarik Data Santri Pondok
-            </button>
-          )}
-          <Link
-            href="/admin/santri"
-            className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-all"
-          >
-            ← Kembali
-          </Link>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        icon="🎓"
+        title="Registrasi Santri Baru"
+        subtitle="Pendaftaran Biodata Lengkap, Wilayah Indonesia API, dan Penyambungan NIK Wali"
+        badge="FORMULIR REGISTRASI TERPADU MPHM / DARSA"
+        primaryAction={instansi !== 'PONDOK' ? { label: '📥 Tarik Data Santri Pondok', onClick: () => setShowPondokPullModal(true) } : undefined}
+        secondaryAction={{ label: '← Kembali ke Data Santri', onClick: () => window.location.href = '/admin/santri', icon: '🔙' }}
+      />
 
       {/* Main Registration Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
