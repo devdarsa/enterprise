@@ -32,7 +32,18 @@ export default function MasterGuruPage() {
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
 
+  const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
+
   useEffect(() => {
+    try {
+      const match = document.cookie.match(/darsa_instansi=([^;]+)/) || document.cookie.match(/darsa_session=([^;]+)/);
+      if (match) {
+        const val = decodeURIComponent(match[1]).toLowerCase();
+        if (val.includes('madrasah')) setInstansiFilter('madrasah');
+        else if (val.includes('mi')) setInstansiFilter('mi');
+        else setInstansiFilter('pondok');
+      }
+    } catch {}
     fetchGuru();
   }, []);
 
@@ -152,18 +163,19 @@ export default function MasterGuruPage() {
         title="Data Pengajar, Mustahiq & Munawwib"
         subtitle="Direktori Tenaga Pengajar, Dewan Mustahiq Diniyah, Munawwib, & Guru MI Formal"
         badge="DATABASE PONDOK"
-        primaryAction={{
-          label: '+ Tambah Tenaga Pengajar',
-          onClick: () => (window.location.href = '/admin/guru/baru'),
-        }}
+        primaryAction={
+          instansiFilter === 'pondok'
+            ? { label: '+ Tambah Tenaga Pengajar', onClick: () => (window.location.href = '/admin/guru/baru') }
+            : { label: '📥 Tarik Data Pengajar Pondok', onClick: () => showToast('info', 'Tarik Data Pengajar', 'Sinkronisasi pengajar dari Pondok Pesantren SSoT.'), gold: true }
+        }
         search={search}
         onSearch={setSearch}
         searchPlaceholder="Cari nama pengajar, NIP, atau bidang pengampuan..."
         count={loading ? undefined : filtered.length}
         countLabel="pengajar"
         onExportExcel={handleExport}
-        onDownloadTemplate={handleDownloadTemplate}
-        onImport={handleImport}
+        onDownloadTemplate={instansiFilter === 'pondok' ? handleDownloadTemplate : undefined}
+        onImport={instansiFilter === 'pondok' ? handleImport : undefined}
         onRefresh={fetchGuru}
       />
 

@@ -210,8 +210,31 @@ export default function RegistrasiSantriBaruPage() {
         secondaryAction={{ label: '← Kembali ke Data Santri', onClick: () => window.location.href = '/admin/santri', icon: '🔙' }}
       />
 
-      {/* Main Registration Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {instansi !== 'PONDOK' ? (
+        <div className="p-8 rounded-3xl bg-amber-50 border-2 border-amber-300 shadow-lg text-center space-y-4 my-6">
+          <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center mx-auto text-2xl font-black shadow-inner">
+            ⛔
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-black text-amber-950">
+              DILARANG INPUT MANUAL DI INSTANSI {instansi === 'MADRASAH' ? 'MADRASAH DINIYAH' : 'MI FORMAL'}!
+            </h2>
+            <p className="text-xs text-amber-900 max-w-lg mx-auto font-medium leading-relaxed">
+              Sesuai ketentuan Single Source of Truth (SSoT), identitas santri hanya dibuat 1 kali pada Database Utama Pondok Pesantren. Seluruh pendaftaran santri di Madrasah Diniyah dan MI Formal WAJIB menggunakan penarikan data dari Pondok.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => (window.location.href = '/admin/santri/tarik')}
+            className="px-6 py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow-lg shadow-emerald-700/30 transition-all cursor-pointer inline-flex items-center gap-2"
+          >
+            <span>📥</span>
+            <span>Buka Halaman Penarikan Data Santri dari Pondok</span>
+          </button>
+        </div>
+      ) : (
+        /* Main Registration Form for Pondok SSoT */
+        <form onSubmit={handleSubmit} className="space-y-6">
         {/* I. Identitas Pribadi */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -490,6 +513,7 @@ export default function RegistrasiSantriBaruPage() {
           {loading ? 'Menyimpan Data Santri Complete...' : 'Simpan Data Registrasi Santri Terpadu'}
         </button>
       </form>
+      )}
 
       {/* Modal Tarik Data Santri Pondok */}
       {showPondokPullModal && (

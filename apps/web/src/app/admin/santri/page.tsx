@@ -309,7 +309,7 @@ export default function MasterSantriPage() {
         primaryAction={
           instansiFilter === 'pondok'
             ? { label: '📝 Registrasi Master Santri', onClick: () => (window.location.href = '/admin/santri/baru') }
-            : { label: '📥 Tarik Data Pondok', onClick: () => (window.location.href = '/admin/santri/tarik'), gold: true }
+            : { label: '📥 Tarik Data Santri Pondok', onClick: () => (window.location.href = '/admin/santri/tarik'), gold: true }
         }
         search={search}
         onSearch={setSearch}
@@ -317,10 +317,9 @@ export default function MasterSantriPage() {
         count={loading ? undefined : filtered.length}
         countLabel="santri"
         onExportExcel={handleExportExcel}
-        onDownloadTemplate={handleDownloadTemplate}
-        onImport={handleImport}
+        onDownloadTemplate={instansiFilter === 'pondok' ? handleDownloadTemplate : undefined}
+        onImport={instansiFilter === 'pondok' ? handleImport : undefined}
         onRefresh={fetchSantri}
-        canWrite={instansiFilter === 'pondok'}
       />
 
       {/* SSoT Banner */}

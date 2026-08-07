@@ -45,7 +45,18 @@ export default function DataPengurusPage() {
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
 
+  const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
+
   useEffect(() => {
+    try {
+      const match = document.cookie.match(/darsa_instansi=([^;]+)/) || document.cookie.match(/darsa_session=([^;]+)/);
+      if (match) {
+        const val = decodeURIComponent(match[1]).toLowerCase();
+        if (val.includes('madrasah')) setInstansiFilter('madrasah');
+        else if (val.includes('mi')) setInstansiFilter('mi');
+        else setInstansiFilter('pondok');
+      }
+    } catch {}
     fetchPengurus();
   }, []);
 
@@ -195,29 +206,37 @@ export default function DataPengurusPage() {
         title="Data Pengurus & Pengelola Pesantren"
         subtitle="Direktori Pengurus Pondok Pesantren, Sekretariat, & Pengurus Komplek"
         badge="DATABASE PONDOK"
-        primaryAction={{
-          label: '+ Tambah Pengurus Baru',
-          onClick: () => {
-            setFormData({
-              nik: '',
-              nama: '',
-              jabatan: '',
-              unit: 'PONDOK',
-              telepon: '',
-              status: 'AKTIF',
-              avatar_url: '',
-            });
-            setShowAddModal(true);
-          },
-        }}
+        primaryAction={
+          instansiFilter === 'pondok'
+            ? {
+                label: '+ Tambah Pengurus Baru',
+                onClick: () => {
+                  setFormData({
+                    nik: '',
+                    nama: '',
+                    jabatan: '',
+                    unit: 'PONDOK',
+                    telepon: '',
+                    status: 'AKTIF',
+                    avatar_url: '',
+                  });
+                  setShowAddModal(true);
+                },
+              }
+            : {
+                label: '📥 Tarik Data Pengurus Pondok',
+                onClick: () => showToast('info', 'Tarik Data Pengurus', 'Sinkronisasi pengurus dari Pondok Pesantren SSoT.'),
+                gold: true,
+              }
+        }
         search={search}
         onSearch={setSearch}
         searchPlaceholder="Cari nama pengurus atau jabatan..."
         count={loading ? undefined : filtered.length}
         countLabel="pengurus"
         onExportExcel={handleExport}
-        onDownloadTemplate={handleDownloadTemplate}
-        onImport={handleImport}
+        onDownloadTemplate={instansiFilter === 'pondok' ? handleDownloadTemplate : undefined}
+        onImport={instansiFilter === 'pondok' ? handleImport : undefined}
         onRefresh={fetchPengurus}
       />
 
