@@ -3,99 +3,118 @@ import type { NextRequest } from 'next/server';
 
 /**
  * Darsa Enterprise — Auth Middleware Guard (Production)
- * Menggunakan Better Auth session cookie verification (Edge-compatible).
- * Better Auth menyimpan session di cookie 'better-auth.session_token'.
- * Role diverifikasi di level API route menggunakan server-side session check.
- * Middleware hanya melakukan redirect jika tidak ada session token sama sekali.
+ * Memisahkan secara ketat Portal Admin (/admin/login) dan Portal Umum (/login).
  */
 
-const PUBLIC_PREFIXES = ['/_next', '/favicon', '/login', '/admin/login', '/api/auth', '/docs', '/register'];
-const PUBLIC_EXACT = ['/'];
-
-// Route → Role yang diizinkan (enforced di API level, middleware hanya cek presence)
-const PROTECTED_PREFIXES = [
-  '/admin',
-  '/guru_madrasah',
-  '/guru_mi',
-  '/keamanan',
-  '/wali_santri',
+const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/admin/login',
+  '/register',
+  '/docs',
+  '/favicon.ico',
 ];
 
-// Nama cookie yang digunakan Better Auth (default)
+const PUBLIC_PREFIXES = [
+  '/_next',
+  '/api/auth',
+  '/api/v1/auth/login',
+  '/api/v1/auth/register',
+  '/public',
+];
+
 const SESSION_COOKIE_NAMES = [
   'better-auth.session_token',
   '__Secure-better-auth.session_token',
+  'darsa_session',
 ];
-
-// Deteksi klien CLI / Terminal / non-browser
-function isCliClient(request: NextRequest): boolean {
-  const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
-  const accept = (request.headers.get('accept') || '').toLowerCase();
-
-  const cliAgents = ['curl', 'wget', 'httpie', 'postman', 'python', 'axios', 'node-fetch', 'go-http-client'];
-  const isCliUserAgent = cliAgents.some((agent) => userAgent.includes(agent));
-  const isJsonRequest = accept.includes('application/json') || request.nextUrl.pathname.startsWith('/api/');
-
-  return isCliUserAgent || (isJsonRequest && !accept.includes('text/html'));
-}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Izinkan static assets & Next.js internals
-  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
+  // 1. Dilarang keras mem-filter atau redirect halaman LOGIN publik (/admin/login dan /login)
+  if (
+    pathname === '/admin/login' ||
+    pathname.startsWith('/admin/login/') ||
+    pathname === '/login' ||
+    pathname.startsWith('/login/')
+  ) {
     return NextResponse.next();
   }
 
-  // 2. Izinkan exact public routes
-  if (PUBLIC_EXACT.includes(pathname)) {
+  // 2. Izinkan static assets, public routes & Next.js internals
+  if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next();
   }
 
-  // 3. Izinkan file extension assets
-  if (/\.(png|jpg|jpeg|svg|ico|webp|gif|css|js|woff|woff2)$/.test(pathname)) {
+  if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
   }
 
-  // 4. Izinkan API routes public auth (seperti /api/auth/* dan /api/v1/auth/login, register, dll)
-  if (pathname.startsWith('/api/auth') || (pathname.startsWith('/api/v1/auth/') && !pathname.startsWith('/api/v1/auth/me'))) {
+  if (/\.(png|jpg|jpeg|svg|ico|webp|gif|css|js|woff|woff2|ttf)$/.test(pathname)) {
     return NextResponse.next();
   }
 
-  // 5. Cek apakah route perlu proteksi
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) || pathname.startsWith('/api/v1/');
-  if (!isProtected) {
-    return NextResponse.next();
-  }
-
-  // 6. Cek keberadaan session cookie Better Auth
+  // 3. Cek keberadaan session cookie
   const cookies = request.cookies;
   const hasSession = SESSION_COOKIE_NAMES.some((name) => {
     const cookie = cookies.get(name);
-    return cookie && cookie.value && cookie.value.length > 10;
+    return cookie && cookie.value && cookie.value.length > 5;
   });
 
-  const isCli = isCliClient(request);
+  // 4. Deteksi Klien CLI / API Request
+  const accept = (request.headers.get('accept') || '').toLowerCase();
+  const isApiOrJson = pathname.startsWith('/api/') || accept.includes('application/json');
 
-  if (!hasSession) {
-    if (isCli || pathname.startsWith('/api/')) {
+  // 5. Proteksi Portal Admin (/admin/*)
+  if (pathname.startsWith('/admin')) {
+    if (!hasSession) {
+      if (isApiOrJson) {
+        return NextResponse.json(
+          { success: false, message: 'Autentikasi Sekretariat Diperlukan (401 Unauthorized)' },
+          { status: 401 }
+        );
+      }
+      const loginUrl = new URL('/admin/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
+  // 6. Proteksi Portal User / Umum (/guru_madrasah, /guru_mi, /keamanan, /wali_santri, dll)
+  const isProtectedUserRoute = [
+    '/guru_madrasah',
+    '/guru_mi',
+    '/keamanan',
+    '/wali_santri',
+  ].some((prefix) => pathname.startsWith(prefix));
+
+  if (isProtectedUserRoute) {
+    if (!hasSession) {
+      if (isApiOrJson) {
+        return NextResponse.json(
+          { success: false, message: 'Autentikasi Diperlukan (401 Unauthorized)' },
+          { status: 401 }
+        );
+      }
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
+  // 7. API Routes Proteksi (/api/v1/* kecuali /api/v1/auth/login)
+  if (pathname.startsWith('/api/v1/') && !pathname.startsWith('/api/v1/auth/login')) {
+    if (!hasSession) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Akses Ditolak: Autentikasi Diperlukan (401 Unauthorized)',
-          message: 'Endpoint ini terlindungi. Silakan sertakan token/cookie sesi yang valid.',
-        },
+        { success: false, message: 'Sesi tidak ditemukan (401 Unauthorized)' },
         { status: 401 }
       );
     }
-
-    const targetLoginPath = pathname.startsWith('/admin') ? '/admin/login' : '/login';
-    const loginUrl = new URL(targetLoginPath, request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
   }
 
-  // 7. Sesi ada — izinkan akses (RBAC lengkap diproses oleh layout & API route withAuth)
   return NextResponse.next();
 }
 
