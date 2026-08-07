@@ -406,19 +406,19 @@ export default function RoleLoginPage({
             🌐 Pilihan Portal Login Darsa Enterprise:
           </span>
           <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 font-semibold text-emerald-800">
-            <Link href="/loginpondok" className="hover:underline">Pondok</Link>
+            <Link href="/auth/login/pondok" className="hover:underline">Pondok</Link>
             <span>•</span>
-            <Link href="/loginmadrasah" className="hover:underline">Madrasah Diniyah</Link>
+            <Link href="/auth/login/madrasah" className="hover:underline">Madrasah Diniyah</Link>
             <span>•</span>
-            <Link href="/loginmi" className="hover:underline">MI</Link>
+            <Link href="/auth/login/mi" className="hover:underline">MI</Link>
             <span>•</span>
-            <Link href="/loginkeamanan" className="hover:underline">Keamanan</Link>
+            <Link href="/auth/login/keamanan" className="hover:underline">Keamanan</Link>
             <span>•</span>
-            <Link href="/logingurumi" className="hover:underline">Guru MI</Link>
+            <Link href="/auth/login/gurumi" className="hover:underline">Guru MI</Link>
             <span>•</span>
-            <Link href="/login" className="hover:underline">Mustahiq/Munawwib</Link>
+            <Link href="/auth/login/general" className="hover:underline">Mustahiq/Munawwib</Link>
             <span>•</span>
-            <Link href="/loginwali" className="hover:underline">Wali Santri</Link>
+            <Link href="/auth/login/wali" className="hover:underline">Wali Santri</Link>
           </div>
         </div>
 
