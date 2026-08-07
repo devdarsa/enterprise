@@ -5,6 +5,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import Modal from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
+import { Pagination } from '@/components/Pagination';
 
 interface KamarAsrama {
   id: string;
@@ -28,6 +29,9 @@ export default function ManajemenAsramaPage() {
   const [submitting, setSubmitting] = useState(false);
   const [kamarList, setKamarList] = useState<KamarAsrama[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   useEffect(() => {
     async function fetchAsramaLive() {
@@ -202,7 +206,10 @@ export default function ManajemenAsramaPage() {
                 </tr>
               </thead>
               <tbody>
-                {kamarList.map((kamar) => (
+                {(itemsPerPage >= kamarList.length
+                  ? kamarList
+                  : kamarList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                ).map((kamar) => (
                   <tr key={kamar.id} className="hover:bg-slate-50/80">
                     <td className="font-bold text-slate-900">{kamar.gedung}</td>
                     <td className="font-mono text-xs font-bold text-emerald-800">{kamar.nomorKamar}</td>
@@ -250,6 +257,15 @@ export default function ManajemenAsramaPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination Footer */}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={kamarList.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+      />
 
       {/* Modal Detail Kamar — IDENTICAL FIELDS */}
       <Modal isOpen={!!detailKamar} onClose={() => setDetailKamar(null)} title="🔍 Detail Kamar & Penghuni Asrama">

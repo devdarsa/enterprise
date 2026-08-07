@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
+import { Pagination } from '@/components/Pagination';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader, InfoBanner } from '@/components/PageHeader';
 import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
@@ -75,6 +76,8 @@ export default function MasterSantriPage() {
   const [santriList, setSantriList] = useState<Santri[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   // Mutasi state
   const [mutasiTarget, setMutasiTarget] = useState<Santri | null>(null);
@@ -206,6 +209,12 @@ export default function MasterSantriPage() {
         (s.nik_wali && s.nik_wali.includes(q))
     );
   }, [santriList, search]);
+
+  const paginatedList = useMemo(() => {
+    if (itemsPerPage >= filtered.length) return filtered;
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  }, [filtered, currentPage, itemsPerPage]);
 
   const genderBadge = (g: string) =>
     g === 'L' || g === 'LAKI_LAKI'
@@ -361,7 +370,7 @@ export default function MasterSantriPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((santri) => (
+                {paginatedList.map((santri) => (
                   <tr key={santri.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="font-mono text-xs font-bold text-emerald-800">{santri.nisp || '-'}</td>
                     <td>
@@ -424,6 +433,15 @@ export default function MasterSantriPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination Bar (25 / 50 / 100 / Tampilkan Semua) */}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={filtered.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+      />
 
       {/* ── MODAL MUTASI ─────────────────────────────────────────────────────── */}
       <Modal

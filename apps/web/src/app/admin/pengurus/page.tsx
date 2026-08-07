@@ -5,6 +5,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
 import Modal from '@/components/Modal';
+import { Pagination } from '@/components/Pagination';
 import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface Pengurus {
@@ -22,6 +23,8 @@ export default function DataPengurusPage() {
   const [list, setList] = useState<Pengurus[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
   // Modal States
@@ -267,7 +270,10 @@ export default function DataPengurusPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => (
+                {(itemsPerPage >= filtered.length
+                  ? filtered
+                  : filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                ).map((item) => (
                   <tr key={item.id}>
                     <td className="font-mono text-xs font-bold text-[#135e35]">{item.nik}</td>
                     <td className="font-bold text-slate-900">{item.nama}</td>
@@ -313,6 +319,15 @@ export default function DataPengurusPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination Footer */}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={filtered.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+      />
 
       {/* DETAIL MODAL — IDENTICAL FORM FIELDS */}
       {detailPengurus && (
