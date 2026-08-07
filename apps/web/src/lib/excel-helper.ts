@@ -273,14 +273,14 @@ export async function downloadOfficialSantriTemplate(): Promise<void> {
     cell.protection = { locked: false }; // Rule 23: Data Input Unlocked
   });
 
-  // Apply Data Validation & Cell Formats to Rows 2 - 500
-  for (let r = 2; r <= 500; r++) {
+  // Apply Data Validation & Cell Formats to Rows 2 - 1000 (Data Area)
+  for (let r = 2; r <= 1000; r++) {
     const row = sheet.getRow(r);
-    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      const config = SANTRI_TEMPLATE_HEADERS[colNumber - 1];
-      cell.protection = { locked: false };
+    row.height = 22;
 
-      if (!config) return;
+    SANTRI_TEMPLATE_HEADERS.forEach((config, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.protection = { locked: false }; // Rule 23: Data Input Area 100% Unlocked for Copy-Paste
 
       // Text Format (@) for IDs
       if (['nisp', 'nisn', 'nis', 'nik', 'no_kk', 'nik_wali', 'telepon', 'telepon_wali'].includes(config.key)) {
@@ -314,16 +314,16 @@ export async function downloadOfficialSantriTemplate(): Promise<void> {
     });
   }
 
-  // Rule 22 & 28: Protect Worksheet Structure with Password
-  await sheet.protect('darsa2026', {
+  // Rule 2, 22 & 28: Protect Header Row 1 while allowing Copy-Paste & Editing on Rows 2+
+  await sheet.protect('', {
     selectLockedCells: true,
     selectUnlockedCells: true,
-    formatCells: false,
-    formatColumns: false,
-    formatRows: false,
-    insertColumns: false,
+    formatCells: true,
+    formatColumns: true,
+    formatRows: true,
+    insertColumns: true,
     insertRows: true,
-    insertHyperlinks: false,
+    insertHyperlinks: true,
     deleteColumns: false,
     deleteRows: true,
     sort: true,
