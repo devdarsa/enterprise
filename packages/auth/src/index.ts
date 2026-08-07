@@ -45,7 +45,7 @@ export const auth = betterAuth({
   session: {
     fields: {
       userId: 'user_id',
-      token: 'session_token',
+      token: 'token',
       ipAddress: 'ip_address',
       userAgent: 'user_agent',
       expiresAt: 'expires_at',
