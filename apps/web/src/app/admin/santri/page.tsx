@@ -291,11 +291,70 @@ export default function MasterSantriPage() {
   };
 
   const handleImport = async (file: File) => {
-    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    showToast('info', 'Mengunggah & Memproses Data Excel', `Membaca data dari file ${file.name}...`);
     try {
       const { parseExcelFile } = await import('@/lib/excel-helper');
-      const rows = await parseExcelFile(file);
-      showToast('success', 'Import Berhasil', `${rows.length} baris data berhasil dibaca dari file Excel.`);
+      const rows: Record<string, any>[] = await parseExcelFile(file);
+
+      if (!rows || rows.length === 0) {
+        showToast('error', 'File Excel Kosong', 'Tidak ada data yang ditemukan di dalam file Excel.');
+        return;
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of rows) {
+        const payload = {
+          nisp: row['NISP Stambuk'] || row['nisp'] || row['NISP'] || '',
+          nisn: row['NISN'] || row['nisn'] || '',
+          nis: row['NIS Lokal'] || row['nis'] || '',
+          nik: row['NIK Santri (16 Digit)'] || row['nik'] || row['NIK'] || '',
+          nama_lengkap: row['Nama Lengkap Santri'] || row['nama_lengkap'] || row['Nama Santri'] || row['Nama'] || '',
+          nama_panggilan: row['Nama Panggilan'] || row['nama_panggilan'] || '',
+          jenis_kelamin: row['Jenis Kelamin (L/P)'] || row['jenis_kelamin'] || row['Jenis Kelamin'] || 'L',
+          tempat_lahir: row['Tempat Lahir'] || row['tempat_lahir'] || '',
+          tanggal_lahir: row['Tanggal Lahir (YYYY-MM-DD)'] || row['tanggal_lahir'] || '',
+          telepon: row['No. HP Santri'] || row['telepon'] || '',
+          jenjang: row['Jenjang Pendidikan'] || row['jenjang'] || 'PONDOK',
+          kamar: row['Gedung / Kamar Asrama'] || row['kamar'] || '',
+          status_tempat_tinggal: row['Status Keasramaan (PONDOK_PESANTREN/UNIT_LAIN)'] || 'PONDOK_PESANTREN',
+          hafalan_juz: row['Target Hafalan (Juz)'] || row['hafalan_juz'] || 0,
+          alamat: row['Alamat Lengkap Kependudukan'] || row['alamat'] || '',
+          no_kk: row['Nomor Kartu Keluarga (KK)'] || row['no_kk'] || '',
+          nik_wali: row['NIK Wali (16 Digit)'] || row['nik_wali'] || '',
+          nama_wali: row['Nama Lengkap Wali'] || row['nama_wali'] || '',
+          telepon_wali: row['No. HP Wali'] || row['telepon_wali'] || '',
+          hubungan_wali: row['Hubungan Wali (AYAH/IBU/WALI)'] || row['hubungan_wali'] || 'AYAH',
+        };
+
+        if (!payload.nama_lengkap) continue;
+
+        try {
+          const res = await fetch('/api/v1/santri', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const resJson = await res.json();
+          if (resJson.success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch {
+          errorCount++;
+        }
+      }
+
+      showToast(
+        successCount > 0 ? 'success' : 'error',
+        'Impor Data Selesai',
+        `${successCount} santri berhasil dimasukkan ke database PostgreSQL.` + (errorCount > 0 ? ` (${errorCount} dilewati/duplikat)` : '')
+      );
+
+      // Re-fetch database live
+      fetchSantri();
     } catch {
       showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
     }

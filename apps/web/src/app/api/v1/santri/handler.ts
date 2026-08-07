@@ -70,17 +70,49 @@ export const POST = withAuth(
       pondok_id, user_id,
     } = body;
 
-    // Validasi wajib
-    if (!nisp || !nisn || !nama_lengkap || !kelas_id || !pondok_id) {
-      return apiError('Field wajib tidak lengkap: nisp, nisn, nama_lengkap, kelas_id, pondok_id');
+    // Validasi minimum
+    if (!nama_lengkap) {
+      return apiError('Nama lengkap santri wajib diisi.');
     }
 
-    // Cek duplikasi NISP/NISN
+    const finalNisp = nisp || `PNDK-${Date.now().toString().slice(-8)}`;
+    const finalNisn = nisn || `00${Date.now().toString().slice(-8)}`;
+
+    // Cek duplikasi NISP/NISN jika disediakan
     const existing = await prisma.santri.findFirst({
-      where: { OR: [{ nisp }, { nisn }], deleted_at: null },
+      where: { OR: [{ nisp: finalNisp }, { nisn: finalNisn }], deleted_at: null },
     });
     if (existing) {
-      return apiError(`Data santri dengan NISP ${nisp} atau NISN ${nisn} sudah terdaftar.`, 409);
+      return apiError(`Data santri dengan NISP ${finalNisp} atau NISN ${finalNisn} sudah terdaftar.`, 409);
+    }
+
+    // Auto-resolve pondok_id
+    let finalPondokId = pondok_id;
+    if (!finalPondokId) {
+      let defaultPondok = await prisma.pondok.findFirst();
+      if (!defaultPondok) {
+        defaultPondok = await prisma.pondok.create({
+          data: { nama: "Pondok Pesantren Ma'had Darussa'adah Lirboyo" },
+        });
+      }
+      finalPondokId = defaultPondok.id;
+    }
+
+    // Auto-resolve kelas_id
+    let finalKelasId = kelas_id;
+    if (!finalKelasId) {
+      let defaultKelas = await prisma.kelas.findFirst();
+      if (!defaultKelas) {
+        defaultKelas = await prisma.kelas.create({
+          data: {
+            nama_kelas: '10-A (Tahfidz & Diniyah)',
+            jenjang: 'PONDOK',
+            tingkat: 1,
+            kapasitas: 30,
+          },
+        });
+      }
+      finalKelasId = defaultKelas.id;
     }
 
     // Jika tidak ada user_id, buat user baru dahulu
@@ -88,7 +120,7 @@ export const POST = withAuth(
     if (!finalUserId) {
       const newUser = await prisma.user.create({
         data: {
-          email: `${nisp.toLowerCase()}@darsa.santri.id`,
+          email: `${finalNisp.toLowerCase()}@darsa.santri.id`,
           nama_lengkap: nama_lengkap,
           email_verified: false,
         },
@@ -99,22 +131,22 @@ export const POST = withAuth(
     const santri = await prisma.santri.create({
       data: {
         user_id: finalUserId,
-        pondok_id,
-        kelas_id,
-        nisp,
-        nisn,
+        pondok_id: finalPondokId,
+        kelas_id: finalKelasId,
+        nisp: finalNisp,
+        nisn: finalNisn,
         nis,
         nik,
         nama_lengkap,
         nama_panggilan,
-        jenis_kelamin,
+        jenis_kelamin: jenis_kelamin === 'P' || jenis_kelamin === 'PEREMPUAN' ? 'PEREMPUAN' : 'LAKI_LAKI',
         tempat_lahir,
-        tanggal_lahir,
+        tanggal_lahir: tanggal_lahir ? new Date(tanggal_lahir) : undefined,
         anak_ke: anak_ke ? parseInt(anak_ke) : undefined,
         jumlah_saudara: jumlah_saudara ? parseInt(jumlah_saudara) : undefined,
         alamat,
         telepon,
-        jenjang,
+        jenjang: jenjang === 'MI' ? 'MI' : jenjang === 'MADRASAH_DINIYAH' ? 'MADRASAH_DINIYAH' : 'PONDOK',
         kamar,
         status_tempat_tinggal,
         hafalan_juz: hafalan_juz ? parseInt(hafalan_juz) : 0,
@@ -132,7 +164,7 @@ export const POST = withAuth(
       action: 'CREATE_SANTRI',
       entityType: 'Santri',
       entityId: santri.id,
-      metadata: { nisp, nama: nama_lengkap },
+      metadata: { nisp: finalNisp, nama: nama_lengkap },
     });
 
     return apiSuccess(santri, `Data santri ${nama_lengkap} berhasil disimpan ke database.`);
