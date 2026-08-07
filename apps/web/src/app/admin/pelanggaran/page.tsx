@@ -5,6 +5,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import Modal from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
+import SantriPicker from '@/components/SantriPicker';
 
 interface Pelanggaran {
   id: string;
@@ -394,22 +395,37 @@ export default function PelanggaranPage() {
         >
           <form onSubmit={isModalOpen ? handleSubmit : handleSaveEdit} className="space-y-4 text-xs">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">ID / Nama Santri *</label>
-              <input
-                type="text"
+              <label className="block font-bold text-slate-700 mb-1">Cari & Pilih Santri Violator *</label>
+              <SantriPicker
                 required
-                value={isModalOpen ? form.santri_id : editPelanggaran?.santri?.nama_lengkap || ''}
-                onChange={(e) =>
+                placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
+                selectedSantriObj={
                   isModalOpen
-                    ? setForm({ ...form, santri_id: e.target.value })
-                    : setEditPelanggaran(
-                        editPelanggaran
-                          ? { ...editPelanggaran, santri: { ...editPelanggaran.santri!, nama_lengkap: e.target.value } }
-                          : null
-                      )
+                    ? form.santri_id
+                      ? { id: form.santri_id, nama_lengkap: form.santri_nama }
+                      : null
+                    : editPelanggaran?.santri
+                    ? {
+                        id: editPelanggaran.santri.nisp || editPelanggaran.id,
+                        nama_lengkap: editPelanggaran.santri.nama_lengkap,
+                        nisp: editPelanggaran.santri.nisp,
+                      }
+                    : null
                 }
-                placeholder="UUID santri dari database"
-                className="input-premium font-bold"
+                onSelect={(s) => {
+                  if (isModalOpen) {
+                    setForm({ ...form, santri_id: s.id, santri_nama: s.nama_lengkap });
+                  } else if (editPelanggaran) {
+                    setEditPelanggaran({
+                      ...editPelanggaran,
+                      santri: {
+                        nisp: s.nisp || '',
+                        nama_lengkap: s.nama_lengkap,
+                        kelas: s.kelas ? { nama_kelas: s.kelas } : null,
+                      },
+                    });
+                  }
+                }}
               />
             </div>
 

@@ -5,6 +5,7 @@ import Modal from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import { LoadingSpinner, SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
+import SantriPicker from '@/components/SantriPicker';
 import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface Surat {
@@ -370,17 +371,26 @@ export default function PersuratanDigitalPage() {
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Nama Santri Yang Diberi Izin</label>
-              <input
-                type="text"
+              <label className="block font-bold text-slate-700 mb-1">Cari & Pilih Santri Yang Diberi Izin *</label>
+              <SantriPicker
                 required
-                value={isModalOpen ? santri : editSurat?.pengirim || ''}
-                onChange={(e) =>
+                placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
+                selectedSantriObj={
                   isModalOpen
-                    ? setSantri(e.target.value)
-                    : setEditSurat(editSurat ? { ...editSurat, pengirim: e.target.value } : null)
+                    ? santri
+                      ? { id: santri, nama_lengkap: santri }
+                      : null
+                    : editSurat?.pengirim
+                    ? { id: editSurat.pengirim, nama_lengkap: editSurat.pengirim }
+                    : null
                 }
-                className="input-premium font-bold"
+                onSelect={(s) => {
+                  if (isModalOpen) {
+                    setSantri(s.nama_lengkap);
+                  } else if (editSurat) {
+                    setEditSurat({ ...editSurat, pengirim: s.nama_lengkap });
+                  }
+                }}
               />
             </div>
             <div>
