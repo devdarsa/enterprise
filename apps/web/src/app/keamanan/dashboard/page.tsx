@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Modal from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import { getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface PerizinanItem {
   id: string;
@@ -51,16 +52,23 @@ export default function KeamananDashboardPage() {
   const [selectedIzin, setSelectedIzin] = useState<PerizinanItem | null>(null);
 
   useEffect(() => {
+    const cachedUser = getLocalCache<any>('keamanan_user_session');
+    if (cachedUser) {
+      setUser(cachedUser);
+    }
+
     async function loadSession() {
       try {
         const res = await fetch('/api/auth/get-session');
         if (res.ok) {
           const data = await res.json();
           if (data?.user) {
-            setUser({
+            const newUser = {
               nama: data.user.name || data.user.nama_lengkap || 'Tim Keamanan & Perizinan',
               role: data.user.role || 'KEAMANAN',
-            });
+            };
+            setUser(newUser);
+            setLocalCache('keamanan_user_session', newUser);
           }
         }
       } catch (e) {

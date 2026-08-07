@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SkeletonCard } from '@/components/Loading';
+import { getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface DashboardStats {
   totalSantri: number;
@@ -41,11 +42,20 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
+    // 1. Instant load from browser cache if available (0ms loading!)
+    const cached = getLocalCache<any>('admin_dashboard_data');
+    if (cached) {
+      if (cached.stats) setStats(cached.stats);
+      if (cached.grafik) setGrafik(cached.grafik);
+      if (cached.aktivitas) setAktivitas(cached.aktivitas);
+      if (cached.tahunAjaran) setTahunAjaran(cached.tahunAjaran);
+      setLoading(false);
+    }
     fetchDashboard();
   }, []);
 
   const fetchDashboard = async () => {
-    setLoading(true);
+    if (!stats) setLoading(true);
     setError(null);
     try {
       const [statsRes, taRes] = await Promise.all([
@@ -65,18 +75,28 @@ export default function AdminDashboardPage() {
       const statsJson = await statsRes.json();
       const taJson = taRes.ok ? await taRes.json() : null;
 
+      let newTa = '';
+      if (taJson?.success && taJson.data?.length) {
+        const aktif = taJson.data.find((ta: any) => ta.is_aktif);
+        if (aktif) newTa = `${aktif.nama} (${aktif.semester})`;
+      }
+
       if (statsJson.success) {
         setStats(statsJson.data.stats);
         setGrafik(statsJson.data.grafik);
         setAktivitas(statsJson.data.aktivitasTerbaru || []);
-      }
+        if (newTa) setTahunAjaran(newTa);
 
-      if (taJson?.success && taJson.data?.length) {
-        const aktif = taJson.data.find((ta: any) => ta.is_aktif);
-        if (aktif) setTahunAjaran(`${aktif.nama} (${aktif.semester})`);
+        // Save to browser cache
+        setLocalCache('admin_dashboard_data', {
+          stats: statsJson.data.stats,
+          grafik: statsJson.data.grafik,
+          aktivitas: statsJson.data.aktivitasTerbaru || [],
+          tahunAjaran: newTa,
+        });
       }
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat dashboard.');
+      if (!stats) setError(err.message || 'Gagal memuat dashboard.');
     } finally {
       setLoading(false);
     }

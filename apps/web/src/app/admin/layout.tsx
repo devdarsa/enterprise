@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import Toast, { ToastProps } from '@/components/Toast';
 import DesktopOnlyGuard from '@/components/DesktopOnlyGuard';
+import { clearAllLocalCache } from '@/lib/cache-storage';
 
 interface SessionUser {
   email: string;
@@ -76,6 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   const handleLogout = async () => {
+    clearAllLocalCache();
     try {
       const { signOut } = await import('@darsa/auth/client');
       await signOut();

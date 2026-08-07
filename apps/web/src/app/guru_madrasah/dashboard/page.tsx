@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Modal from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import { getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface SantriItem {
   id: string;
@@ -52,28 +53,38 @@ export default function GuruMadrasahDashboardPage() {
   });
 
   useEffect(() => {
+    const cached = getLocalCache<any>('guru_madrasah_data');
+    if (cached) {
+      if (cached.user) setUser(cached.user);
+      if (cached.santriKelas) setSantriKelas(cached.santriKelas);
+      setLoadingData(false);
+    }
+
     async function loadRealData() {
       try {
-        setLoadingData(true);
+        if (!cached) setLoadingData(true);
+        let newUser = user;
         // Load session
         const sessRes = await fetch('/api/auth/get-session');
         if (sessRes.ok) {
           const sess = await sessRes.json();
           if (sess?.user) {
-            setUser({
+            newUser = {
               nama: sess.user.name || sess.user.nama_lengkap || 'Ustadz Mustahiq Diniyah',
               role: sess.user.role || 'GURU_MADRASAH',
               instansi: sess.user.instansi || 'MADRASAH',
-            });
+            };
+            setUser(newUser);
           }
         }
 
         // Load real santri data
+        let mappedSantri: SantriItem[] = [];
         const santriRes = await fetch('/api/v1/santri?limit=10&instansi=MADRASAH');
         if (santriRes.ok) {
           const santriJson = await santriRes.json();
           if (santriJson.success && Array.isArray(santriJson.data)) {
-            const mapped = santriJson.data.map((s: any, idx: number) => ({
+            mappedSantri = santriJson.data.map((s: any, idx: number) => ({
               id: s.id || String(idx + 1),
               nisn: s.nisn || `001234567${idx}`,
               nama: s.nama_lengkap || s.nama,
@@ -82,12 +93,14 @@ export default function GuruMadrasahDashboardPage() {
               hafalan: s.hafalan_terakhir || 'Juz 15',
               catatan: 'Aktif & Rajin',
             }));
-            setSantriKelas(mapped);
-            if (mapped.length > 0 && !form.santri_nama) {
-              setForm(prev => ({ ...prev, santri_nama: mapped[0].nama }));
+            setSantriKelas(mappedSantri);
+            if (mappedSantri.length > 0 && !form.santri_nama) {
+              setForm(prev => ({ ...prev, santri_nama: mappedSantri[0].nama }));
             }
           }
         }
+
+        setLocalCache('guru_madrasah_data', { user: newUser, santriKelas: mappedSantri });
       } catch (e) {
         console.error('Gagal memuat data dashboard guru madrasah:', e);
       } finally {
