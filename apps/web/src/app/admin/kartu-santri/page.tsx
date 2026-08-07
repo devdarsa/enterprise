@@ -90,22 +90,52 @@ export default function KartuSantriPage() {
       )
     : santriList;
 
+  const handlePrintMassal = () => {
+    if (filtered.length === 0) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const cardsHtml = filtered
+      .map(
+        (santri) => `
+      <div style="page-break-inside: avoid; margin-bottom: 15px; padding: 16px; border: 2px solid #ca8a04; border-radius: 16px; background: linear-gradient(135deg, #064e3b 0%, #042f2e 100%); color: white; width: 320px; font-family: sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+        <div style="border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px; margin-bottom: 10px;">
+          <span style="font-size: 8px; color: #fde047; font-weight: bold; letter-spacing: 1px;">KARTU PRESENSI DIGITAL</span>
+          <h4 style="margin: 2px 0 0 0; color: white; font-size: 13px;">MA'HAD DARUSSA'ADAH LIRBOYO</h4>
+        </div>
+        <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 900;">${santri.nama}</h3>
+        <p style="margin: 2px 0; font-size: 11px; font-family: monospace; color: #a7f3d0;">NISN: ${santri.nisn} | NISP: ${santri.nisp || '-'}</p>
+        <p style="margin: 2px 0; font-size: 11px; color: #fde047;">${santri.kelas} • ${santri.kamar || 'Asrama Utama'}</p>
+      </div>
+    `
+      )
+      .join('');
+    win.document.write(
+      `<html><head><title>Cetak Massal Kartu Santri</title><style>@media print { body { -webkit-print-color-adjust: exact; } }</style></head><body style="margin:0; padding:20px; background:#fff;"><div style="display:flex; flex-wrap:wrap; gap:16px;">${cardsHtml}</div></body></html>`
+    );
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+    }, 400);
+    showToast('success', 'Cetak Massal', `${filtered.length} kartu santri diproses untuk dicetak.`);
+  };
+
   return (
     <div className="space-y-5">
-      <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
+      <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
       {/* Page Header */}
       <PageHeader
         icon="🪪"
         title="Kartu Santri Digital"
-        subtitle="Kartu presensi digital dengan QR TOTP dinamis — cetak kartu identitas santri per individu."
+        subtitle="Kartu presensi digital dengan QR TOTP dinamis — cetak kartu identitas santri per individu atau massal."
         badge="MODUL KEAMANAN"
         search={search}
         onSearch={setSearch}
         searchPlaceholder="Cari nama, NISN, atau NISP stambuk..."
         count={loading ? undefined : filtered.length}
         countLabel="santri"
-        onExportPDF={() => showToast('info', 'Cetak Massal', 'Fitur cetak massal sedang dikembangkan.')}
+        onExportPDF={handlePrintMassal}
         onRefresh={() => setSearch('')}
       />
 
