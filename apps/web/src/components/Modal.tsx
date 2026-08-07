@@ -9,7 +9,7 @@ interface ModalProps {
   title: string;
   subtitle?: string;
   icon?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
   variant?: 'default' | 'danger' | 'success';
   children: React.ReactNode;
 }
@@ -28,9 +28,11 @@ export default function Modal({
 
   const sizeClass = {
     sm: 'max-w-sm',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
+    md: 'max-w-xl',
+    lg: 'max-w-3xl',
+    xl: 'max-w-5xl',
+    '2xl': 'max-w-6xl',
+    full: 'max-w-7xl',
   }[size];
 
   const gradientClass = {

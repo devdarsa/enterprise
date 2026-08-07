@@ -346,8 +346,8 @@ export default function DetailSantriPage() {
       </div>
 
       {/* EDIT MODAL — IDENTICAL STRUCTURE TO MANUAL INPUT FORM */}
-      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title={`✏️ Edit Data Santri — ${santri.nama_lengkap}`}>
-        <form onSubmit={handleSaveEdit} className="space-y-6 max-h-[80vh] overflow-y-auto pr-1">
+      <Modal size="2xl" isOpen={editOpen} onClose={() => setEditOpen(false)} title={`✏️ Edit Data Santri — ${santri.nama_lengkap}`}>
+        <form onSubmit={handleSaveEdit} className="space-y-6 max-h-[82vh] overflow-y-auto pr-2">
           {/* I. Identitas Pribadi */}
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
             <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">

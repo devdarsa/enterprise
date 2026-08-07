@@ -382,6 +382,7 @@ export default function DataPengurusPage() {
       {/* ADD / EDIT MODAL — IDENTICAL FORM FIELDS */}
       {(showAddModal || editPengurus) && (
         <Modal
+          size="lg"
           isOpen={showAddModal || !!editPengurus}
           onClose={() => {
             setShowAddModal(false);

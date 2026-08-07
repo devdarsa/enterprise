@@ -312,7 +312,7 @@ export default function MasterGuruPage() {
 
       {/* EDIT MODAL — IDENTICAL FORM FIELDS TO MANUAL INPUT FORM (/admin/guru/baru) */}
       {editGuru && (
-        <Modal isOpen={!!editGuru} onClose={() => setEditGuru(null)} title={`✏️ Edit Data Guru — ${editGuru.nama}`}>
+        <Modal size="lg" isOpen={!!editGuru} onClose={() => setEditGuru(null)} title={`✏️ Edit Data Guru — ${editGuru.nama}`}>
           <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5">
               <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">

@@ -348,6 +348,7 @@ export default function PersuratanDigitalPage() {
       {/* Modal Add / Edit Surat — IDENTICAL FORM FIELDS TO MANUAL GENERATOR FORM (/admin/surat/baru) */}
       {(isModalOpen || editSurat) && (
         <Modal
+          size="lg"
           isOpen={isModalOpen || !!editSurat}
           onClose={() => {
             setIsModalOpen(false);

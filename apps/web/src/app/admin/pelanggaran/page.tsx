@@ -386,6 +386,7 @@ export default function PelanggaranPage() {
       {/* Add / Edit Modal — IDENTICAL FORM FIELDS TO MANUAL FORM */}
       {(isModalOpen || editPelanggaran) && (
         <Modal
+          size="lg"
           isOpen={isModalOpen || !!editPelanggaran}
           onClose={() => {
             setIsModalOpen(false);

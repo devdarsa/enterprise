@@ -295,6 +295,7 @@ export default function ManajemenAsramaPage() {
       {/* Modal Add / Edit Kamar — IDENTICAL FORM FIELDS TO MANUAL INPUT FORM */}
       {(isModalOpen || editKamar) && (
         <Modal
+          size="lg"
           isOpen={isModalOpen || !!editKamar}
           onClose={() => {
             setIsModalOpen(false);

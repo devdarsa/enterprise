@@ -62,12 +62,12 @@ const MUTASI_OPTIONS: Array<{
   color: string;
   group: 'pondok' | 'madrasah';
 }> = [
-  { tipe: 'BOYONG', label: 'Boyong',       desc: 'Keluar permanen dari pondok pesantren',         icon: '🚶', color: 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200',   group: 'pondok'    },
-  { tipe: 'CUTI',   label: 'Cuti',         desc: 'Izin tidak hadir sementara dari pondok',         icon: '⏸️', color: 'bg-amber-50  border-amber-300  text-amber-800  hover:bg-amber-100',  group: 'pondok'    },
-  { tipe: 'PINDAH', label: 'Pindah Unit',  desc: 'Pindah ke unit / madrasah / sekolah lain',       icon: '🔀', color: 'bg-blue-50   border-blue-300   text-blue-800   hover:bg-blue-100',   group: 'madrasah'  },
-  { tipe: 'LULUS',  label: 'Lulus / Tamat',desc: 'Dinyatakan lulus dari madrasah / MI',            icon: '🎓', color: 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100', group: 'madrasah' },
-  { tipe: 'PURGE',  label: 'Hapus Data',   desc: 'Pindahkan ke Recycle Bin (tidak dapat dibatalkan)', icon: '🗑️', color: 'bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100',    group: 'pondok'    },
-];
+    { tipe: 'BOYONG', label: 'Boyong', desc: 'Keluar permanen dari pondok pesantren', icon: '🚶', color: 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200', group: 'pondok' },
+    { tipe: 'CUTI', label: 'Cuti', desc: 'Izin tidak hadir sementara dari pondok', icon: '⏸️', color: 'bg-amber-50  border-amber-300  text-amber-800  hover:bg-amber-100', group: 'pondok' },
+    { tipe: 'PINDAH', label: 'Pindah Unit', desc: 'Pindah ke unit / madrasah / sekolah lain', icon: '🔀', color: 'bg-blue-50   border-blue-300   text-blue-800   hover:bg-blue-100', group: 'madrasah' },
+    { tipe: 'LULUS', label: 'Lulus / Tamat', desc: 'Dinyatakan lulus dari madrasah / MI', icon: '🎓', color: 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100', group: 'madrasah' },
+    { tipe: 'PURGE', label: 'Hapus Data', desc: 'Pindahkan ke Recycle Bin (tidak dapat dibatalkan)', icon: '🗑️', color: 'bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100', group: 'pondok' },
+  ];
 
 export default function MasterSantriPage() {
   const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
@@ -99,7 +99,7 @@ export default function MasterSantriPage() {
           if (['pondok', 'madrasah', 'mi'].includes(inst)) setInstansiFilter(inst);
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => { fetchSantri(); }, [instansiFilter]);
@@ -308,7 +308,7 @@ export default function MasterSantriPage() {
         badge="DATABASE PONDOK"
         infoBanner={{
           icon: '🏛️',
-          title: 'BAB I PASAL 1 — SINGLE SOURCE OF TRUTH:',
+          title: 'SINGLE SOURCE OF TRUTH:',
           content:
             'Pondok merupakan Master Database seluruh Santri/Santriwati. Identitas santri hanya dibuat 1 kali pada Database Pondok. Unit Madrasah & MI tidak membuat data santri baru, hanya memanggil/mereferensikan data penempatan pendidikan.',
           variant: 'brand',
@@ -456,11 +456,10 @@ export default function MasterSantriPage() {
                       key={opt.tipe}
                       type="button"
                       onClick={() => setMutasiTipe(opt.tipe)}
-                      className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left text-xs font-semibold transition-all ${
-                        mutasiTipe === opt.tipe
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left text-xs font-semibold transition-all ${mutasiTipe === opt.tipe
                           ? (opt.tipe === 'PURGE' ? 'border-rose-500 bg-rose-50' : 'border-emerald-500 bg-emerald-50 text-emerald-900')
                           : opt.color
-                      }`}
+                        }`}
                     >
                       <span className="text-base shrink-0 mt-0.5">{opt.icon}</span>
                       <div>
@@ -483,11 +482,10 @@ export default function MasterSantriPage() {
                       key={opt.tipe}
                       type="button"
                       onClick={() => setMutasiTipe(opt.tipe)}
-                      className={`flex items-start gap-2 p-3 rounded-xl border-2 text-left text-xs font-semibold transition-all ${
-                        mutasiTipe === opt.tipe
+                      className={`flex items-start gap-2 p-3 rounded-xl border-2 text-left text-xs font-semibold transition-all ${mutasiTipe === opt.tipe
                           ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
                           : opt.color
-                      }`}
+                        }`}
                     >
                       <span className="text-base shrink-0 mt-0.5">{opt.icon}</span>
                       <div>
@@ -522,10 +520,10 @@ export default function MasterSantriPage() {
                     onChange={e => setMutasiAlasan(e.target.value)}
                     placeholder={
                       mutasiTipe === 'BOYONG' ? 'Contoh: Pulang kampung atas permintaan keluarga...' :
-                      mutasiTipe === 'CUTI'   ? 'Contoh: Sakit, keperluan keluarga mendesak...' :
-                      mutasiTipe === 'PINDAH' ? 'Contoh: Pindah ke MI Wahid Hasyim...' :
-                      mutasiTipe === 'LULUS'  ? 'Contoh: Lulus Kelas 6 Madin Ibtidaiyah...' :
-                                                'Wajib sebutkan alasan penghapusan data...'
+                        mutasiTipe === 'CUTI' ? 'Contoh: Sakit, keperluan keluarga mendesak...' :
+                          mutasiTipe === 'PINDAH' ? 'Contoh: Pindah ke MI Wahid Hasyim...' :
+                            mutasiTipe === 'LULUS' ? 'Contoh: Lulus Kelas 6 Madin Ibtidaiyah...' :
+                              'Wajib sebutkan alasan penghapusan data...'
                     }
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
                   />
@@ -554,11 +552,10 @@ export default function MasterSantriPage() {
                 type="button"
                 disabled={!mutasiTipe || (mutasiTipe === 'PURGE' && !mutasiAlasan.trim())}
                 onClick={() => setMutasiConfirmOpen(true)}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                  mutasiTipe === 'PURGE'
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${mutasiTipe === 'PURGE'
                     ? 'bg-rose-600 hover:bg-rose-700 text-white'
                     : 'bg-orange-500 hover:bg-orange-600 text-white'
-                }`}
+                  }`}
               >
                 {selectedMutasiOption ? `${selectedMutasiOption.icon} Proses ${selectedMutasiOption.label}` : 'Pilih Jenis Mutasi'}
               </button>
