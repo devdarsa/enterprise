@@ -70,19 +70,28 @@ async function wipeCleanDatabaseTotal() {
     where: { email: { notIn: PRESERVED_EMAILS } },
   });
 
-  // 4. Create 1 default active Tahun Ajaran
-  console.log('✨ Membuat 1 Tahun Ajaran Aktif Default (2026/2027 - GANJIL)...');
+  // 4. Create default Tahun Ajaran 2026/2027 (GANJIL & GENAP)
+  console.log('✨ Membuat Tahun Ajaran 2026/2027 (GANJIL & GENAP)...');
   await prisma.tahunAjaran.create({
     data: {
       nama: '2026/2027',
       semester: 'GANJIL',
       tanggal_mulai: new Date('2026-03-30'), // 10 Syawal
-      tanggal_akhir: new Date('2027-03-19'),
+      tanggal_akhir: new Date('2026-09-30'),
       is_aktif: true,
     },
   });
+  await prisma.tahunAjaran.create({
+    data: {
+      nama: '2026/2027',
+      semester: 'GENAP',
+      tanggal_mulai: new Date('2026-10-01'),
+      tanggal_akhir: new Date('2027-03-19'),
+      is_aktif: false,
+    },
+  });
 
-  console.log('💥 PENGHAPUSAN TOTAL SELESAI 100%. Hanya 3 Akun Sekretariat & 1 Tahun Ajaran Aktif yang tersisa!');
+  console.log('💥 PENGHAPUSAN TOTAL SELESAI 100%. Hanya 3 Akun Sekretariat & Tahun Ajaran 2026/2027 (GANJIL & GENAP) yang tersisa!');
 }
 
 wipeCleanDatabaseTotal()
