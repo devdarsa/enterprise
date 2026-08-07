@@ -20,7 +20,18 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
       headers: request.headers,
     });
     if (!session?.user) return null;
-    return session as AuthSession;
+    const authSession = session as AuthSession;
+    if (!authSession.user.role) {
+      const { prisma } = await import('@darsa/database');
+      const userRole = await prisma.userRole.findFirst({
+        where: { user_id: authSession.user.id },
+        include: { role: true },
+      });
+      if (userRole) {
+        authSession.user.role = userRole.role.name;
+      }
+    }
+    return authSession;
   } catch {
     return null;
   }
