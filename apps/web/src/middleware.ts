@@ -60,8 +60,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 4. Izinkan API routes public auth
-  if (pathname.startsWith('/api/auth')) {
+  // 4. Izinkan API routes public auth (seperti /api/auth/* dan /api/v1/auth/login, register, dll)
+  if (pathname.startsWith('/api/auth') || (pathname.startsWith('/api/v1/auth/') && !pathname.startsWith('/api/v1/auth/me'))) {
     return NextResponse.next();
   }
 
