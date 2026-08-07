@@ -84,7 +84,7 @@ const PORTAL_CONFIGS: Record<string, PortalConfig> = {
     roleBadge: 'PORTAL UTAMA DARSA ENTERPRISE',
     roleTitle: 'Mustahiq, Munawwib & Asatidz',
     roleSub: 'DARSA ENTERPRISE ECOSYSTEM',
-    allowedRoles: [],
+    allowedRoles: ['MUSTAHIQ', 'MUNAWWIB', 'GURU', 'GURU_MADRASAH', 'SEKRETARIAT', 'ADMIN_INSTANSI'],
     defaultEmail: 'mustahiq@darsa.my.id',
     accentGradient: 'from-emerald-800 via-teal-800 to-emerald-900',
     logoUrl: '/logo-pondok.png',
