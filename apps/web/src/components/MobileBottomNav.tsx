@@ -4,13 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface MobileBottomNavProps {
-  role: 'MUSTAHIQ' | 'MUNAWWIB' | 'GURU_MADRASAH' | 'GURU_MI' | 'WALI_SANTRI' | 'PENGASUH';
+  role: 'MUSTAHIQ' | 'MUNAWWIB' | 'GURU_MADRASAH' | 'GURU_MI' | 'WALI_SANTRI' | 'PENGASUH' | 'KEAMANAN';
 }
 
 export default function MobileBottomNav({ role }: MobileBottomNavProps) {
   const pathname = usePathname();
 
   const getNavItems = () => {
+    if (role === 'KEAMANAN') {
+      return [
+        { label: 'Beranda', href: '/keamanan/dashboard', icon: '🛡️' },
+        { label: 'Scan QR', href: '/keamanan/dashboard#scan', icon: '📷' },
+        { label: 'Perizinan', href: '/keamanan/dashboard#perizinan', icon: '📝' },
+        { label: 'Profil', href: '/keamanan/dashboard#profil', icon: '👤' },
+      ];
+    }
     // BAB X - Wali Santri Mobile Bottom Navigation
     if (role === 'WALI_SANTRI') {
       return [

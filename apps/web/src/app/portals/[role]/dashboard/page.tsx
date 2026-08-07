@@ -4,6 +4,7 @@ import { use } from 'react';
 import GuruMadrasahDashboardPage from '@/app/guru_madrasah/dashboard/page';
 import GuruMIDashboardPage from '@/app/guru_mi/dashboard/page';
 import WaliSantriDashboardPage from '@/app/wali_santri/dashboard/page';
+import KeamananDashboardPage from '@/app/keamanan/dashboard/page';
 import AdminDashboardPage from '@/app/admin/dashboard/page';
 
 export default function DynamicRoleDashboardPage({ params }: { params: Promise<{ role: string }> }) {
@@ -21,6 +22,8 @@ export default function DynamicRoleDashboardPage({ params }: { params: Promise<{
     case 'wali_santri':
     case 'wali':
       return <WaliSantriDashboardPage />;
+    case 'keamanan':
+      return <KeamananDashboardPage />;
     case 'admin':
     case 'sekretariat':
     default:

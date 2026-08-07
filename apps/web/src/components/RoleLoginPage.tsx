@@ -16,8 +16,11 @@ const ROLE_REDIRECT: Record<string, string> = {
   GURU_MADRASAH: '/guru_madrasah/dashboard',
   GURU_MI: '/guru_mi/dashboard',
   GURU: '/guru_madrasah/dashboard',
+  KEAMANAN: '/keamanan/dashboard',
+  MUSTAHIQ: '/guru_madrasah/dashboard',
+  MUNAWWIB: '/guru_madrasah/dashboard',
   WALI_SANTRI: '/wali_santri/dashboard',
-  SANTRI: '/santri/dashboard',
+  SANTRI: '/wali_santri/dashboard',
 };
 
 export interface RoleLoginPageProps {
@@ -90,48 +93,29 @@ export default function RoleLoginPage({
     setStep('verifying');
 
     try {
-      let loginSuccess = false;
+      // 1. Authenticate via /api/v1/auth/login which handles session cookies cleanly
+      const customRes = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
+      });
 
-      // 1. Try Better Auth client signIn.email
-      try {
-        const result = await signIn.email({
-          email: email.toLowerCase().trim(),
-          password,
-          callbackURL: '/admin/dashboard',
-        });
-        if (!result?.error) {
-          loginSuccess = true;
-        }
-      } catch {}
-
-      // 2. Fallback to /api/v1/auth/login if client call errored
-      if (!loginSuccess) {
-        const customRes = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
-        });
-
-        if (customRes.ok) {
-          loginSuccess = true;
-        } else {
-          const errorData = await customRes.json().catch(() => ({}));
-          setError(errorData?.message || 'Email atau kata sandi salah. Silakan periksa kembali.');
-          setStep('idle');
-          setLoading(false);
-          return;
-        }
+      if (!customRes.ok) {
+        const errorData = await customRes.json().catch(() => ({}));
+        setError(errorData?.message || 'Email atau kata sandi salah. Silakan periksa kembali.');
+        setStep('idle');
+        setLoading(false);
+        return;
       }
 
-      // Login kredensial sukses — Ambil session untuk verifikasi Role (BAB V & VI)
+      // 2. Fetch authenticated session to determine the exact logged-in user's role
       setStep('redirecting');
       const sessionRes = await fetch('/api/auth/get-session');
       const sessionData = sessionRes.ok ? await sessionRes.json() : null;
       const userRole = sessionData?.user?.role || 'SEKRETARIAT';
 
-      // BAB V: Validasi Hak Akses Role Terhadap Portal Halaman Login
+      // 3. Validate Role eligibility for the current login portal
       if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-        // Sign out segera untuk membatalkan session tidak sah
         try {
           const { signOut } = await import('@darsa/auth/client');
           await signOut();
@@ -143,7 +127,7 @@ export default function RoleLoginPage({
         return;
       }
 
-      // Role sesuai — Pengalihan ke Dashboard Spesifik Role (BAB VI)
+      // 4. Redirect user to their dedicated role-specific dashboard
       const redirectTo = ROLE_REDIRECT[userRole] || '/admin/dashboard';
       router.push(redirectTo);
     } catch (err: any) {
