@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      { source: '/auth/login/:portal*', destination: '/login', permanent: true },
+      { source: '/auth/login', destination: '/login', permanent: true },
       { source: '/logingurumi', destination: '/login', permanent: true },
       { source: '/loginkeamanan', destination: '/login', permanent: true },
       { source: '/loginmadrasah', destination: '/login', permanent: true },
