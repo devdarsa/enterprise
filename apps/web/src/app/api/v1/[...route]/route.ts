@@ -31,6 +31,7 @@ import * as waliAnak from '../wali/anak/handler';
 import * as waliVerifikasiNik from '../wali/verifikasi-nik/handler';
 import * as wilayah from '../wilayah/handler';
 import * as authLogin from '../auth/login/handler';
+import * as authMe from '../auth/me/handler';
 
 type ApiHandlerModule = Record<string, (...args: any[]) => Promise<Response>>;
 
@@ -38,6 +39,7 @@ type ApiHandlerModule = Record<string, (...args: any[]) => Promise<Response>>;
 const handlers: Record<string, ApiHandlerModule> = {
   'health': health as unknown as ApiHandlerModule,
   'auth/login': authLogin as unknown as ApiHandlerModule,
+  'auth/me': authMe as unknown as ApiHandlerModule,
   'auth/seed-default-accounts': seedAccounts as unknown as ApiHandlerModule,
   'auth/register-wali/check-nik': checkNik as unknown as ApiHandlerModule,
   'auth/register-wali/send-otp': sendOtp as unknown as ApiHandlerModule,

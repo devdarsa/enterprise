@@ -52,7 +52,7 @@ export default function RoleLoginPage({
   const [instansi, setInstansi] = useState<InstansiKey>(defaultInstansi);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('email');
   const [email, setEmail] = useState(defaultEmail);
-  const [password, setPassword] = useState('darsa25');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,13 +108,24 @@ export default function RoleLoginPage({
         return;
       }
 
-      // 2. Fetch authenticated session to determine the exact logged-in user's role
+      // 2. Ambil sesi + role dari endpoint khusus yang membaca tabel user_roles
       setStep('redirecting');
-      const sessionRes = await fetch('/api/auth/get-session');
+      const sessionRes = await fetch('/api/v1/auth/me');
       const sessionData = sessionRes.ok ? await sessionRes.json() : null;
-      const userRole = sessionData?.user?.role || 'SEKRETARIAT';
+      const userRole = sessionData?.user?.role || null;
 
-      // 3. Validate Role eligibility for the current login portal
+      // 3. Validasi role terhadap portal yang digunakan
+      if (!userRole) {
+        try {
+          const { signOut } = await import('@darsa/auth/client');
+          await signOut();
+        } catch {}
+        setError('Gagal memverifikasi akses. Silakan coba lagi.');
+        setStep('idle');
+        setLoading(false);
+        return;
+      }
+
       if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
         try {
           const { signOut } = await import('@darsa/auth/client');
@@ -127,7 +138,7 @@ export default function RoleLoginPage({
         return;
       }
 
-      // 4. Redirect user to their dedicated role-specific dashboard
+      // 4. Redirect ke dashboard sesuai role
       const redirectTo = ROLE_REDIRECT[userRole] || '/admin/dashboard';
       router.push(redirectTo);
     } catch (err: any) {

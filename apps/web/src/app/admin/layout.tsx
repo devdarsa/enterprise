@@ -40,21 +40,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setToast({ isOpen: true, type, title, message });
   };
 
-  // Fetch session from Better Auth
+  // Fetch session from /api/v1/auth/me (includes exact database role)
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const res = await fetch('/api/auth/get-session');
+        const res = await fetch('/api/v1/auth/me');
         if (res.ok) {
           const data = await res.json();
           if (data?.user) {
             const u = data.user;
+            const role = u.role || 'SEKRETARIAT';
+
+            // Jika role non-admin mengakses area /admin, redirect ke dashboard mereka
+            const roleRedirects: Record<string, string> = {
+              GURU_MADRASAH: '/guru_madrasah/dashboard',
+              GURU_MI: '/guru_mi/dashboard',
+              GURU: '/guru_madrasah/dashboard',
+              MUSTAHIQ: '/guru_madrasah/dashboard',
+              MUNAWWIB: '/guru_madrasah/dashboard',
+              KEAMANAN: '/keamanan/dashboard',
+              WALI_SANTRI: '/wali_santri/dashboard',
+              SANTRI: '/wali_santri/dashboard',
+            };
+
+            if (roleRedirects[role]) {
+              router.replace(roleRedirects[role]);
+              return;
+            }
+
             setUser({
               email: u.email,
-              nama: u.name || u.nama_lengkap || u.email,
-              role: u.role || 'ADMIN_INSTANSI',
-              instansi: u.instansi || 'PONDOK',
-              loginAt: u.createdAt || new Date().toISOString(),
+              nama: u.name || u.email,
+              role: role,
+              instansi: 'PONDOK',
+              loginAt: new Date().toISOString(),
             });
           }
         }
@@ -63,7 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
     };
     fetchSession();
-  }, []);
+  }, [router]);
 
   // Close notif on outside click
   useEffect(() => {

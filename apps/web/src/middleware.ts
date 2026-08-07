@@ -30,6 +30,18 @@ const SESSION_COOKIE_NAMES = [
   '__Secure-better-auth.session_token',
 ];
 
+// Deteksi klien CLI / Terminal / non-browser
+function isCliClient(request: NextRequest): boolean {
+  const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
+  const accept = (request.headers.get('accept') || '').toLowerCase();
+
+  const cliAgents = ['curl', 'wget', 'httpie', 'postman', 'python', 'axios', 'node-fetch', 'go-http-client'];
+  const isCliUserAgent = cliAgents.some((agent) => userAgent.includes(agent));
+  const isJsonRequest = accept.includes('application/json') || request.nextUrl.pathname.startsWith('/api/');
+
+  return isCliUserAgent || (isJsonRequest && !accept.includes('text/html'));
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -48,32 +60,44 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 4. Izinkan API routes non-auth (mereka punya withAuth() guard sendiri)
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
+  // 4. Izinkan API routes public auth
+  if (pathname.startsWith('/api/auth')) {
     return NextResponse.next();
   }
 
   // 5. Cek apakah route perlu proteksi
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) || pathname.startsWith('/api/v1/');
   if (!isProtected) {
     return NextResponse.next();
   }
 
-  // 6. Cek keberadaan session cookie Better Auth (Edge-compatible)
+  // 6. Cek keberadaan session cookie Better Auth
   const cookies = request.cookies;
   const hasSession = SESSION_COOKIE_NAMES.some((name) => {
     const cookie = cookies.get(name);
     return cookie && cookie.value && cookie.value.length > 10;
   });
 
+  const isCli = isCliClient(request);
+
   if (!hasSession) {
+    if (isCli || pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Akses Ditolak: Autentikasi Diperlukan (401 Unauthorized)',
+          message: 'Endpoint ini terlindungi. Silakan sertakan token/cookie sesi yang valid.',
+        },
+        { status: 401 }
+      );
+    }
+
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    const response = NextResponse.redirect(loginUrl);
-    return response;
+    return NextResponse.redirect(loginUrl);
   }
 
-  // 7. Session ada — izinkan akses (role check dilakukan di API & layout level)
+  // 7. Sesi ada — izinkan akses (RBAC lengkap diproses oleh layout & API route withAuth)
   return NextResponse.next();
 }
 
