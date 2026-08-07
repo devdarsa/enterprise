@@ -314,92 +314,108 @@ export default function MasterGuruPage() {
       {editGuru && (
         <Modal isOpen={!!editGuru} onClose={() => setEditGuru(null)} title={`✏️ Edit Data Guru — ${editGuru.nama}`}>
           <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Nomor Induk Pegawai / Guru (NIP)</label>
-              <input
-                type="text"
-                required
-                value={editGuru.nip}
-                onChange={(e) => setEditGuru({ ...editGuru, nip: e.target.value })}
-                className="input-premium font-mono"
-              />
-            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5">
+              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                <span>📋</span> Data Induk & Pengampuan Guru
+              </h4>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Nama Lengkap & Gelar Guru/Ustadz</label>
-              <input
-                type="text"
-                required
-                value={editGuru.nama}
-                onChange={(e) => setEditGuru({ ...editGuru, nama: e.target.value })}
-                className="input-premium font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Pilih Instansi</label>
-              <select
-                value={editGuru.instansi}
-                onChange={(e) => setEditGuru({ ...editGuru, instansi: e.target.value })}
-                className="input-premium font-bold"
-              >
-                <option value="PONDOK">Instansi Pondok Pesantren</option>
-                <option value="MADRASAH">Instansi Madrasah Diniyah</option>
-                <option value="MI">Instansi Madrasah / MI</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Bidang Tugas & Pengampu Mapel</label>
-              <input
-                type="text"
-                required
-                value={editGuru.tugas}
-                onChange={(e) => setEditGuru({ ...editGuru, tugas: e.target.value })}
-                className="input-premium"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Nomor Telepon / WhatsApp Aktif</label>
-              <input
-                type="text"
-                required
-                value={editGuru.telepon}
-                onChange={(e) => setEditGuru({ ...editGuru, telepon: e.target.value })}
-                className="input-premium font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Upload Foto Profil Guru (File)</label>
-              <div className="flex items-center gap-3">
-                {editGuru.foto_url ? (
-                  <img
-                    src={editGuru.foto_url}
-                    alt="Preview Foto"
-                    className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-lg shrink-0">
-                    👨‍🏫
-                  </div>
-                )}
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  NIP / Kode Guru <span className="text-rose-500">*</span>
+                </label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        setEditGuru({ ...editGuru, foto_url: event.target?.result as string });
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer"
+                  type="text"
+                  required
+                  value={editGuru.nip}
+                  onChange={(e) => setEditGuru({ ...editGuru, nip: e.target.value })}
+                  className="input-premium font-mono font-bold"
                 />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Nama Lengkap & Gelar Guru/Ustadz <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editGuru.nama}
+                  onChange={(e) => setEditGuru({ ...editGuru, nama: e.target.value })}
+                  className="input-premium font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">Unit Instansi Pengampuan</label>
+                <select
+                  value={editGuru.instansi}
+                  onChange={(e) => setEditGuru({ ...editGuru, instansi: e.target.value })}
+                  className="input-premium font-bold"
+                >
+                  <option value="PONDOK">Instansi Pondok Pesantren</option>
+                  <option value="MADRASAH">Instansi Madrasah Diniyah</option>
+                  <option value="MI">Instansi Madrasah / MI</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Bidang Tugas & Pengampu Mapel <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editGuru.tugas}
+                  onChange={(e) => setEditGuru({ ...editGuru, tugas: e.target.value })}
+                  placeholder="Contoh: Pengasuh & Ustadz Hadits Diniyah"
+                  className="input-premium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Nomor Telepon / WhatsApp Aktif <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editGuru.telepon}
+                  onChange={(e) => setEditGuru({ ...editGuru, telepon: e.target.value })}
+                  placeholder="081234567890"
+                  className="input-premium font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">Foto Profil Guru (File Upload)</label>
+                <div className="flex items-center gap-3">
+                  {editGuru.foto_url ? (
+                    <img
+                      src={editGuru.foto_url}
+                      alt="Preview Foto"
+                      className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-lg shrink-0">
+                      👨‍🏫
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setEditGuru({ ...editGuru, foto_url: event.target?.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
 
@@ -414,7 +430,7 @@ export default function MasterGuruPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {saving ? 'Menyimpan...' : '💾 Simpan Perubahan Data Guru'}
               </button>

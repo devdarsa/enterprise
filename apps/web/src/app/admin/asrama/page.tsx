@@ -303,66 +303,83 @@ export default function ManajemenAsramaPage() {
           title={isModalOpen ? '➕ Tambah Kamar Asrama Baru' : `✏️ Edit Kamar Asrama — ${editKamar?.nomorKamar}`}
         >
           <form onSubmit={isModalOpen ? handleCreate : handleSaveEdit} className="space-y-4 text-xs">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Pilih Gedung Asrama</label>
-              <select
-                value={isModalOpen ? form.gedung : editKamar?.gedung || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, gedung: e.target.value })
-                    : setEditKamar(editKamar ? { ...editKamar, gedung: e.target.value } : null)
-                }
-                className="input-premium"
-              >
-                <option value="Gedung A (Al-Farabi)">Gedung A (Al-Farabi)</option>
-                <option value="Gedung B (Al-Ghazali)">Gedung B (Al-Ghazali)</option>
-                <option value="Gedung C (Al-Kindi)">Gedung C (Al-Kindi)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Kamar</label>
-              <input
-                type="text"
-                required
-                placeholder="Misal: A-103"
-                value={isModalOpen ? form.nomorKamar : editKamar?.nomorKamar || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, nomorKamar: e.target.value })
-                    : setEditKamar(editKamar ? { ...editKamar, nomorKamar: e.target.value } : null)
-                }
-                className="input-premium font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Kapasitas Maksimal (Santri)</label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={isModalOpen ? form.kapasitas : editKamar?.kapasitas || 8}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, kapasitas: Number(e.target.value) })
-                    : setEditKamar(editKamar ? { ...editKamar, kapasitas: Number(e.target.value) } : null)
-                }
-                className="input-premium font-bold"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Pembina / Wali Kamar</label>
-              <input
-                type="text"
-                required
-                placeholder="Nama Ustadz Pembina"
-                value={isModalOpen ? form.waliKamar : editKamar?.waliKamar || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, waliKamar: e.target.value })
-                    : setEditKamar(editKamar ? { ...editKamar, waliKamar: e.target.value } : null)
-                }
-                className="input-premium"
-              />
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5">
+              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                <span>🏢</span> Informasi Gedung & Kamar Asrama
+              </h4>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-800 mb-1">
+                  Pilih Gedung Asrama <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={isModalOpen ? form.gedung : editKamar?.gedung || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, gedung: e.target.value })
+                      : setEditKamar(editKamar ? { ...editKamar, gedung: e.target.value } : null)
+                  }
+                  className="input-premium font-bold"
+                >
+                  <option value="Gedung A (Al-Farabi)">Gedung A (Al-Farabi)</option>
+                  <option value="Gedung B (Al-Ghazali)">Gedung B (Al-Ghazali)</option>
+                  <option value="Gedung C (Al-Kindi)">Gedung C (Al-Kindi)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-800 mb-1">
+                  Nomor Kamar <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: A-103"
+                  value={isModalOpen ? form.nomorKamar : editKamar?.nomorKamar || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, nomorKamar: e.target.value })
+                      : setEditKamar(editKamar ? { ...editKamar, nomorKamar: e.target.value } : null)
+                  }
+                  className="input-premium font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-800 mb-1">
+                  Kapasitas Maksimal (Santri) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={isModalOpen ? form.kapasitas : editKamar?.kapasitas || 8}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, kapasitas: Number(e.target.value) })
+                      : setEditKamar(editKamar ? { ...editKamar, kapasitas: Number(e.target.value) } : null)
+                  }
+                  className="input-premium font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-800 mb-1">
+                  Pembina / Wali Kamar <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Nama Ustadz Pembina"
+                  value={isModalOpen ? form.waliKamar : editKamar?.waliKamar || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, waliKamar: e.target.value })
+                      : setEditKamar(editKamar ? { ...editKamar, waliKamar: e.target.value } : null)
+                  }
+                  className="input-premium font-bold"
+                />
+              </div>
             </div>
 
             <div className="pt-2 flex gap-3">

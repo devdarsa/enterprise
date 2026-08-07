@@ -394,101 +394,113 @@ export default function PelanggaranPage() {
           title={isModalOpen ? '⚠️ Catat Pelanggaran Baru' : `✏️ Edit Pelanggaran — ${editPelanggaran?.jenis}`}
         >
           <form onSubmit={isModalOpen ? handleSubmit : handleSaveEdit} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Cari & Pilih Santri Violator *</label>
-              <SantriPicker
-                required
-                placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
-                selectedSantriObj={
-                  isModalOpen
-                    ? form.santri_id
-                      ? { id: form.santri_id, nama_lengkap: form.santri_nama }
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5">
+              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                <span>⚠️</span> Catatan Kedisiplinan & Takzir Keamanan
+              </h4>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Cari & Pilih Santri Violator <span className="text-rose-500">*</span>
+                </label>
+                <SantriPicker
+                  required
+                  placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
+                  selectedSantriObj={
+                    isModalOpen
+                      ? form.santri_id
+                        ? { id: form.santri_id, nama_lengkap: form.santri_nama }
+                        : null
+                      : editPelanggaran?.santri
+                      ? {
+                          id: editPelanggaran.santri.nisp || editPelanggaran.id,
+                          nama_lengkap: editPelanggaran.santri.nama_lengkap,
+                          nisp: editPelanggaran.santri.nisp,
+                        }
                       : null
-                    : editPelanggaran?.santri
-                    ? {
-                        id: editPelanggaran.santri.nisp || editPelanggaran.id,
-                        nama_lengkap: editPelanggaran.santri.nama_lengkap,
-                        nisp: editPelanggaran.santri.nisp,
-                      }
-                    : null
-                }
-                onSelect={(s) => {
-                  if (isModalOpen) {
-                    setForm({ ...form, santri_id: s.id, santri_nama: s.nama_lengkap });
-                  } else if (editPelanggaran) {
-                    setEditPelanggaran({
-                      ...editPelanggaran,
-                      santri: {
-                        nisp: s.nisp || '',
-                        nama_lengkap: s.nama_lengkap,
-                        kelas: s.kelas ? { nama_kelas: s.kelas } : null,
-                      },
-                    });
                   }
-                }}
-              />
-            </div>
+                  onSelect={(s) => {
+                    if (isModalOpen) {
+                      setForm({ ...form, santri_id: s.id, santri_nama: s.nama_lengkap });
+                    } else if (editPelanggaran) {
+                      setEditPelanggaran({
+                        ...editPelanggaran,
+                        santri: {
+                          nisp: s.nisp || '',
+                          nama_lengkap: s.nama_lengkap,
+                          kelas: s.kelas ? { nama_kelas: s.kelas } : null,
+                        },
+                      });
+                    }
+                  }}
+                />
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Jenis Pelanggaran *</label>
-              <input
-                type="text"
-                required
-                value={isModalOpen ? form.jenis : editPelanggaran?.jenis || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, jenis: e.target.value })
-                    : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, jenis: e.target.value } : null)
-                }
-                placeholder="Terlambat Berjamaah, Membawa HP, dll."
-                className="input-premium"
-              />
-            </div>
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Jenis Pelanggaran <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={isModalOpen ? form.jenis : editPelanggaran?.jenis || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, jenis: e.target.value })
+                      : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, jenis: e.target.value } : null)
+                  }
+                  placeholder="Contoh: Terlambat Berjamaah, Membawa Elektronik"
+                  className="input-premium font-bold"
+                />
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Tingkat Pelanggaran *</label>
-              <select
-                value={isModalOpen ? form.tingkat : editPelanggaran?.tingkat || 'RINGAN'}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, tingkat: e.target.value as any })
-                    : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, tingkat: e.target.value as any } : null)
-                }
-                className="input-premium font-bold"
-              >
-                <option value="RINGAN">🟡 RINGAN — Tazir Membaca / Hafalan</option>
-                <option value="SEDANG">🟠 SEDANG — Penyitaan / Pengawasan</option>
-                <option value="BERAT">🔴 BERAT — Panggilan Wali / Skorsing</option>
-              </select>
-            </div>
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Tingkat Pelanggaran <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={isModalOpen ? form.tingkat : editPelanggaran?.tingkat || 'RINGAN'}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, tingkat: e.target.value as any })
+                      : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, tingkat: e.target.value as any } : null)
+                  }
+                  className="input-premium font-bold"
+                >
+                  <option value="RINGAN">🟡 RINGAN — Takzir Membaca Al-Qur'an / Hafalan</option>
+                  <option value="SEDANG">🟠 SEDANG — Penyitaan / Pembersihan Komplek</option>
+                  <option value="BERAT">🔴 BERAT — Panggilan Wali / Skorsing Sementara</option>
+                </select>
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Tindakan / Takzir</label>
-              <input
-                type="text"
-                value={isModalOpen ? form.tindakan : editPelanggaran?.tindakan || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, tindakan: e.target.value })
-                    : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, tindakan: e.target.value } : null)
-                }
-                placeholder="Tazir membaca Al-Qur'an 1 Juz..."
-                className="input-premium"
-              />
-            </div>
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">Tindakan / Takzir</label>
+                <input
+                  type="text"
+                  value={isModalOpen ? form.tindakan : editPelanggaran?.tindakan || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, tindakan: e.target.value })
+                      : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, tindakan: e.target.value } : null)
+                  }
+                  placeholder="Misal: Read 1 Juz Al-Qur'an di Masjid"
+                  className="input-premium"
+                />
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Keterangan Tambahan</label>
-              <textarea
-                value={isModalOpen ? form.keterangan : editPelanggaran?.keterangan || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setForm({ ...form, keterangan: e.target.value })
-                    : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, keterangan: e.target.value } : null)
-                }
-                placeholder="Catatan tambahan..."
-                className="input-premium h-20 resize-none"
-              />
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">Keterangan Tambahan</label>
+                <textarea
+                  value={isModalOpen ? form.keterangan : editPelanggaran?.keterangan || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setForm({ ...form, keterangan: e.target.value })
+                      : setEditPelanggaran(editPelanggaran ? { ...editPelanggaran, keterangan: e.target.value } : null)
+                  }
+                  placeholder="Catatan kronologi kejadian..."
+                  className="input-premium h-20 resize-none"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">

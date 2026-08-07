@@ -356,72 +356,88 @@ export default function PersuratanDigitalPage() {
           title={isModalOpen ? '✍️ Penerbitan Surat Izin Baru' : `✏️ Edit Surat Izin — ${editSurat?.nomor}`}
         >
           <form onSubmit={isModalOpen ? handleAddSurat : handleSaveEdit} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Nomor Surat Resmi</label>
-              <input
-                type="text"
-                required
-                value={isModalOpen ? nomor : editSurat?.nomor || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setNomor(e.target.value)
-                    : setEditSurat(editSurat ? { ...editSurat, nomor: e.target.value } : null)
-                }
-                className="input-premium font-mono font-bold"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Cari & Pilih Santri Yang Diberi Izin *</label>
-              <SantriPicker
-                required
-                placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
-                selectedSantriObj={
-                  isModalOpen
-                    ? santri
-                      ? { id: santri, nama_lengkap: santri }
-                      : null
-                    : editSurat?.pengirim
-                    ? { id: editSurat.pengirim, nama_lengkap: editSurat.pengirim }
-                    : null
-                }
-                onSelect={(s) => {
-                  if (isModalOpen) {
-                    setSantri(s.nama_lengkap);
-                  } else if (editSurat) {
-                    setEditSurat({ ...editSurat, pengirim: s.nama_lengkap });
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5">
+              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                <span>✉️</span> Formulir Penerbitan Surat Perizinan
+              </h4>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Nomor Surat Resmi <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={isModalOpen ? nomor : editSurat?.nomor || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setNomor(e.target.value)
+                      : setEditSurat(editSurat ? { ...editSurat, nomor: e.target.value } : null)
                   }
-                }}
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Pilih Instansi</label>
-              <select
-                value={isModalOpen ? instansi : editSurat?.instansi || 'PONDOK'}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setInstansi(e.target.value as any)
-                    : setEditSurat(editSurat ? { ...editSurat, instansi: e.target.value as any } : null)
-                }
-                className="input-premium font-bold"
-              >
-                <option value="PONDOK">Instansi Pondok Pesantren</option>
-                <option value="MADRASAH">Instansi Madrasah Diniyah</option>
-                <option value="MI">Instansi Madrasah / MI</option>
-              </select>
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Alasan / Keperluan Izin</label>
-              <input
-                type="text"
-                required
-                value={isModalOpen ? keperluan : editSurat?.perihal || ''}
-                onChange={(e) =>
-                  isModalOpen
-                    ? setKeperluan(e.target.value)
-                    : setEditSurat(editSurat ? { ...editSurat, perihal: e.target.value } : null)
-                }
-                className="input-premium"
-              />
+                  className="input-premium font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Cari & Pilih Santri Yang Diberi Izin <span className="text-rose-500">*</span>
+                </label>
+                <SantriPicker
+                  required
+                  placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
+                  selectedSantriObj={
+                    isModalOpen
+                      ? santri
+                        ? { id: santri, nama_lengkap: santri }
+                        : null
+                      : editSurat?.pengirim
+                      ? { id: editSurat.pengirim, nama_lengkap: editSurat.pengirim }
+                      : null
+                  }
+                  onSelect={(s) => {
+                    if (isModalOpen) {
+                      setSantri(s.nama_lengkap);
+                    } else if (editSurat) {
+                      setEditSurat({ ...editSurat, pengirim: s.nama_lengkap });
+                    }
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">Pilih Unit Instansi</label>
+                <select
+                  value={isModalOpen ? instansi : editSurat?.instansi || 'PONDOK'}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setInstansi(e.target.value as any)
+                      : setEditSurat(editSurat ? { ...editSurat, instansi: e.target.value as any } : null)
+                  }
+                  className="input-premium font-bold"
+                >
+                  <option value="PONDOK">Instansi Pondok Pesantren</option>
+                  <option value="MADRASAH">Instansi Madrasah Diniyah</option>
+                  <option value="MI">Instansi Madrasah / MI</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Alasan / Keperluan Izin <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Misal: Izin Pulang Keperluan Keluarga Mendadak"
+                  value={isModalOpen ? keperluan : editSurat?.perihal || ''}
+                  onChange={(e) =>
+                    isModalOpen
+                      ? setKeperluan(e.target.value)
+                      : setEditSurat(editSurat ? { ...editSurat, perihal: e.target.value } : null)
+                  }
+                  className="input-premium font-bold"
+                />
+              </div>
             </div>
 
             <div className="pt-2 flex gap-3">

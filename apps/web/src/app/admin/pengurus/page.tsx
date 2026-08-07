@@ -390,86 +390,100 @@ export default function DataPengurusPage() {
           title={showAddModal ? '➕ Registrasi Pengurus Baru' : `✏️ Edit Pengurus — ${editPengurus?.nama}`}
         >
           <form onSubmit={showAddModal ? handleSaveAdd : handleSaveEdit} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">NIK Pengurus (16 Digit KTP/KK)</label>
-              <input
-                type="text"
-                maxLength={16}
-                required
-                value={showAddModal ? formData.nik : editPengurus?.nik || ''}
-                onChange={(e) =>
-                  showAddModal
-                    ? setFormData({ ...formData, nik: e.target.value })
-                    : setEditPengurus(editPengurus ? { ...editPengurus, nik: e.target.value } : null)
-                }
-                placeholder="3571011508080001"
-                className="input-premium font-mono"
-              />
-            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5">
+              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                <span>👤</span> Data Identitas & Kepengurusan
+              </h4>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Nama Lengkap Pengurus *</label>
-              <input
-                type="text"
-                required
-                value={showAddModal ? formData.nama : editPengurus?.nama || ''}
-                onChange={(e) =>
-                  showAddModal
-                    ? setFormData({ ...formData, nama: e.target.value })
-                    : setEditPengurus(editPengurus ? { ...editPengurus, nama: e.target.value } : null)
-                }
-                placeholder="Ustadz Mochammad Fauzi"
-                className="input-premium font-bold"
-              />
-            </div>
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  NIK Pengurus (16-Digit KTP/KK) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={16}
+                  required
+                  value={showAddModal ? formData.nik : editPengurus?.nik || ''}
+                  onChange={(e) =>
+                    showAddModal
+                      ? setFormData({ ...formData, nik: e.target.value })
+                      : setEditPengurus(editPengurus ? { ...editPengurus, nik: e.target.value } : null)
+                  }
+                  placeholder="3571011508080001"
+                  className="input-premium font-mono font-bold"
+                />
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Jabatan / Divisi Kepengurusan</label>
-              <input
-                type="text"
-                required
-                value={showAddModal ? formData.jabatan : editPengurus?.jabatan || ''}
-                onChange={(e) =>
-                  showAddModal
-                    ? setFormData({ ...formData, jabatan: e.target.value })
-                    : setEditPengurus(editPengurus ? { ...editPengurus, jabatan: e.target.value } : null)
-                }
-                placeholder="Kepala Sekretariat Utama"
-                className="input-premium"
-              />
-            </div>
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Nama Lengkap Pengurus <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={showAddModal ? formData.nama : editPengurus?.nama || ''}
+                  onChange={(e) =>
+                    showAddModal
+                      ? setFormData({ ...formData, nama: e.target.value })
+                      : setEditPengurus(editPengurus ? { ...editPengurus, nama: e.target.value } : null)
+                  }
+                  placeholder="Ustadz Mochammad Fauzi"
+                  className="input-premium font-bold"
+                />
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Unit Instansi Kepengurusan</label>
-              <select
-                value={showAddModal ? formData.unit : editPengurus?.unit || 'PONDOK'}
-                onChange={(e) =>
-                  showAddModal
-                    ? setFormData({ ...formData, unit: e.target.value as any })
-                    : setEditPengurus(editPengurus ? { ...editPengurus, unit: e.target.value as any } : null)
-                }
-                className="input-premium font-bold"
-              >
-                <option value="PONDOK">PONDOK PESANTREN</option>
-                <option value="MADRASAH">MADRASAH DINIYAH</option>
-                <option value="MI">FORMAL / MI</option>
-              </select>
-            </div>
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Jabatan / Divisi Kepengurusan <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={showAddModal ? formData.jabatan : editPengurus?.jabatan || ''}
+                  onChange={(e) =>
+                    showAddModal
+                      ? setFormData({ ...formData, jabatan: e.target.value })
+                      : setEditPengurus(editPengurus ? { ...editPengurus, jabatan: e.target.value } : null)
+                  }
+                  placeholder="Kepala Sekretariat Utama"
+                  className="input-premium"
+                />
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Nomor Telepon / WhatsApp Aktif</label>
-              <input
-                type="text"
-                required
-                value={showAddModal ? formData.telepon : editPengurus?.telepon || ''}
-                onChange={(e) =>
-                  showAddModal
-                    ? setFormData({ ...formData, telepon: e.target.value })
-                    : setEditPengurus(editPengurus ? { ...editPengurus, telepon: e.target.value } : null)
-                }
-                placeholder="081234567890"
-                className="input-premium font-mono"
-              />
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">Unit Instansi Kepengurusan</label>
+                <select
+                  value={showAddModal ? formData.unit : editPengurus?.unit || 'PONDOK'}
+                  onChange={(e) =>
+                    showAddModal
+                      ? setFormData({ ...formData, unit: e.target.value as any })
+                      : setEditPengurus(editPengurus ? { ...editPengurus, unit: e.target.value as any } : null)
+                  }
+                  className="input-premium font-bold"
+                >
+                  <option value="PONDOK">PONDOK PESANTREN</option>
+                  <option value="MADRASAH">MADRASAH DINIYAH</option>
+                  <option value="MI">FORMAL / MI</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">
+                  Nomor Telepon / WhatsApp Aktif <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={showAddModal ? formData.telepon : editPengurus?.telepon || ''}
+                  onChange={(e) =>
+                    showAddModal
+                      ? setFormData({ ...formData, telepon: e.target.value })
+                      : setEditPengurus(editPengurus ? { ...editPengurus, telepon: e.target.value } : null)
+                  }
+                  placeholder="081234567890"
+                  className="input-premium font-mono font-bold"
+                />
+              </div>
             </div>
 
             <div>
