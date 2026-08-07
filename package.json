@@ -13,6 +13,7 @@
     "db:studio": "pnpm --filter database db:studio"
   },
   "devDependencies": {
+    "next": "^15.2.0",
     "prettier": "^3.5.0",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"
