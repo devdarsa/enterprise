@@ -243,7 +243,6 @@ export default function MasterSantriPage() {
       'Kelas & Rombel': s.kelas || '',
       'Gedung / Kamar Asrama': s.kamar || '',
       'Status Keasramaan': s.status_tempat_tinggal === 'UNIT_LAIN' ? 'Kalong / Unit Lain' : 'Mukim / Asrama Pesantren',
-      'Target Hafalan (Juz)': s.hafalan_juz || 0,
       'Alamat Lengkap Kependudukan': s.alamat || '',
       'Nomor Kartu Keluarga (KK)': s.no_kk || '',
       'NIK Wali (16 Digit)': s.nik_wali || '',

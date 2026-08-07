@@ -119,13 +119,6 @@ export const SANTRI_TEMPLATE_HEADERS: ExcelHeaderConfig[] = [
     options: ['PONDOK_PESANTREN', 'UNIT_LAIN'],
   },
   {
-    key: 'hafalan_juz',
-    header: 'Target Hafalan (Juz)',
-    width: 20,
-    comment: 'Fungsi: Target Hafalan Al-Qur\'an Santri\nFormat: Angka Jumlah Juz 0 - 30 (Contoh: 5)\nStatus: Opsional',
-    type: 'number',
-  },
-  {
     key: 'alamat',
     header: 'Alamat Lengkap Kependudukan',
     width: 36,
@@ -255,7 +248,6 @@ export async function downloadOfficialSantriTemplate(): Promise<void> {
     kelas: '10-A (Tahfidz & Diniyah)',
     kamar: 'Asrama Abu Bakar 1',
     status_tempat_tinggal: 'PONDOK_PESANTREN',
-    hafalan_juz: 5,
     alamat: 'Jl. Pesantren Lirboyo No 1, Kediri, Jawa Timur',
     no_kk: '3571019908050012',
     nik_wali: '3571012304850001',
@@ -296,19 +288,6 @@ export async function downloadOfficialSantriTemplate(): Promise<void> {
           showErrorMessage: true,
           errorTitle: 'Data Tidak Valid',
           error: `Pilihan untuk ${config.header} hanya boleh: ${config.options.join(', ')}`,
-        };
-      }
-
-      // Target Hafalan Numeric Validation
-      if (config.key === 'hafalan_juz') {
-        cell.dataValidation = {
-          type: 'whole',
-          operator: 'between',
-          formulae: [0, 30],
-          allowBlank: true,
-          showErrorMessage: true,
-          errorTitle: 'Format Hafalan Salah',
-          error: 'Target hafalan harus berupa angka antara 0 - 30 Juz.',
         };
       }
     });
@@ -523,20 +502,6 @@ export async function parseAndValidateExcelFile(file: File): Promise<PreImportVa
           field: 'tanggal_lahir',
           value: rowData.tanggal_lahir,
           message: 'Format tanggal lahir wajib YYYY-MM-DD (Contoh: 2010-08-15).',
-        });
-      }
-    }
-
-    // Rule 17: Target Hafalan
-    if (rowData.hafalan_juz !== '') {
-      const hafalan = Number(rowData.hafalan_juz);
-      if (isNaN(hafalan) || hafalan < 0 || hafalan > 30) {
-        issues.push({
-          rowNumber,
-          column: 'Target Hafalan',
-          field: 'hafalan_juz',
-          value: rowData.hafalan_juz,
-          message: 'Target hafalan harus berupa angka antara 0 - 30 Juz.',
         });
       }
     }

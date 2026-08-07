@@ -409,17 +409,6 @@ export default function RegistrasiSantriBaruPage() {
                 <option value="UNIT_LAIN">Kalong / Unit Lain</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Target Hafalan (Juz)</label>
-              <input
-                type="number"
-                min={0}
-                max={30}
-                value={hafalanJuz}
-                onChange={(e) => setHafalanJuz(parseInt(e.target.value) || 0)}
-                className="input-premium"
-              />
-            </div>
           </div>
         </div>
 
