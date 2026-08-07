@@ -89,7 +89,8 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    const loginUrl = new URL('/login', request.url);
+    const targetLoginPath = pathname.startsWith('/admin') ? '/admin/login' : '/login';
+    const loginUrl = new URL(targetLoginPath, request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }

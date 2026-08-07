@@ -173,7 +173,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       await signOut();
     } catch {}
     showToast('info', 'Sesi Berakhir', 'Anda telah berhasil keluar dari sistem.');
-    setTimeout(() => router.push('/login'), 1200);
+    setTimeout(() => {
+      window.location.href = '/admin/login';
+    }, 1000);
   };
 
   const handleMarkAllRead = () => {
