@@ -174,15 +174,22 @@ export default function ManajemenAsramaPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
           <span className="text-xs text-slate-400 font-bold block">Total Gedung Asrama</span>
-          <span className="text-xl font-black text-slate-900">2 Gedung Utama</span>
+          <span className="text-xl font-black text-slate-900">
+            {new Set(kamarList.map((k) => k.gedung)).size} Gedung
+          </span>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
           <span className="text-xs text-slate-400 font-bold block">Kapasitas Terisi</span>
-          <span className="text-xl font-black text-emerald-700">21 / 26 Santri</span>
+          <span className="text-xl font-black text-emerald-700">
+            {kamarList.reduce((acc, k) => acc + (k.terisi || 0), 0)} /{' '}
+            {kamarList.reduce((acc, k) => acc + (k.kapasitas || 0), 0)} Santri
+          </span>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
           <span className="text-xs text-slate-400 font-bold block">Pembina Asrama</span>
-          <span className="text-xl font-black text-amber-700">2 Ustadz Pembina</span>
+          <span className="text-xl font-black text-amber-700">
+            {new Set(kamarList.map((k) => k.waliKamar).filter((w) => w && w !== '-')).size} Pembina
+          </span>
         </div>
       </div>
 
