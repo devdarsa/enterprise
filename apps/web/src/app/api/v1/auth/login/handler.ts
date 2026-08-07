@@ -104,26 +104,7 @@ export async function POST(request: Request) {
     // Dapatkan role utama
     const userRole = user.user_roles?.[0]?.role?.name || defaultInfo?.role || 'SEKRETARIAT';
 
-    // 2. ENFORCE PORTAL SCOPE RULES (Ketentuan Resmi Login)
-    if (isPortalUmum && SEKRETARIAT_ROLES.includes(userRole)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'AKSES DITOLAK: Akun Kesekretariatan / Admin dilarang login melalui Portal Umum (/login). Silakan gunakan Portal Khusus Admin (/admin/login).',
-        },
-        { status: 403 }
-      );
-    }
-
-    if (isPortalAdmin && UMUM_ROLES.includes(userRole)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'AKSES DITOLAK: Akun Wali Santri / Umum dilarang login melalui Portal Kesekretariatan Admin (/admin/login). Silakan gunakan Portal Umum (/login).',
-        },
-        { status: 403 }
-      );
-    }
+    // 2. Auto-routing: Semua pengguna diizinkan login dan akan di-routing secara otomatis sesuai role masing-masing
 
     // Determine instansi scope
     let instansi = 'PONDOK';

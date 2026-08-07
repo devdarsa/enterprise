@@ -59,8 +59,22 @@ export default function SekretariatAdminLoginPage() {
       }
 
       // Login sukses — cookie otomatis diset oleh server via Set-Cookie headers.
-      // Lakukan full redirect ke Dashboard Admin untuk memuat sesi baru
-      window.location.href = '/admin/dashboard';
+      // Auto-routing ke dashboard sesuai role pengguna
+      const roleRedirects: Record<string, string> = {
+        SEKRETARIAT: '/admin/dashboard',
+        ADMIN_INSTANSI: '/admin/dashboard',
+        KEAMANAN: '/keamanan/dashboard',
+        GURU_MADRASAH: '/guru_madrasah/dashboard',
+        GURU_MI: '/guru_mi/dashboard',
+        GURU: '/guru_madrasah/dashboard',
+        MUSTAHIQ: '/guru_madrasah/dashboard',
+        MUNAWWIB: '/guru_madrasah/dashboard',
+        WALI_SANTRI: '/wali_santri/dashboard',
+        SANTRI: '/wali_santri/dashboard',
+      };
+      const userRole = json.user?.role || 'SEKRETARIAT';
+      const targetUrl = roleRedirects[userRole] || '/admin/dashboard';
+      window.location.href = targetUrl;
     } catch {
       setError('Terjadi kesalahan koneksi ke server database.');
       setLoading(false);
