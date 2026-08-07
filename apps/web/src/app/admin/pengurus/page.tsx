@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar } from '@/components/Loading';
+import { SearchBar, SkeletonTable } from '@/components/Loading';
 import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface Pengurus {
@@ -90,7 +90,7 @@ export default function DataPengurusPage() {
       {/* Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-500">Memuat data pengurus dari database...</div>
+          <SkeletonTable label="Memuat data pengurus dari database..." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">

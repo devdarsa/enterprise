@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
+import { SkeletonTable } from '@/components/Loading';
 import Modal from '@/components/Modal';
 import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
@@ -135,7 +136,10 @@ export default function ManajemenAsramaPage() {
 
       {/* Table Data Grid */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <table className="table-premium">
+        {loading ? (
+          <SkeletonTable label="Memuat data gedung asrama & kamar dari database..." />
+        ) : (
+          <table className="table-premium">
           <thead>
             <tr>
               <th>Gedung Asrama</th>
@@ -177,6 +181,7 @@ export default function ManajemenAsramaPage() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Modal Detail Kamar */}

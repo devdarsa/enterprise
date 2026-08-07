@@ -10,35 +10,35 @@ interface LoadingSpinnerProps {
 
 export function LoadingSpinner({ size = 'md', label, variant = 'default' }: LoadingSpinnerProps) {
   const sizeMap = {
-    sm: { outer: 'w-6 h-6', inner: 'w-4 h-4', border: 'border-2', dot: 'w-1 h-1' },
-    md: { outer: 'w-10 h-10', inner: 'w-6 h-6', border: 'border-2', dot: 'w-1.5 h-1.5' },
-    lg: { outer: 'w-16 h-16', inner: 'w-10 h-10', border: 'border-[3px]', dot: 'w-2 h-2' },
+    sm: { outer: 'w-6 h-6', inner: 'w-4 h-4', border: 'border-2', dot: 'w-1.5 h-1.5' },
+    md: { outer: 'w-10 h-10', inner: 'w-6 h-6', border: 'border-[2.5px]', dot: 'w-2 h-2' },
+    lg: { outer: 'w-16 h-16', inner: 'w-10 h-10', border: 'border-[3.5px]', dot: 'w-2.5 h-2.5' },
   }[size];
 
   const colors =
     variant === 'white'
-      ? { ring: 'border-white/30 border-t-white', ring2: 'border-transparent border-b-white/60' }
-      : { ring: 'border-emerald-200 border-t-emerald-600', ring2: 'border-transparent border-b-amber-400' };
+      ? { ring: 'border-white/30 border-t-white', ring2: 'border-transparent border-b-amber-300' }
+      : { ring: 'border-emerald-500/20 border-t-emerald-600', ring2: 'border-transparent border-b-amber-400' };
 
   return (
     <div className="flex flex-col items-center justify-center gap-3">
-      {/* Orbital Spinner */}
+      {/* Orbital Spinner with Glowing Center Dot */}
       <div className={`relative ${sizeMap.outer} flex items-center justify-center`}>
-        {/* Outer ring */}
+        {/* Outer Ring */}
         <div
           className={`absolute inset-0 rounded-full ${sizeMap.border} ${colors.ring} animate-spin`}
-          style={{ animationDuration: '0.9s' }}
+          style={{ animationDuration: '0.8s' }}
         />
-        {/* Inner ring - reverse */}
+        {/* Inner Ring (Reverse Rotation) */}
         <div
           className={`absolute ${sizeMap.inner} rounded-full ${sizeMap.border} ${colors.ring2} animate-spin-slow`}
-          style={{ animationDuration: '1.4s' }}
+          style={{ animationDuration: '1.2s' }}
         />
-        {/* Center dot */}
-        <div className={`${sizeMap.dot} rounded-full bg-emerald-600 opacity-80`} />
+        {/* Glowing Center Dot */}
+        <div className={`${sizeMap.dot} rounded-full bg-emerald-500 shadow-sm shadow-emerald-400`} />
       </div>
       {label && (
-        <p className={`text-xs font-semibold animate-pulse ${variant === 'white' ? 'text-white/80' : 'text-slate-500'}`}>
+        <p className={`text-xs font-bold tracking-wide animate-pulse ${variant === 'white' ? 'text-white/90' : 'text-slate-600'}`}>
           {label}
         </p>
       )}
@@ -46,76 +46,41 @@ export function LoadingSpinner({ size = 'md', label, variant = 'default' }: Load
   );
 }
 
-export function PageLoader({ label = 'Memuat Data...' }: { label?: string }) {
+export function PageLoader({ label = 'Memuat Data Database...' }: { label?: string }) {
   return (
-    <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
+    <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md text-white">
       {/* Ambient Glow */}
-      <div className="absolute w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
+      <div className="absolute w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl" />
 
-      <LoadingSpinner size="lg" />
-      <div className="mt-6 text-center">
-        <p className="text-sm font-bold text-slate-700">{label}</p>
-        <p className="text-xs text-slate-400 mt-1 font-medium">Darsa Enterprise — Mohon tunggu sebentar</p>
+      <LoadingSpinner size="lg" variant="white" />
+      <div className="mt-6 text-center space-y-1">
+        <p className="text-sm font-black text-white tracking-wide">{label}</p>
+        <p className="text-xs text-emerald-300 font-bold tracking-wider uppercase">Darsa Enterprise Ecosystem</p>
       </div>
 
-      {/* Animated Progress Bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100">
+      {/* Animated Bottom Gold Accent Progress Line */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-500 animate-progress-bar"
-          style={{ animationDuration: '2s', animationTimingFunction: 'ease-out' }}
+          className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 animate-progress-bar"
+          style={{ animationDuration: '1.5s', animationTimingFunction: 'ease-out' }}
         />
       </div>
     </div>
   );
 }
 
-export function SkeletonTable({ rows = 5, cols = 5 }: { rows?: number; cols?: number }) {
+export function SkeletonTable({ rows = 5, cols = 5, label = 'Memuat Data dari Database...' }: { rows?: number; cols?: number; label?: string }) {
   return (
-    <div className="w-full space-y-0">
-      {/* Header row */}
-      <div className="flex gap-3 px-4 py-3 border-b border-slate-200 bg-slate-50 rounded-t-xl">
-        {Array.from({ length: cols }).map((_, i) => (
-          <div
-            key={i}
-            className="h-3 rounded shimmer"
-            style={{ width: `${60 + Math.random() * 80}px`, flex: i === 1 ? '2' : '1' }}
-          />
-        ))}
-      </div>
-
-      {/* Data rows */}
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="flex gap-3 px-4 py-3.5 border-b border-slate-100 items-center"
-          style={{ animationDelay: `${i * 60}ms` }}
-        >
-          {Array.from({ length: cols }).map((_, j) => (
-            <div
-              key={j}
-              className="h-3.5 rounded-lg shimmer"
-              style={{ flex: j === 1 ? '2' : '1', opacity: 1 - i * 0.1 }}
-            />
-          ))}
-        </div>
-      ))}
+    <div className="w-full py-16 px-4 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200/90 shadow-sm my-2">
+      <LoadingSpinner size="md" label={label} />
     </div>
   );
 }
 
-export function SkeletonCard({ count = 4 }: { count?: number }) {
+export function SkeletonCard({ count = 4, label = 'Memuat Data statistik...' }: { count?: number; label?: string }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="p-5 rounded-2xl border border-slate-200 bg-white space-y-3">
-          <div className="flex justify-between items-start">
-            <div className="h-3 w-24 rounded shimmer" />
-            <div className="w-8 h-8 rounded-xl shimmer" />
-          </div>
-          <div className="h-8 w-20 rounded-lg shimmer" />
-          <div className="h-2.5 w-32 rounded shimmer" />
-        </div>
-      ))}
+    <div className="w-full py-12 px-4 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200/90 shadow-sm my-2">
+      <LoadingSpinner size="md" label={label} />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
-import { SearchBar } from '@/components/Loading';
+import { SearchBar, SkeletonTable } from '@/components/Loading';
 import { TableActions, ImportExportToolbar } from '@/components/TableActions';
 
 interface Alumni {
@@ -85,7 +85,7 @@ export default function DataAlumniPage() {
       {/* Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-500">Memuat data alumni dari database...</div>
+          <SkeletonTable label="Memuat data alumni dari database..." />
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-xs font-bold text-slate-400">Belum ada alumni lulusan tercatat di database.</div>
         ) : (
