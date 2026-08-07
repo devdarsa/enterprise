@@ -257,107 +257,94 @@ export default function MasterSantriPage() {
     showToast('success', 'Export Excel Berhasil', `${filtered.length} data santri diexport ke file .xlsx.`);
   };
 
-  const handleDownloadTemplate = async () => {
-    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
-    const templateData = [
-      {
-        'NISP Stambuk': 'PNDK-0012345678',
-        NISN: '0012345678',
-        'NIS Lokal': '20261001',
-        'NIK Santri (16 Digit)': '3571011508080001',
-        'Nama Lengkap Santri': 'Muhammad Raihan',
-        'Nama Panggilan': 'Raihan',
-        'Jenis Kelamin (L/P)': 'L',
-        'Tempat Lahir': 'Kediri',
-        'Tanggal Lahir (YYYY-MM-DD)': '2010-08-15',
-        'No. HP Santri': '081234567890',
-        'Jenjang Pendidikan': 'Tsanawiyyah',
-        'Kelas & Rombel': '10-A (Tahfidz & Diniyah)',
-        'Gedung / Kamar Asrama': 'Asrama Abu Bakar 1',
-        'Status Keasramaan (PONDOK_PESANTREN/UNIT_LAIN)': 'PONDOK_PESANTREN',
-        'Target Hafalan (Juz)': 5,
-        'Alamat Lengkap Kependudukan': 'Jl. Pesantren Lirboyo No 1, Kediri, Jawa Timur',
-        'Nomor Kartu Keluarga (KK)': '3571019908050012',
-        'NIK Wali (16 Digit)': '3571012304850001',
-        'Nama Lengkap Wali': 'Bapak Hendra',
-        'No. HP Wali': '081399887766',
-        'Hubungan Wali (AYAH/IBU/WALI)': 'AYAH',
-        'Status Keaktifan (AKTIF/BOYONG/LULUS/NON_AKTIF)': 'AKTIF',
-      },
-    ];
+  // State Report Validasi Import Excel
+  const [validationReport, setValidationReport] = useState<any | null>(null);
+  const [importingValidOnly, setImportingValidOnly] = useState(false);
 
-    downloadExcelTemplate(templateData, 'template-import-santri', 'Template Santri');
-    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
+  const handleDownloadTemplate = async () => {
+    const { downloadOfficialSantriTemplate } = await import('@/lib/excel-helper');
+    await downloadOfficialSantriTemplate();
+    showToast('success', 'Template Resmi Terproteksi Diunduh', 'Gunakan template v2.4-ENTERPRISE dengan header locked & data validation.');
   };
 
   const handleImport = async (file: File) => {
-    showToast('info', 'Mengunggah & Memproses Data Excel', `Membaca data dari file ${file.name}...`);
+    showToast('info', 'Validasi File Excel (31 Rule Contract)', `Menganalisis data dari file ${file.name}...`);
     try {
-      const { parseExcelFile } = await import('@/lib/excel-helper');
-      const rows: Record<string, any>[] = await parseExcelFile(file);
+      const { parseAndValidateExcelFile } = await import('@/lib/excel-helper');
+      const result = await parseAndValidateExcelFile(file);
 
-      if (!rows || rows.length === 0) {
+      if (result.totalRows === 0) {
         showToast('error', 'File Excel Kosong', 'Tidak ada data yang ditemukan di dalam file Excel.');
         return;
       }
 
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const row of rows) {
-        const payload = {
-          nisp: row['NISP Stambuk'] || row['nisp'] || row['NISP'] || '',
-          nisn: row['NISN'] || row['nisn'] || '',
-          nis: row['NIS Lokal'] || row['nis'] || '',
-          nik: row['NIK Santri (16 Digit)'] || row['nik'] || row['NIK'] || '',
-          nama_lengkap: row['Nama Lengkap Santri'] || row['nama_lengkap'] || row['Nama Santri'] || row['Nama'] || '',
-          nama_panggilan: row['Nama Panggilan'] || row['nama_panggilan'] || '',
-          jenis_kelamin: row['Jenis Kelamin (L/P)'] || row['jenis_kelamin'] || row['Jenis Kelamin'] || 'L',
-          tempat_lahir: row['Tempat Lahir'] || row['tempat_lahir'] || '',
-          tanggal_lahir: row['Tanggal Lahir (YYYY-MM-DD)'] || row['tanggal_lahir'] || '',
-          telepon: row['No. HP Santri'] || row['telepon'] || '',
-          jenjang: row['Jenjang Pendidikan'] || row['jenjang'] || 'PONDOK',
-          kamar: row['Gedung / Kamar Asrama'] || row['kamar'] || '',
-          status_tempat_tinggal: row['Status Keasramaan (PONDOK_PESANTREN/UNIT_LAIN)'] || 'PONDOK_PESANTREN',
-          hafalan_juz: row['Target Hafalan (Juz)'] || row['hafalan_juz'] || 0,
-          alamat: row['Alamat Lengkap Kependudukan'] || row['alamat'] || '',
-          no_kk: row['Nomor Kartu Keluarga (KK)'] || row['no_kk'] || '',
-          nik_wali: row['NIK Wali (16 Digit)'] || row['nik_wali'] || '',
-          nama_wali: row['Nama Lengkap Wali'] || row['nama_wali'] || '',
-          telepon_wali: row['No. HP Wali'] || row['telepon_wali'] || '',
-          hubungan_wali: row['Hubungan Wali (AYAH/IBU/WALI)'] || row['hubungan_wali'] || 'AYAH',
-        };
-
-        if (!payload.nama_lengkap) continue;
-
-        try {
-          const res = await fetch('/api/v1/santri', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const resJson = await res.json();
-          if (resJson.success) {
-            successCount++;
-          } else {
-            errorCount++;
-          }
-        } catch {
-          errorCount++;
-        }
+      if (!result.isValid) {
+        setValidationReport(result);
+        return;
       }
 
-      showToast(
-        successCount > 0 ? 'success' : 'error',
-        'Impor Data Selesai',
-        `${successCount} santri berhasil dimasukkan ke database PostgreSQL.` + (errorCount > 0 ? ` (${errorCount} dilewati/duplikat)` : '')
-      );
-
-      // Re-fetch database live
-      fetchSantri();
-    } catch {
-      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+      // If 100% valid, proceed immediately
+      await processExecuteImport(result.validRows);
+    } catch (err: any) {
+      showToast('error', 'Import Gagal', err.message || 'Format file Excel tidak dapat dibaca.');
     }
+  };
+
+  const processExecuteImport = async (rows: Record<string, any>[]) => {
+    setImportingValidOnly(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const row of rows) {
+      const payload = {
+        nisp: row.nisp || row['NISP Stambuk'] || '',
+        nisn: row.nisn || row['NISN'] || '',
+        nis: row.nis || row['NIS Lokal'] || '',
+        nik: row.nik || row['NIK Santri (16 Digit)'] || '',
+        nama_lengkap: row.nama_lengkap || row['Nama Lengkap Santri'] || '',
+        nama_panggilan: row.nama_panggilan || row['Nama Panggilan'] || '',
+        jenis_kelamin: row.jenis_kelamin === 'P' || row.jenis_kelamin === 'PEREMPUAN' ? 'PEREMPUAN' : 'LAKI_LAKI',
+        tempat_lahir: row.tempat_lahir || row['Tempat Lahir'] || '',
+        tanggal_lahir: row.tanggal_lahir || row['Tanggal Lahir (YYYY-MM-DD)'] || '',
+        telepon: row.telepon || row['No. HP Santri'] || '',
+        jenjang: row.jenjang || row['Jenjang Pendidikan'] || 'PONDOK',
+        kamar: row.kamar || row['Gedung / Kamar Asrama'] || '',
+        status_tempat_tinggal: row.status_tempat_tinggal || 'PONDOK_PESANTREN',
+        hafalan_juz: row.hafalan_juz || 0,
+        alamat: row.alamat || row['Alamat Lengkap Kependudukan'] || '',
+        no_kk: row.no_kk || row['Nomor Kartu Keluarga (KK)'] || '',
+        nik_wali: row.nik_wali || row['NIK Wali (16 Digit)'] || '',
+        nama_wali: row.nama_wali || row['Nama Lengkap Wali'] || '',
+        telepon_wali: row.telepon_wali || row['No. HP Wali'] || '',
+        hubungan_wali: row.hubungan_wali || 'AYAH',
+      };
+
+      if (!payload.nama_lengkap) continue;
+
+      try {
+        const res = await fetch('/api/v1/santri', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const resJson = await res.json();
+        if (resJson.success) successCount++;
+        else errorCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setImportingValidOnly(false);
+    setValidationReport(null);
+
+    showToast(
+      successCount > 0 ? 'success' : 'error',
+      'Impor Data Selesai',
+      `${successCount} santri berhasil dimasukkan ke database PostgreSQL.` + (errorCount > 0 ? ` (${errorCount} dilewati/duplikat)` : '')
+    );
+
+    fetchSantri();
   };
 
   return (
@@ -647,10 +634,86 @@ export default function MasterSantriPage() {
         onClose={() => setMutasiConfirmOpen(false)}
         onConfirm={handleMutasiSubmit}
         title={`Konfirmasi: ${selectedMutasiOption?.label ?? ''} — ${mutasiTarget?.nama ?? ''}`}
-        message={`Anda akan memproses mutasi "${selectedMutasiOption?.label}" untuk santri ${mutasiTarget?.nama} (NISP: ${mutasiTarget?.nisp}). ${mutasiTipe === 'PURGE' ? 'Data akan dihapus ke Recycle Bin.' : 'Status santri akan diperbarui di database.'} Apakah Anda yakin?`}
+        message={`Anda akan memproses mutasi "${selectedMutasiOption?.label}" untuk santri ${mutasiTarget?.nama} (NISP: ${mutasiTarget?.nisp}). ${mutasiTipe === 'PURGE' ? 'Data meyakinkan dihapus ke Recycle Bin.' : 'Status santri akan diperbarui di database.'} Apakah Anda yakin?`}
         confirmLabel={`Ya, ${selectedMutasiOption?.label ?? 'Proses'}`}
         loading={mutasiSubmitting}
       />
+
+      {/* ── MODAL REPORT VALIDASI IMPOR EXCEL (31 RULE CONTRACT) ───────────── */}
+      {validationReport && (
+        <Modal
+          isOpen={!!validationReport}
+          onClose={() => setValidationReport(null)}
+          title="⚠️ Laporan Hasil Validasi File Excel (Standard Contract v2.4)"
+          size="2xl"
+        >
+          <div className="space-y-4 text-xs">
+            {/* Header Summary Stats */}
+            <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+              <div className="p-3 rounded-xl bg-white border border-slate-200">
+                <span className="text-[10px] text-slate-500 font-bold uppercase block">TOTAL BARIS</span>
+                <span className="text-xl font-black text-slate-800">{validationReport.summary.total}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <span className="text-[10px] text-emerald-700 font-bold uppercase block">VALID (MEMENUHI SYARAT)</span>
+                <span className="text-xl font-black text-emerald-800">{validationReport.summary.valid}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
+                <span className="text-[10px] text-rose-700 font-bold uppercase block">DITOLAK (TIDAK VALID)</span>
+                <span className="text-xl font-black text-rose-800">{validationReport.summary.invalid}</span>
+              </div>
+            </div>
+
+            {/* List Table Error Baris */}
+            {validationReport.invalidRows.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-extrabold text-rose-800 flex items-center gap-1.5 text-sm">
+                  <span>🛑 Rincian Baris yang Ditolak oleh Sistem:</span>
+                </h4>
+                <div className="max-h-60 overflow-y-auto rounded-xl border border-rose-200 bg-rose-50/50 p-2 space-y-2">
+                  {validationReport.invalidRows.map((inv: any, idx: number) => (
+                    <div key={idx} className="p-3 rounded-xl bg-white border border-rose-200 space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-rose-800 font-mono">Baris Ke-{inv.rowNumber}</span>
+                        <span className="text-slate-900 font-bold">Santri: {inv.data.nama_lengkap || '(Nama Kosong)'}</span>
+                      </div>
+                      <ul className="list-disc list-inside text-rose-700 space-y-0.5 pl-1">
+                        {inv.issues.map((iss: any, i: number) => (
+                          <li key={i} className="font-medium">
+                            <strong className="font-bold">{iss.column}:</strong> {iss.message}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setValidationReport(null)}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-all cursor-pointer"
+              >
+                ✖️ Batal & Perbaiki File Excel
+              </button>
+
+              {validationReport.summary.valid > 0 && (
+                <button
+                  type="button"
+                  disabled={importingValidOnly}
+                  onClick={() => processExecuteImport(validationReport.validRows)}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold shadow-sm transition-all cursor-pointer flex items-center gap-2"
+                >
+                  {importingValidOnly ? '⏳ Memproses...' : `✅ Impor ${validationReport.summary.valid} Baris Valid Saja`}
+                </button>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
