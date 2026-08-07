@@ -133,10 +133,18 @@ export default function RoleLoginPage({
     setStep('verifying');
 
     try {
+      const isAdminContext =
+        (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) ||
+        ['pondok', 'madrasah', 'mi', 'keamanan', 'gurumi', 'general'].includes(portalType);
+
       const customRes = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase().trim(), password, portal: 'UMUM' }),
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          password,
+          portal: isAdminContext ? 'ADMIN' : 'UMUM',
+        }),
       });
 
       if (!customRes.ok) {

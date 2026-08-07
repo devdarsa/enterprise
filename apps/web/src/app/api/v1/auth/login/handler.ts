@@ -160,9 +160,12 @@ export async function POST(request: Request) {
       message: `Login Berhasil sebagai ${user.nama_lengkap} (${userRole})`,
     });
 
+    const isHttps = request.url.startsWith('https://') || reqHeaders.get('x-forwarded-proto') === 'https' || process.env.NODE_ENV === 'production';
     const cookieOptions = `Path=/; SameSite=Lax; Max-Age=${30 * 24 * 3600}`;
+    const secureCookieOptions = `Path=/; SameSite=Lax; Secure; Max-Age=${30 * 24 * 3600}`;
 
     response.headers.append('Set-Cookie', `better-auth.session_token=${sessionToken}; ${cookieOptions}`);
+    response.headers.append('Set-Cookie', `__Secure-better-auth.session_token=${sessionToken}; ${isHttps ? secureCookieOptions : cookieOptions}`);
     response.headers.append('Set-Cookie', `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; ${cookieOptions}`);
     response.headers.append('Set-Cookie', `darsa_instansi=${instansi}; ${cookieOptions}`);
 

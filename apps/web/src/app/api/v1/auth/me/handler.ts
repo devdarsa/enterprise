@@ -24,8 +24,10 @@ export async function GET(request: NextRequest) {
       }
     } catch {}
 
-    // 2. Fallback: Cek cookie `better-auth.session_token` di DB Session
-    const sessionToken = request.cookies.get('better-auth.session_token')?.value;
+    // 2. Fallback: Cek cookie `better-auth.session_token` atau `__Secure-better-auth.session_token` di DB Session
+    const sessionToken =
+      request.cookies.get('better-auth.session_token')?.value ||
+      request.cookies.get('__Secure-better-auth.session_token')?.value;
     if (!userId && sessionToken) {
       const dbSession = await prisma.session.findFirst({
         where: { token: sessionToken, expires_at: { gt: new Date() } },

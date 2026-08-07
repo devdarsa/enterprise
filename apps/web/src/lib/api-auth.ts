@@ -15,26 +15,79 @@ export interface AuthSession {
  * Returns null if not authenticated.
  */
 export async function getApiSession(request: NextRequest): Promise<AuthSession | null> {
+  // 1. Better-Auth session lookup
   try {
     const session = await auth.api.getSession({
       headers: request.headers,
     });
-    if (!session?.user) return null;
-    const authSession = session as AuthSession;
-    if (!authSession.user.role) {
+    if (session?.user) {
+      const authSession = session as AuthSession;
+      if (!authSession.user.role) {
+        const { prisma } = await import('@darsa/database');
+        const userRole = await prisma.userRole.findFirst({
+          where: { user_id: authSession.user.id },
+          include: { role: true },
+        });
+        if (userRole) {
+          authSession.user.role = userRole.role.name;
+        }
+      }
+      return authSession;
+    }
+  } catch {}
+
+  // 2. Direct fallback to Prisma database session lookup
+  try {
+    const sessionToken =
+      request.cookies.get('better-auth.session_token')?.value ||
+      request.cookies.get('__Secure-better-auth.session_token')?.value;
+
+    if (sessionToken) {
       const { prisma } = await import('@darsa/database');
-      const userRole = await prisma.userRole.findFirst({
-        where: { user_id: authSession.user.id },
-        include: { role: true },
+      const dbSession = await prisma.session.findFirst({
+        where: { token: sessionToken, expires_at: { gt: new Date() } },
+        include: {
+          user: {
+            include: {
+              user_roles: { include: { role: true } },
+            },
+          },
+        },
       });
-      if (userRole) {
-        authSession.user.role = userRole.role.name;
+
+      if (dbSession?.user) {
+        const userRole = dbSession.user.user_roles?.[0]?.role?.name || 'SEKRETARIAT';
+        return {
+          user: {
+            id: dbSession.user.id,
+            email: dbSession.user.email,
+            name: dbSession.user.nama_lengkap || dbSession.user.email,
+            role: userRole,
+          },
+        };
       }
     }
-    return authSession;
-  } catch {
-    return null;
-  }
+  } catch {}
+
+  // 3. Fallback to darsa_session cookie if present
+  try {
+    const darsaSessionRaw = request.cookies.get('darsa_session')?.value;
+    if (darsaSessionRaw) {
+      const parsed = JSON.parse(decodeURIComponent(darsaSessionRaw));
+      if (parsed?.id && parsed?.email) {
+        return {
+          user: {
+            id: parsed.id,
+            email: parsed.email,
+            name: parsed.name || parsed.email,
+            role: parsed.role || 'SEKRETARIAT',
+          },
+        };
+      }
+    }
+  } catch {}
+
+  return null;
 }
 
 /**
