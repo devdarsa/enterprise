@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
@@ -33,6 +34,28 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
+      <head>
+        <Script id="chunk-error-recovery" strategy="beforeInteractive">
+          {`
+            window.addEventListener('error', function(e) {
+              if (e.message && (e.message.indexOf('ChunkLoadError') !== -1 || e.message.indexOf('Loading chunk') !== -1)) {
+                if (!sessionStorage.getItem('darsa_chunk_reloaded')) {
+                  sessionStorage.setItem('darsa_chunk_reloaded', '1');
+                  window.location.reload();
+                }
+              }
+            });
+            window.addEventListener('unhandledrejection', function(e) {
+              if (e.reason && (String(e.reason).indexOf('ChunkLoadError') !== -1 || String(e.reason).indexOf('Loading chunk') !== -1)) {
+                if (!sessionStorage.getItem('darsa_chunk_reloaded')) {
+                  sessionStorage.setItem('darsa_chunk_reloaded', '1');
+                  window.location.reload();
+                }
+              }
+            });
+          `}
+        </Script>
+      </head>
       <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
         {children}
         <SpeedInsights />
