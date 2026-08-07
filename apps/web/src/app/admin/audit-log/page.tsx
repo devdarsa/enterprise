@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
+import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface AuditItem {
   id: string;
@@ -37,24 +38,60 @@ export default function AuditLogRecycleBinPage() {
   }, [activeTab]);
 
   const fetchData = async () => {
-    setLoading(true);
-    try {
-      if (activeTab === 'audit') {
+    if (activeTab === 'audit') {
+      const cached = await getIndexedDBCache<AuditItem[]>('audit_log', 'list');
+      if (cached && cached.length > 0) {
+        setAuditList(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
+      try {
         const res = await fetch('/api/v1/audit-log?limit=50');
         const json = await res.json();
-        if (json.success) setAuditList(json.data);
-        else showToast('error', 'Gagal', json.error);
-      } else {
-        // Recycle bin: santri dengan deleted_at tidak null
+        if (json.success && Array.isArray(json.data)) {
+          const mapped: AuditItem[] = json.data.map((item: any) => ({
+            id: item.id,
+            waktu: new Date(item.created_at || item.waktu || Date.now()).toLocaleString('id-ID'),
+            user: item.user?.nama_lengkap || item.user?.email || item.user_id || 'Sekretariat System',
+            aktivitas: item.action || item.aktivitas || 'Aktivitas System',
+            modul: item.entity_type || item.modul || 'SISTEM',
+            ipAddress: item.ip_address || item.ipAddress || '127.0.0.1',
+          }));
+          setAuditList(mapped);
+          setIndexedDBCache('audit_log', 'list', mapped);
+        } else if (!cached) {
+          showToast('error', 'Gagal', json.error || 'Gagal mengambil audit log.');
+        }
+      } catch {
+        if (!cached) showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data dari database API.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setLoading(true);
+      try {
         const res = await fetch('/api/v1/santri?deleted=true&limit=50');
         const json = await res.json();
-        if (json.success) setRecycleList(json.data);
-        else setRecycleList([]); // empty jika endpoint belum mendukung filter deleted
+        if (json.success && Array.isArray(json.data)) {
+          setRecycleList(
+            json.data.map((s: any) => ({
+              id: s.id,
+              waktuHapus: s.deleted_at ? new Date(s.deleted_at).toLocaleString('id-ID') : 'Terbaru',
+              dihapusOleh: 'Admin Sekretariat',
+              tipeData: 'SANTRI',
+              detail: `${s.nama_lengkap} (NISP: ${s.nisp})`,
+            }))
+          );
+        } else {
+          setRecycleList([]);
+        }
+      } catch {
+        setRecycleList([]);
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data dari database API.');
-    } finally {
-      setLoading(false);
     }
   };
 
