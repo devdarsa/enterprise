@@ -249,15 +249,6 @@ export default function RoleLoginPage({
 
       {/* Login Container */}
       <div className="w-full max-w-md relative z-10 space-y-4">
-        {/* Navigation Back */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors"
-          >
-            ← Kembali ke Beranda Utama
-          </Link>
-        </div>
 
         {/* Card Main */}
         <div className="bg-white border border-slate-200/90 rounded-3xl shadow-2xl shadow-slate-200/80 overflow-hidden">

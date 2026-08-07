@@ -9,7 +9,7 @@ import type { NextRequest } from 'next/server';
  * Middleware hanya melakukan redirect jika tidak ada session token sama sekali.
  */
 
-const PUBLIC_PREFIXES = ['/_next', '/favicon', '/login', '/api/auth', '/docs'];
+const PUBLIC_PREFIXES = ['/_next', '/favicon', '/login', '/admin/login', '/api/auth', '/docs', '/register'];
 const PUBLIC_EXACT = ['/'];
 
 // Route → Role yang diizinkan (enforced di API level, middleware hanya cek presence)
