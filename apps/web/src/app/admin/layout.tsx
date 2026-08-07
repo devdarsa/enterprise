@@ -107,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setToast({ isOpen: true, type, title, message });
   };
 
-  // Fetch session from /api/v1/auth/me
+  // Fetch session & active Tahun Ajaran from API
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -148,7 +148,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       } catch {}
     };
+
+    const fetchActiveTahunAjaran = async () => {
+      try {
+        const res = await fetch('/api/v1/tahun-ajaran');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const active = json.data.find((ta: any) => ta.is_aktif);
+            if (active) {
+              setTahunAjaran(`${active.nama} (${active.semester})`);
+            }
+          }
+        }
+      } catch {}
+    };
+
     fetchSession();
+    fetchActiveTahunAjaran();
   }, [router]);
 
   // Close popovers on outside click
@@ -430,43 +447,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {/* Right Top Actions Row: [Instansi Selector] -> [Tahun Ajaran] -> [Lonceng Notifikasi] -> [Profile & Logout Dropdown] */}
             <div className="flex items-center gap-2 md:gap-3">
-              {/* 0. Instansi Switcher Selector */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs shadow-xs">
+              {/* 0. Realtime Instansi Badge (Strictly based on User Account Session) */}
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs shadow-xs">
                 <span className="text-xs">🏛️</span>
-                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider hidden lg:inline">
-                  Instansi:
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider hidden sm:inline">
+                  INSTANSI:
                 </span>
-                <select
-                  value={activeInstansi}
-                  onChange={(e) => {
-                    const val = e.target.value as 'pondok' | 'madrasah' | 'mi';
-                    setActiveInstansi(val);
-                    document.cookie = `darsa_instansi=${val}; path=/; max-age=86400`;
-                    showToast('info', 'Instansi Dialihkan', `Portal dialihkan ke Sekretariat ${val.toUpperCase()}.`);
-                  }}
-                  className="bg-transparent text-xs font-black text-emerald-950 focus:outline-none cursor-pointer pr-1"
-                >
-                  <option value="pondok">Pondok Pesantren</option>
-                  <option value="madrasah">Madrasah Diniyah</option>
-                  <option value="mi">MI Formal</option>
-                </select>
+                <span className="text-xs font-black text-emerald-950 uppercase tracking-tight">
+                  {currentInstansi.nama}
+                </span>
               </div>
 
-              {/* 1. Tahun Ajaran Selector */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/90 text-xs shadow-xs">
+              {/* 1. Realtime System Active Tahun Ajaran Badge */}
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/90 text-xs shadow-xs">
                 <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden lg:inline">
-                  Tahun Ajaran:
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider hidden sm:inline">
+                  TAHUN AJARAN:
                 </span>
-                <select
-                  value={tahunAjaran}
-                  onChange={(e) => setTahunAjaran(e.target.value)}
-                  className="bg-transparent text-xs font-black text-emerald-950 focus:outline-none cursor-pointer pr-1"
-                >
-                  <option value="2025/2026 (Ganjil)">2025/2026 (Ganjil)</option>
-                  <option value="2025/2026 (Genap)">2025/2026 (Genap)</option>
-                  <option value="2026/2027 (Ganjil)">2026/2027 (Ganjil)</option>
-                </select>
+                <span className="text-xs font-black text-slate-900">
+                  {tahunAjaran}
+                </span>
+                <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-100 text-emerald-800 rounded-md border border-emerald-300 shrink-0">
+                  AKTIF
+                </span>
               </div>
 
               {/* 2. Functional Notification Bell */}
