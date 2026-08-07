@@ -308,15 +308,67 @@ export default function DetailSantriPage() {
 
       {/* Modal Edit */}
       <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title={`✏️ Edit Data Santri — ${santri.nama_lengkap}`}>
-        <form onSubmit={handleSaveEdit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        <form onSubmit={handleSaveEdit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          {/* Upload Pas Foto File */}
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Upload Pas Foto Santri (File) *</label>
+            <div className="flex items-center gap-3">
+              {(editForm as any).avatar_url ? (
+                <img src={(editForm as any).avatar_url} alt="Preview Foto" className="w-14 h-14 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-slate-200 border border-dashed border-slate-400 flex items-center justify-center text-slate-500 text-xl shrink-0">📷</div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      setEditForm(f => ({ ...f, avatar_url: event.target?.result as string }));
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">NISP (Nomor Stambuk)</label>
+              <input
+                value={editForm.nisp || ''}
+                onChange={e => setEditForm(f => ({ ...f, nisp: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">NISN (Kemenag)</label>
+              <input
+                value={editForm.nisn || ''}
+                onChange={e => setEditForm(f => ({ ...f, nisn: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">NIK Santri (16 Digit)</label>
+              <input
+                maxLength={16}
+                value={editForm.nik || ''}
+                onChange={e => setEditForm(f => ({ ...f, nik: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap *</label>
               <input
                 required
                 value={editForm.nama_lengkap || ''}
                 onChange={e => setEditForm(f => ({ ...f, nama_lengkap: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
             <div>
@@ -326,6 +378,17 @@ export default function DetailSantriPage() {
                 onChange={e => setEditForm(f => ({ ...f, nama_panggilan: e.target.value }))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Kelamin</label>
+              <select
+                value={editForm.jenis_kelamin === 'L' ? 'LAKI_LAKI' : editForm.jenis_kelamin === 'P' ? 'PEREMPUAN' : (editForm.jenis_kelamin || 'LAKI_LAKI')}
+                onChange={e => setEditForm(f => ({ ...f, jenis_kelamin: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+              >
+                <option value="LAKI_LAKI">Laki-laki (L)</option>
+                <option value="PEREMPUAN">Perempuan (P)</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Tempat Lahir</label>
@@ -345,15 +408,28 @@ export default function DetailSantriPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Kelamin</label>
-              <select
-                value={editForm.jenis_kelamin === 'L' ? 'LAKI_LAKI' : editForm.jenis_kelamin === 'P' ? 'PEREMPUAN' : (editForm.jenis_kelamin || 'LAKI_LAKI')}
-                onChange={e => setEditForm(f => ({ ...f, jenis_kelamin: e.target.value }))}
+              <label className="block text-xs font-bold text-slate-700 mb-1">No. HP Santri</label>
+              <input
+                value={editForm.telepon || ''}
+                onChange={e => setEditForm(f => ({ ...f, telepon: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Jenjang Pendidikan</label>
+              <input
+                value={editForm.jenjang || ''}
+                onChange={e => setEditForm(f => ({ ...f, jenjang: e.target.value }))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
-              >
-                <option value="LAKI_LAKI">Laki-laki (L)</option>
-                <option value="PEREMPUAN">Perempuan (P)</option>
-              </select>
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Kamar Asrama</label>
+              <input
+                value={editForm.kamar || ''}
+                onChange={e => setEditForm(f => ({ ...f, kamar: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Hafalan (Juz)</label>
@@ -373,16 +449,35 @@ export default function DetailSantriPage() {
               />
             </div>
             <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">NIK Wali (16 Digit)</label>
+              <input
+                maxLength={16}
+                value={editForm.nik_wali || ''}
+                onChange={e => setEditForm(f => ({ ...f, nik_wali: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">No. HP Wali</label>
               <input
                 value={editForm.telepon_wali || ''}
                 onChange={e => setEditForm(f => ({ ...f, telepon_wali: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">No. KK (Kartu Keluarga)</label>
+              <input
+                maxLength={16}
+                value={editForm.no_kk || ''}
+                onChange={e => setEditForm(f => ({ ...f, no_kk: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Alamat Lengkap</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Alamat Lengkap Kependudukan</label>
             <textarea
               rows={3}
               value={editForm.alamat || ''}
@@ -390,6 +485,7 @@ export default function DetailSantriPage() {
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
             />
           </div>
+
           <div className="flex gap-3 pt-2">
             <button
               type="button"
