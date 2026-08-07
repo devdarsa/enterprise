@@ -343,6 +343,52 @@ export interface PreImportValidationResult {
   };
 }
 
+function normalizeDateValue(rawVal: any): string | null {
+  if (!rawVal) return null;
+
+  if (rawVal instanceof Date) {
+    if (isNaN(rawVal.getTime())) return null;
+    const yyyy = rawVal.getFullYear();
+    const mm = String(rawVal.getMonth() + 1).padStart(2, '0');
+    const dd = String(rawVal.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const str = String(rawVal).trim();
+  if (!str) return null;
+
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+  // DD/MM/YYYY or DD-MM-YYYY (e.g. 25/04/2000)
+  const ddmmyyyy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (ddmmyyyy) {
+    const dd = ddmmyyyy[1].padStart(2, '0');
+    const mm = ddmmyyyy[2].padStart(2, '0');
+    const yyyy = ddmmyyyy[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // YYYY/MM/DD
+  const yyyymmdd = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (yyyymmdd) {
+    const yyyy = yyyymmdd[1];
+    const mm = yyyymmdd[2].padStart(2, '0');
+    const dd = yyyymmdd[3].padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return null;
+}
+
 /**
  * Pre-import validation engine complying with Rule 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 24, 25.
  */
@@ -380,16 +426,21 @@ export async function parseAndValidateExcelFile(file: File): Promise<PreImportVa
     if (rowNumber === 1) return; // Skip Header Row
 
     const rowData: Record<string, any> = {};
+    const rawCellValues: Record<string, any> = {};
     const issues: ValidationIssue[] = [];
 
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       const headerName = headers[colNumber - 1];
       const key = headerToKeyMap[headerName] || headerName;
-      let val = cell.text ? cell.text.trim() : cell.value;
+      let val = cell.value;
       if (typeof val === 'object' && val !== null && 'result' in val) {
         val = (val as any).result;
       }
-      if (val !== undefined && val !== null) {
+      rawCellValues[key] = val;
+
+      if (val instanceof Date) {
+        rowData[key] = normalizeDateValue(val) || '';
+      } else if (val !== undefined && val !== null) {
         rowData[key] = String(val).trim();
       } else {
         rowData[key] = '';
@@ -492,16 +543,18 @@ export async function parseAndValidateExcelFile(file: File): Promise<PreImportVa
       }
     }
 
-    // Rule 12: Tanggal Lahir (YYYY-MM-DD)
-    if (rowData.tanggal_lahir) {
-      const isDateValid = /^\d{4}-\d{2}-\d{2}$/.test(rowData.tanggal_lahir);
-      if (!isDateValid) {
+    // Rule 12: Tanggal Lahir (Smart normalization to YYYY-MM-DD)
+    if (rowData.tanggal_lahir || rawCellValues.tanggal_lahir) {
+      const normalizedDate = normalizeDateValue(rawCellValues.tanggal_lahir || rowData.tanggal_lahir);
+      if (normalizedDate) {
+        rowData.tanggal_lahir = normalizedDate; // Auto-format to standard YYYY-MM-DD
+      } else {
         issues.push({
           rowNumber,
           column: 'Tanggal Lahir',
           field: 'tanggal_lahir',
           value: rowData.tanggal_lahir,
-          message: 'Format tanggal lahir wajib YYYY-MM-DD (Contoh: 2010-08-15).',
+          message: 'Format tanggal lahir wajib YYYY-MM-DD atau DD/MM/YYYY (Contoh: 2000-04-25 atau 25/04/2000).',
         });
       }
     }
