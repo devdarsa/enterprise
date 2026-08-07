@@ -91,34 +91,47 @@ export default function MasterGuruPage() {
     }
   };
 
-  const handleExport = () => {
-    const csv = [
-      ['NIP', 'Nama', 'Tugas', 'Telepon', 'Instansi', 'Status'],
-      ...guruList.map((g) => [g.nip, g.nama, g.tugas, g.telepon, g.instansi, g.status || '']),
-    ]
-      .map((r) => r.map((c) => `"${c}"`).join(','))
-      .join('\n');
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
-      download: `data-pengajar-${new Date().toISOString().slice(0, 10)}.csv`,
-    });
-    a.click();
-    showToast('success', 'Export Berhasil', `${guruList.length} data pengajar diexport.`);
+  const handleExport = async () => {
+    const { exportToExcel } = await import('@/lib/excel-helper');
+    const dataToExport = filtered.map((g) => ({
+      'Nomor Induk Pegawai / Guru (NIP)': g.nip,
+      'Nama Lengkap & Gelar Guru/Ustadz': g.nama,
+      'Instansi': g.instansi,
+      'Bidang Tugas & Pengampu Mapel': g.tugas,
+      'Nomor Telepon / WhatsApp Aktif': g.telepon,
+      'Status Keaktifan': g.status || 'AKTIF',
+    }));
+
+    exportToExcel(dataToExport, `data-pengajar-${new Date().toISOString().slice(0, 10)}`, 'Data Pengajar');
+    showToast('success', 'Export Excel Berhasil', `${filtered.length} data pengajar diexport ke file .xlsx.`);
   };
 
-  const handleDownloadTemplate = () => {
-    const csv = [
-      ['NIP', 'NAMA_LENGKAP', 'TUGAS_PENGAMPUAN', 'NO_HP', 'INSTANSI(MADRASAH/MI/PONDOK)', 'STATUS(AKTIF/NON_AKTIF)'],
-      ['G.001', 'USTADZ AHMAD KHOIRI', 'Fiqh', '08123456789', 'MADRASAH', 'AKTIF'],
-    ]
-      .map((r) => r.map((c) => `"${c}"`).join(','))
-      .join('\n');
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
-      download: 'template-import-pengajar.csv',
-    });
-    a.click();
-    showToast('info', 'Template Diunduh', 'Isi template lalu import kembali.');
+  const handleDownloadTemplate = async () => {
+    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
+    const templateData = [
+      {
+        'Nomor Induk Pegawai / Guru (NIP)': '198501012010011001',
+        'Nama Lengkap & Gelar Guru/Ustadz': 'Dr. KH. Abdullah Ridwan',
+        'Instansi (PONDOK/MADRASAH/MI)': 'MADRASAH',
+        'Bidang Tugas & Pengampu Mapel': 'Pengasuh & Ustadz Hadits Diniyah',
+        'Nomor Telepon / WhatsApp Aktif': '081234567890',
+        'Status Keaktifan (AKTIF/NON_AKTIF)': 'AKTIF',
+      },
+    ];
+
+    downloadExcelTemplate(templateData, 'template-import-pengajar', 'Template Pengajar');
+    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
+  };
+
+  const handleImport = async (file: File) => {
+    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    try {
+      const { parseExcelFile } = await import('@/lib/excel-helper');
+      const rows = await parseExcelFile(file);
+      showToast('success', 'Import Berhasil', `${rows.length} data pengajar dibaca dari file Excel.`);
+    } catch {
+      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+    }
   };
 
   const filtered = search
@@ -150,7 +163,7 @@ export default function MasterGuruPage() {
         countLabel="pengajar"
         onExportExcel={handleExport}
         onDownloadTemplate={handleDownloadTemplate}
-        onImport={(file) => showToast('info', 'Import Diterima', `File "${file.name}" sedang diproses.`)}
+        onImport={handleImport}
         onRefresh={fetchGuru}
       />
 

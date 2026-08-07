@@ -152,6 +152,47 @@ export default function PersuratanDigitalPage() {
     showToast('warning', 'Perizinan Ditolak', 'Permohonan izin ditolak.');
   };
 
+  const handleExportExcel = async () => {
+    const { exportToExcel } = await import('@/lib/excel-helper');
+    const dataToExport = suratList.map((s) => ({
+      'Nomor Surat Resmi': s.nomor,
+      'Nama Santri Yang Diberi Izin': s.pengirim,
+      'Pilih Instansi': s.instansi || 'PONDOK',
+      'Alasan / Keperluan Izin': s.perihal,
+      'Tanggal Terbit': s.tanggal,
+      'Status Perizinan': s.status,
+    }));
+
+    exportToExcel(dataToExport, `perizinan-surat-${new Date().toISOString().slice(0, 10)}`, 'Perizinan Surat');
+    showToast('success', 'Export Excel Berhasil', `${suratList.length} data perizinan diexport ke file .xlsx.`);
+  };
+
+  const handleDownloadTemplate = async () => {
+    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
+    const templateData = [
+      {
+        'Nomor Surat Resmi': `SRT/${new Date().getFullYear()}/08/101`,
+        'Nama Santri Yang Diberi Izin': 'Muhammad Raihan',
+        'Pilih Instansi (PONDOK/MADRASAH/MI)': 'PONDOK',
+        'Alasan / Keperluan Izin': 'Izin Pulang Keperluan Keluarga',
+      },
+    ];
+
+    downloadExcelTemplate(templateData, 'template-import-surat', 'Template Surat');
+    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
+  };
+
+  const handleImport = async (file: File) => {
+    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    try {
+      const { parseExcelFile } = await import('@/lib/excel-helper');
+      const rows = await parseExcelFile(file);
+      showToast('success', 'Import Berhasil', `${rows.length} data perizinan dibaca dari file Excel.`);
+    } catch {
+      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+    }
+  };
+
   return (
     <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
@@ -163,7 +204,9 @@ export default function PersuratanDigitalPage() {
         subtitle="Pengajuan Izin Pulang/Keluar, Verifikasi Keamanan, & Cetak Surat Izin Resmi"
         badge="MODUL KEAMANAN"
         primaryAction={{ label: '✉️ + Tambah Izin Baru', onClick: () => setIsModalOpen(true) }}
-        onExportExcel={() => showToast('info', 'Export Data', 'Mengeksport rekap perizinan ke Excel.')}
+        onExportExcel={handleExportExcel}
+        onDownloadTemplate={handleDownloadTemplate}
+        onImport={handleImport}
         onExportPDF={() => showToast('info', 'Cetak Surat', 'Mencetak surat izin resmi ke PDF.')}
         onRefresh={fetchSurat}
       />

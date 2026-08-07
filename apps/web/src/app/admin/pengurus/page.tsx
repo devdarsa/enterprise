@@ -142,19 +142,47 @@ export default function DataPengurusPage() {
     }
   };
 
-  const handleExport = () => {
-    const csv = [
-      ['NIK', 'Nama Pengurus', 'Jabatan / Divisi', 'Unit Instansi', 'No. HP', 'Status'],
-      ...filtered.map((p) => [p.nik, p.nama, p.jabatan, p.unit, p.telepon, p.status]),
-    ]
-      .map((r) => r.map((c) => `"${c}"`).join(','))
-      .join('\n');
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
-      download: `pengurus-${new Date().toISOString().slice(0, 10)}.csv`,
-    });
-    a.click();
-    showToast('success', 'Export Berhasil', `${filtered.length} data pengurus diexport.`);
+  const handleExport = async () => {
+    const { exportToExcel } = await import('@/lib/excel-helper');
+    const dataToExport = filtered.map((p) => ({
+      'NIK Pengurus (16 Digit)': p.nik,
+      'Nama Lengkap Pengurus': p.nama,
+      'Jabatan / Divisi Kepengurusan': p.jabatan,
+      'Unit Instansi Kepengurusan': p.unit,
+      'Nomor Telepon / WhatsApp Aktif': p.telepon,
+      'Status Keaktifan': p.status || 'AKTIF',
+    }));
+
+    exportToExcel(dataToExport, `pengurus-${new Date().toISOString().slice(0, 10)}`, 'Data Pengurus');
+    showToast('success', 'Export Excel Berhasil', `${filtered.length} data pengurus diexport ke file .xlsx.`);
+  };
+
+  const handleDownloadTemplate = async () => {
+    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
+    const templateData = [
+      {
+        'NIK Pengurus (16 Digit)': '3571011508080001',
+        'Nama Lengkap Pengurus': 'Ustadz Mochammad Fauzi',
+        'Jabatan / Divisi Kepengurusan': 'Kepala Sekretariat Utama',
+        'Unit Instansi Kepengurusan (PONDOK/MADRASAH/MI)': 'PONDOK',
+        'Nomor Telepon / WhatsApp Aktif': '081234567890',
+        'Status Keaktifan (AKTIF/NON_AKTIF)': 'AKTIF',
+      },
+    ];
+
+    downloadExcelTemplate(templateData, 'template-import-pengurus', 'Template Pengurus');
+    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
+  };
+
+  const handleImport = async (file: File) => {
+    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    try {
+      const { parseExcelFile } = await import('@/lib/excel-helper');
+      const rows = await parseExcelFile(file);
+      showToast('success', 'Import Berhasil', `${rows.length} data pengurus dibaca dari file Excel.`);
+    } catch {
+      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+    }
   };
 
   return (
@@ -188,6 +216,8 @@ export default function DataPengurusPage() {
         count={loading ? undefined : filtered.length}
         countLabel="pengurus"
         onExportExcel={handleExport}
+        onDownloadTemplate={handleDownloadTemplate}
+        onImport={handleImport}
         onRefresh={fetchPengurus}
       />
 

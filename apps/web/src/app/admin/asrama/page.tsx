@@ -108,6 +108,47 @@ export default function ManajemenAsramaPage() {
     showToast('success', 'Kamar Dihapus', `Kamar ${nama} dipindahkan ke Recycle Bin.`);
   };
 
+  const handleExportExcel = async () => {
+    const { exportToExcel } = await import('@/lib/excel-helper');
+    const dataToExport = kamarList.map((k) => ({
+      'Pilih Gedung Asrama': k.gedung,
+      'Nomor Kamar': k.nomorKamar,
+      'Kapasitas Maksimal (Santri)': k.kapasitas,
+      'Jumlah Santri Terisi': k.terisi,
+      'Pembina / Wali Kamar': k.waliKamar,
+      'Status Kamar': k.status,
+    }));
+
+    exportToExcel(dataToExport, `data-asrama-${new Date().toISOString().slice(0, 10)}`, 'Data Asrama');
+    showToast('success', 'Export Excel Berhasil', `${kamarList.length} data kamar diexport ke file .xlsx.`);
+  };
+
+  const handleDownloadTemplate = async () => {
+    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
+    const templateData = [
+      {
+        'Pilih Gedung Asrama': 'Gedung A (Al-Farabi)',
+        'Nomor Kamar': 'A-103',
+        'Kapasitas Maksimal (Santri)': 8,
+        'Pembina / Wali Kamar': 'Ustadz Pembina',
+      },
+    ];
+
+    downloadExcelTemplate(templateData, 'template-import-asrama', 'Template Asrama');
+    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
+  };
+
+  const handleImport = async (file: File) => {
+    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    try {
+      const { parseExcelFile } = await import('@/lib/excel-helper');
+      const rows = await parseExcelFile(file);
+      showToast('success', 'Import Berhasil', `${rows.length} data kamar dibaca dari file Excel.`);
+    } catch {
+      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+    }
+  };
+
   return (
     <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
@@ -119,7 +160,9 @@ export default function ManajemenAsramaPage() {
         subtitle="Pengelolaan Gedung Asrama, Kamar Santri, Penempatan Kamar, & Pembina Asrama"
         badge="DATABASE PONDOK"
         primaryAction={{ label: '+ Tambah Kamar / Asrama Baru', onClick: () => setIsModalOpen(true) }}
-        onExportExcel={() => showToast('info', 'Export Data', 'Mengeksport data kamar ke Excel.')}
+        onExportExcel={handleExportExcel}
+        onDownloadTemplate={handleDownloadTemplate}
+        onImport={handleImport}
         onRefresh={() => showToast('info', 'Refresh', 'Data refreshed.')}
       />
 

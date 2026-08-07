@@ -216,38 +216,80 @@ export default function MasterSantriPage() {
 
   const selectedMutasiOption = MUTASI_OPTIONS.find(o => o.tipe === mutasiTipe);
 
-  // ── Export / Import helpers ────────────────────────────────────────────────
-  const handleExportExcel = () => {
-    const rows = filtered.map(s => ([
-      s.nisp || '', s.nisn, s.nama, s.jenis_kelamin === 'LAKI_LAKI' || s.jenis_kelamin === 'L' ? 'L' : 'P',
-      s.kelas, s.kamar || '', s.status, s.nama_wali || '', s.nik_wali || '',
-    ]));
-    const header = ['NISP Stambuk','NISN','Nama Lengkap','L/P','Kelas','Kamar','Status','Wali Santri','NIK Wali'];
-    const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = `master-santri-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-    showToast('success', 'Export Berhasil', `${filtered.length} data santri berhasil diexport.`);
+  // ── Export / Import Excel (.xlsx) ──────────────────────────────────────────
+  const handleExportExcel = async () => {
+    const { exportToExcel } = await import('@/lib/excel-helper');
+    const dataToExport = filtered.map((s) => ({
+      'NISP Stambuk': s.nisp || '',
+      NISN: s.nisn || '',
+      'NIS Lokal': s.nis || '',
+      'NIK Santri (16 Digit)': s.nik || '',
+      'Nama Lengkap Santri': s.nama,
+      'Nama Panggilan': s.nama_panggilan || '',
+      'Jenis Kelamin': s.jenis_kelamin === 'LAKI_LAKI' || s.jenis_kelamin === 'L' ? 'L' : 'P',
+      'Tempat Lahir': s.tempat_lahir || '',
+      'Tanggal Lahir': s.tanggal_lahir ? s.tanggal_lahir.slice(0, 10) : '',
+      'No. HP Santri': s.telepon || '',
+      'Jenjang Pendidikan': s.jenjang || '',
+      'Kelas & Rombel': s.kelas || '',
+      'Gedung / Kamar Asrama': s.kamar || '',
+      'Status Keasramaan': s.status_tempat_tinggal === 'UNIT_LAIN' ? 'Kalong / Unit Lain' : 'Mukim / Asrama Pesantren',
+      'Target Hafalan (Juz)': s.hafalan_juz || 0,
+      'Alamat Lengkap Kependudukan': s.alamat || '',
+      'Nomor Kartu Keluarga (KK)': s.no_kk || '',
+      'NIK Wali (16 Digit)': s.nik_wali || '',
+      'Nama Lengkap Wali': s.nama_wali || '',
+      'No. HP Wali': s.telepon_wali || '',
+      'Hubungan Wali': s.hubungan_wali || 'AYAH',
+      'Status Keaktifan': s.status || 'AKTIF',
+    }));
+
+    exportToExcel(dataToExport, `master-santri-${new Date().toISOString().slice(0, 10)}`, 'Master Santri');
+    showToast('success', 'Export Excel Berhasil', `${filtered.length} data santri diexport ke file .xlsx.`);
   };
 
-  const handleDownloadTemplate = () => {
-    const header = ['NISP_STAMBUK','NISN','NAMA_LENGKAP','NAMA_PANGGILAN','JENIS_KELAMIN(LAKI_LAKI/PEREMPUAN)',
-      'TEMPAT_LAHIR','TANGGAL_LAHIR(YYYY-MM-DD)','ALAMAT','NAMA_WALI','NIK_WALI','NO_HP_WALI','HUBUNGAN_WALI(AYAH/IBU/WALI)'];
-    const example = ['181101','0012345678','AHMAD FATIH NAJA','Fatih','LAKI_LAKI','Kediri','2012-07-03',
-      'Jl. Pesantren No 1 Kediri','Bapak Santri','3571010101800001','08123456789','AYAH'];
-    const csv = [header, example].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = 'template-import-santri.csv'; a.click(); URL.revokeObjectURL(url);
-    showToast('info', 'Template Diunduh', 'Isi template CSV lalu gunakan tombol Import Excel.');
+  const handleDownloadTemplate = async () => {
+    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
+    const templateData = [
+      {
+        'NISP Stambuk': 'PNDK-0012345678',
+        NISN: '0012345678',
+        'NIS Lokal': '20261001',
+        'NIK Santri (16 Digit)': '3571011508080001',
+        'Nama Lengkap Santri': 'Muhammad Raihan',
+        'Nama Panggilan': 'Raihan',
+        'Jenis Kelamin (L/P)': 'L',
+        'Tempat Lahir': 'Kediri',
+        'Tanggal Lahir (YYYY-MM-DD)': '2010-08-15',
+        'No. HP Santri': '081234567890',
+        'Jenjang Pendidikan': 'Tsanawiyyah',
+        'Kelas & Rombel': '10-A (Tahfidz & Diniyah)',
+        'Gedung / Kamar Asrama': 'Asrama Abu Bakar 1',
+        'Status Keasramaan (PONDOK_PESANTREN/UNIT_LAIN)': 'PONDOK_PESANTREN',
+        'Target Hafalan (Juz)': 5,
+        'Alamat Lengkap Kependudukan': 'Jl. Pesantren Lirboyo No 1, Kediri, Jawa Timur',
+        'Nomor Kartu Keluarga (KK)': '3571019908050012',
+        'NIK Wali (16 Digit)': '3571012304850001',
+        'Nama Lengkap Wali': 'Bapak Hendra',
+        'No. HP Wali': '081399887766',
+        'Hubungan Wali (AYAH/IBU/WALI)': 'AYAH',
+        'Status Keaktifan (AKTIF/BOYONG/LULUS/NON_AKTIF)': 'AKTIF',
+      },
+    ];
+
+    downloadExcelTemplate(templateData, 'template-import-santri', 'Template Santri');
+    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
   };
 
   const handleImport = async (file: File) => {
-    showToast('info', 'Import Diterima', `File "${file.name}" sedang diproses...`);
-    // TODO: implement server-side import
+    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    try {
+      const { parseExcelFile } = await import('@/lib/excel-helper');
+      const rows = await parseExcelFile(file);
+      showToast('success', 'Import Berhasil', `${rows.length} baris data berhasil dibaca dari file Excel.`);
+    } catch {
+      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+    }
   };
 
   return (

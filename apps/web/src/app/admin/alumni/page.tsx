@@ -55,16 +55,49 @@ export default function DataAlumniPage() {
     fetchAlumniLive();
   }, []);
 
-  const handleExport = () => {
-    const csv = [['NISP Stambuk','Nama Alumni','Tahun Lulus','Jenjang Terakhir','Status Alumni','Telepon'],
-      ...filtered.map(a => [a.nisp, a.nama, String(a.tahunLulus), a.jenjangTerakhir, a.statusAlumni, a.telepon])
-    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
-      download: `alumni-${new Date().toISOString().slice(0, 10)}.csv`,
-    });
-    a.click();
-    showToast('success', 'Export Berhasil', `${filtered.length} data alumni diexport.`);
+  const handleExport = async () => {
+    const { exportToExcel } = await import('@/lib/excel-helper');
+    const dataToExport = filtered.map((a) => ({
+      'NISP Stambuk': a.nisp,
+      'Nama Alumni': a.nama,
+      'Tahun Lulus': a.tahunLulus,
+      'Jenjang Terakhir': a.jenjangTerakhir,
+      'Status Alumni': a.statusAlumni,
+      'Lokasi Khidmah / Aktivitas': a.lokasiKhidmah || '-',
+      'Nomor Telepon / WhatsApp': a.telepon,
+    }));
+
+    exportToExcel(dataToExport, `alumni-${new Date().toISOString().slice(0, 10)}`, 'Data Alumni');
+    showToast('success', 'Export Excel Berhasil', `${filtered.length} data alumni diexport ke file .xlsx.`);
+  };
+
+  const handleDownloadTemplate = async () => {
+    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
+    const templateData = [
+      {
+        'NISP Stambuk': 'PNDK-0012345678',
+        'Nama Alumni': 'Muhammad Raihan',
+        'Tahun Lulus': 2025,
+        'Jenjang Terakhir': 'Aliyah Diniyah',
+        'Status Alumni (KULIAH/KHIDMAH/BEKERJA/WIRAUSAHA)': 'KHIDMAH',
+        'Lokasi Khidmah / Aktivitas': 'Pondok Pesantren Ma\'had Darussa\'adah',
+        'Nomor Telepon / WhatsApp': '081234567890',
+      },
+    ];
+
+    downloadExcelTemplate(templateData, 'template-import-alumni', 'Template Alumni');
+    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
+  };
+
+  const handleImport = async (file: File) => {
+    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    try {
+      const { parseExcelFile } = await import('@/lib/excel-helper');
+      const rows = await parseExcelFile(file);
+      showToast('success', 'Import Berhasil', `${rows.length} data alumni dibaca dari file Excel.`);
+    } catch {
+      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+    }
   };
 
   const filtered = alumniList.filter(
@@ -88,6 +121,8 @@ export default function DataAlumniPage() {
         count={loading ? undefined : filtered.length}
         countLabel="alumni"
         onExportExcel={handleExport}
+        onDownloadTemplate={handleDownloadTemplate}
+        onImport={handleImport}
         onRefresh={() => setSearch('')}
       />
 

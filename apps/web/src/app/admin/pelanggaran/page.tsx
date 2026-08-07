@@ -155,6 +155,50 @@ export default function PelanggaranPage() {
     }
   };
 
+  const handleExportExcel = async () => {
+    const { exportToExcel } = await import('@/lib/excel-helper');
+    const dataToExport = list.map((p) => ({
+      'Tanggal Pelanggaran': new Date(p.tanggal).toLocaleDateString('id-ID'),
+      'Nama Santri': p.santri?.nama_lengkap || '',
+      'Stambuk / NISP': p.santri?.nisp || '',
+      'Jenis Pelanggaran': p.jenis,
+      'Tingkat Pelanggaran': p.tingkat,
+      'Tindakan / Takzir': p.tindakan || '',
+      'Petugas Keamanan': p.petugas?.nama_lengkap || '',
+      'Keterangan Tambahan': p.keterangan || '',
+    }));
+
+    exportToExcel(dataToExport, `pelanggaran-${new Date().toISOString().slice(0, 10)}`, 'Pelanggaran');
+    showToast('success', 'Export Excel Berhasil', `${list.length} catatan pelanggaran diexport ke file .xlsx.`);
+  };
+
+  const handleDownloadTemplate = async () => {
+    const { downloadExcelTemplate } = await import('@/lib/excel-helper');
+    const templateData = [
+      {
+        'ID / Nama Santri': 'Muhammad Raihan',
+        'Jenis Pelanggaran': 'Terlambat Berjamaah Shalat Subuh',
+        'Tingkat Pelanggaran (RINGAN/SEDANG/BERAT)': 'RINGAN',
+        'Tindakan / Takzir': "Tazir membaca Al-Qur'an 1 Juz",
+        'Keterangan Tambahan': 'Terlambat bangun di kamar asrama',
+      },
+    ];
+
+    downloadExcelTemplate(templateData, 'template-import-pelanggaran', 'Template Pelanggaran');
+    showToast('info', 'Template Excel Diunduh', 'Isi template .xlsx lalu gunakan tombol Import Excel.');
+  };
+
+  const handleImport = async (file: File) => {
+    showToast('info', 'Membaca File Excel', `Membaca data dari ${file.name}...`);
+    try {
+      const { parseExcelFile } = await import('@/lib/excel-helper');
+      const rows = await parseExcelFile(file);
+      showToast('success', 'Import Berhasil', `${rows.length} catatan pelanggaran dibaca dari file Excel.`);
+    } catch {
+      showToast('error', 'Import Gagal', 'Format file Excel tidak dapat dibaca.');
+    }
+  };
+
   return (
     <div className="space-y-5">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
@@ -173,28 +217,9 @@ export default function PelanggaranPage() {
         searchPlaceholder="Cari nama santri atau jenis pelanggaran..."
         count={total}
         countLabel="catatan"
-        onExportExcel={() => {
-          const csv = [
-            ['Tanggal', 'Santri', 'NISP', 'Jenis', 'Tingkat', 'Tindakan', 'Petugas'],
-            ...list.map((p) => [
-              new Date(p.tanggal).toLocaleDateString('id-ID'),
-              p.santri?.nama_lengkap || '',
-              p.santri?.nisp || '',
-              p.jenis,
-              p.tingkat,
-              p.tindakan || '',
-              p.petugas?.nama_lengkap || '',
-            ]),
-          ]
-            .map((r) => r.map((c) => `"${c}"`).join(','))
-            .join('\n');
-          const a = Object.assign(document.createElement('a'), {
-            href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
-            download: `pelanggaran-${new Date().toISOString().slice(0, 10)}.csv`,
-          });
-          a.click();
-          showToast('success', 'Export Berhasil', `${list.length} data pelanggaran diexport.`);
-        }}
+        onExportExcel={handleExportExcel}
+        onDownloadTemplate={handleDownloadTemplate}
+        onImport={handleImport}
         onRefresh={() => {
           setPage(1);
           fetchPelanggaran();
