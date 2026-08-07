@@ -45,7 +45,7 @@ export const GET = withAuth(
 
     return apiSuccess(data, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) });
   },
-  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'WALI_SANTRI']
+  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'WALI_SANTRI', 'KEAMANAN']
 );
 
 // POST /api/v1/perizinan

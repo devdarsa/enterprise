@@ -6,3 +6,4 @@ export { default as DesktopOnlyGuard } from './DesktopOnlyGuard';
 export { default as MobileBottomNav } from './MobileBottomNav';
 export { default as RegionSelector } from './RegionSelector';
 export { default as RoleLoginPage } from './RoleLoginPage';
+export { default as AccountSettingsModal } from './AccountSettingsModal';

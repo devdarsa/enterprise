@@ -1,38 +1,90 @@
 'use client';
 
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
+
+interface RaporData {
+  santri: {
+    nisn: string;
+    nama_lengkap: string;
+    kelas: string;
+    tahun_ajaran: string;
+    semester: string;
+    wali_kelas: string;
+  };
+  tahfidz: {
+    hafalan_juz: number;
+    surah_terakhir: string;
+    predikat: string;
+  };
+  akademik: {
+    mata_pelajaran: string;
+    nilai_akhir: number;
+    predikat: string;
+  }[];
+  kehadiran: {
+    izin: number;
+    pelanggaran: number;
+  };
+  catatan_wali: string;
+}
 
 export default function RaporDigitalPage() {
-  const raporData = {
-    santri: {
-      nisn: '0012345678',
-      nama_lengkap: 'Muhammad Raihan',
-      kelas: '10-A (Tahfidz & Sains)',
-      tahun_ajaran: '2025/2026',
-      semester: 'Ganjil',
-      wali_kelas: 'Dr. KH. Abdullah Ridwan',
-    },
-    tahfidz: {
-      hafalan_juz: 12,
-      surah_terakhir: 'Surah Al-Isra (Juz 15)',
-      predikat: 'MUMTAZ (Sangat Baik)',
-      nilai_tajwid: 95,
-      nilai_makhraj: 92,
-    },
-    akademik: [
-      { mata_pelajaran: 'Fiqih & Usul Fiqih', KKM: 75, nilai_harian: 88, UTS: 90, UAS: 92, akhir: 90, predikat: 'A' },
-      { mata_pelajaran: 'Bahasa Arab (Nahu-Saraf)', KKM: 75, nilai_harian: 85, UTS: 88, UAS: 90, akhir: 88, predikat: 'A' },
-      { mata_pelajaran: 'Hadits & Mustalah Hadits', KKM: 75, nilai_harian: 92, UTS: 95, UAS: 94, akhir: 94, predikat: 'A' },
-      { mata_pelajaran: 'Matematika Terapan', KKM: 70, nilai_harian: 80, UTS: 82, UAS: 85, akhir: 83, predikat: 'B+' },
-    ],
-    kehadiran: {
-      hadir: '96%',
-      terlambat: '2 Kali',
-      izin: '1 Hari',
-      alpa: '0 Hari',
-    },
-    catatan_wali: 'Ananda Raihan sangat tekun dalam hafalan Al-Qur\'an dan berakhlak mulia. Pertahankan prestasi ini di semester mendatang.',
-  };
+  const [raporData, setRaporData] = useState<RaporData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRaporLive() {
+      setLoading(true);
+      try {
+        const resList = await fetch('/api/v1/santri?limit=1');
+        if (resList.ok) {
+          const jsonList = await resList.json();
+          if (jsonList.success && jsonList.data && jsonList.data.length > 0) {
+            const firstSantri = jsonList.data[0];
+            const resDetail = await fetch(`/api/v1/santri/${firstSantri.id}`);
+            if (resDetail.ok) {
+              const jsonDetail = await resDetail.json();
+              if (jsonDetail.success && jsonDetail.data) {
+                const s = jsonDetail.data;
+                const mappedNilai = (s.nilai || []).map((n: any) => ({
+                  mata_pelajaran: n.mata_pelajaran?.nama_mapel || 'Mata Pelajaran',
+                  nilai_akhir: n.nilai_akhir || n.nilai_uas || n.nilai_uts || 85,
+                  predikat: (n.nilai_akhir || 85) >= 90 ? 'A' : (n.nilai_akhir || 85) >= 80 ? 'B' : 'C',
+                }));
+
+                setRaporData({
+                  santri: {
+                    nisn: s.nisn || s.nisp,
+                    nama_lengkap: s.nama_lengkap,
+                    kelas: s.kelas?.nama_kelas || 'Kelas Pesantren',
+                    tahun_ajaran: '2025/2026',
+                    semester: 'Ganjil',
+                    wali_kelas: s.nama_wali || 'Mustahiq Diniyah',
+                  },
+                  tahfidz: {
+                    hafalan_juz: s.hafalan_juz || 0,
+                    surah_terakhir: s.hafalan_juz > 0 ? `Juz ${s.hafalan_juz}` : 'Al-Fatihah',
+                    predikat: (s.hafalan_juz || 0) >= 10 ? 'MUMTAZ' : 'JAYYID',
+                  },
+                  akademik: mappedNilai,
+                  kehadiran: {
+                    izin: s.perizinan?.length || 0,
+                    pelanggaran: s.pelanggaran?.length || 0,
+                  },
+                  catatan_wali: `Santri ${s.nama_lengkap} (NISP: ${s.nisp}) terdaftar aktif pada ${s.kelas?.nama_kelas || 'Pesantren'}.`,
+                });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat rapor live:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRaporLive();
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -58,134 +110,79 @@ export default function RaporDigitalPage() {
       </div>
 
       {/* Printable Report Document Card */}
-      <div className="p-8 md:p-10 rounded-3xl bg-white border border-emerald-100 shadow-2xl space-y-8 text-slate-900 print:p-0 print:border-none print:shadow-none">
-        
-        {/* Document Header Logo & Institution */}
-        <div className="border-b-2 border-emerald-800 pb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20 rounded-full border-2 border-gold-500 overflow-hidden shadow-md shrink-0">
-              <Image
-                src="/logo-lirboyo.png"
-                alt="Logo Ma'had Darussa'adah Lirboyo Kota Kediri"
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-black tracking-tight text-emerald-900 uppercase">
-                MA'HAD DARUSSA'ADAH LIRBOYO
-              </h2>
-              <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mt-0.5">
-                PONDOK PESANTREN LIRBOYO KOTA KEDIRI • JAWA TIMUR
-              </p>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Jl. KH. Abdul Karim, Lirboyo, Kota Kediri • Telp: (0354) 771542
-              </p>
-            </div>
-          </div>
-          <div className="text-right hidden sm:block">
-            <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-black font-mono">
-              LEMBAR RAPOR DIGITAL
-            </span>
-          </div>
+      {loading ? (
+        <div className="p-12 text-center text-xs font-bold text-slate-500 bg-white rounded-3xl border border-slate-200">
+          Memuat data rapor santri dari database...
         </div>
-
-        {/* Student Biodata Summary Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 text-xs">
-          <div>
-            <span className="block text-slate-500 font-semibold">Nama Santri:</span>
-            <span className="font-bold text-slate-900 text-sm">{raporData.santri.nama_lengkap}</span>
-          </div>
-          <div>
-            <span className="block text-slate-500 font-semibold">NISN / ID:</span>
-            <span className="font-mono text-emerald-800 font-bold">{raporData.santri.nisn}</span>
-          </div>
-          <div>
-            <span className="block text-slate-500 font-semibold">Kelas / Rombel:</span>
-            <span className="font-bold text-slate-800">{raporData.santri.kelas}</span>
-          </div>
-          <div>
-            <span className="block text-slate-500 font-semibold">Tahun Ajaran / Sem:</span>
-            <span className="font-bold text-slate-800">{raporData.santri.tahun_ajaran} ({raporData.santri.semester})</span>
-          </div>
+      ) : !raporData ? (
+        <div className="p-12 text-center text-xs font-bold text-slate-400 bg-white rounded-3xl border border-slate-200">
+          Belum ada data santri untuk dicetak rapornya.
         </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6 print:shadow-none print:border-none print:p-0">
+          {/* Document Header */}
+          <div className="border-b border-slate-200 pb-6 text-center space-y-1">
+            <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">
+              PONDOK PESANTREN MA'HAD DARUSSA'ADAH
+            </h2>
+            <p className="text-xs text-slate-600 font-medium">
+              LEMBAR HASIL EVALUASI AKADEMIK & TAHFIDZ SANTRI (RAPOR DIGITAL)
+            </p>
+            <p className="text-[11px] text-slate-500">
+              Tahun Ajaran {raporData.santri.tahun_ajaran} — Semester {raporData.santri.semester}
+            </p>
+          </div>
 
-        {/* Section 1: Capaian Tahfidz Al-Qur'an */}
-        <div>
-          <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <span>📖</span> I. Capaian Tahfidz & Quranic Studies
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-500 font-semibold block mb-1">Capaian Hafalan:</span>
-              <span className="text-lg font-black text-slate-900">{raporData.tahfidz.hafalan_juz} Juz</span>
-              <span className="block text-[11px] text-slate-600 mt-1 font-medium">{raporData.tahfidz.surah_terakhir}</span>
+          {/* Student Metadata Header */}
+          <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+            <div className="space-y-1">
+              <p><span className="font-bold text-slate-700">Nama Santri:</span> {raporData.santri.nama_lengkap}</p>
+              <p><span className="font-bold text-slate-700">NISN / NISP:</span> {raporData.santri.nisn}</p>
+              <p><span className="font-bold text-slate-700">Kelas / Jenjang:</span> {raporData.santri.kelas}</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-500 font-semibold block mb-1">Nilai Tajwid & Makhraj:</span>
-              <span className="text-lg font-black text-emerald-700">{raporData.tahfidz.nilai_tajwid} / 100</span>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-500 font-semibold block mb-1">Predikat Tahfidz:</span>
-              <span className="text-sm font-black text-emerald-800">{raporData.tahfidz.predikat}</span>
+            <div className="space-y-1">
+              <p><span className="font-bold text-slate-700">Tahun Ajaran:</span> {raporData.santri.tahun_ajaran}</p>
+              <p><span className="font-bold text-slate-700">Semester:</span> {raporData.santri.semester}</p>
+              <p><span className="font-bold text-slate-700">Wali Santri / Kelas:</span> {raporData.santri.wali_kelas}</p>
             </div>
           </div>
-        </div>
 
-        {/* Section 2: Nilai Akademik & Diniyah Table */}
-        <div>
-          <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <span>📚</span> II. Capaian Mata Pelajaran & Diniyah
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border border-slate-200">
-              <thead>
-                <tr className="bg-emerald-50 border-b border-emerald-200 text-slate-900 font-bold">
-                  <th className="p-3">Mata Pelajaran</th>
-                  <th className="p-3 text-center">KKM</th>
-                  <th className="p-3 text-center">Nilai Harian</th>
-                  <th className="p-3 text-center">UTS</th>
-                  <th className="p-3 text-center">UAS</th>
-                  <th className="p-3 text-center">Nilai Akhir</th>
-                  <th className="p-3 text-center">Predikat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {raporData.akademik.map((row, index) => (
-                  <tr key={index} className="hover:bg-slate-50">
-                    <td className="p-3 font-bold text-slate-800">{row.mata_pelajaran}</td>
-                    <td className="p-3 text-center font-mono text-slate-600">{row.KKM}</td>
-                    <td className="p-3 text-center font-mono text-slate-700">{row.nilai_harian}</td>
-                    <td className="p-3 text-center font-mono text-slate-700">{row.UTS}</td>
-                    <td className="p-3 text-center font-mono text-slate-700">{row.UAS}</td>
-                    <td className="p-3 text-center font-mono font-bold text-emerald-800">{row.akhir}</td>
-                    <td className="p-3 text-center font-bold text-emerald-800">{row.predikat}</td>
+          {/* Table Akademik */}
+          <div>
+            <h3 className="text-xs font-bold text-slate-900 mb-2 uppercase tracking-wider">I. Capaian Pembelajaran Kitab & Akademik</h3>
+            {raporData.akademik.length === 0 ? (
+              <div className="p-4 text-center text-xs font-medium text-slate-400 bg-slate-50 rounded-xl border">
+                Belum ada nilai akademik yang diinputkan untuk santri ini.
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                <thead className="bg-slate-100 font-bold text-slate-700 text-[10px] uppercase">
+                  <tr>
+                    <th className="p-2.5">Mata Pelajaran / Kitab</th>
+                    <th className="p-2.5">Nilai Akhir</th>
+                    <th className="p-2.5">Predikat</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {raporData.akademik.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50">
+                      <td className="p-2.5 font-bold text-slate-900">{item.mata_pelajaran}</td>
+                      <td className="p-2.5 font-bold text-emerald-700">{item.nilai_akhir}</td>
+                      <td className="p-2.5 font-bold">{item.predikat}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Catatan Wali */}
+          <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80">
+            <h3 className="text-xs font-bold text-emerald-900 mb-1">Catatan Wali Kelas / Pembimbing:</h3>
+            <p className="text-xs text-emerald-800 italic">{raporData.catatan_wali}</p>
           </div>
         </div>
-
-        {/* Section 3: Catatan Wali Kelas */}
-        <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 text-xs">
-          <span className="block font-bold text-slate-900 mb-1">Catatan Wali Kelas:</span>
-          <p className="text-slate-700 italic font-medium">{raporData.catatan_wali}</p>
-        </div>
-
-        {/* Section 4: Signatures */}
-        <div className="grid grid-cols-2 text-center text-xs pt-8 border-t border-slate-200">
-          <div>
-            <p className="text-slate-500 font-semibold mb-16">Wali Santri / Orang Tua</p>
-            <p className="font-bold text-slate-900">( ........................................ )</p>
-          </div>
-          <div>
-            <p className="text-slate-500 font-semibold mb-16">Wali Kelas 10-A</p>
-            <p className="font-bold text-slate-900">{raporData.santri.wali_kelas}</p>
-          </div>
-        </div>
-
-      </div>
+      )}
     </div>
   );
 }

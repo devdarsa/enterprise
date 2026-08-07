@@ -6,7 +6,9 @@ import Image from 'next/image';
 import Modal from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import AccountSettingsModal from '@/components/AccountSettingsModal';
 import { getLocalCache, setLocalCache } from '@/lib/cache-storage';
+import { Shield, LogOut, Search, QrCode, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertTriangle, UserCheck, Settings } from 'lucide-react';
 
 interface PerizinanItem {
   id: string;
@@ -23,33 +25,65 @@ export default function KeamananDashboardPage() {
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, msg?: string) => setToast({ isOpen: true, type, title, message: msg });
 
-  const [user, setUser] = useState({ nama: 'Tim Keamanan & Perizinan', role: 'KEAMANAN' });
+  const [user, setUser] = useState({ nama: 'Tim Keamanan & Perizinan', role: 'KEAMANAN', email: 'keamanan@darsa.id' });
   const [qrInput, setQrInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [perizinanList, setPerizinanList] = useState<PerizinanItem[]>([
-    {
-      id: 'IZIN-2026-001',
-      santri_nama: 'Ahmad Muzakki',
-      kelas: '10-A (Diniyah)',
-      jenis: 'PULANG',
-      alasan: 'Keperluan Keluarga / Sakit',
-      tanggal_keluar: '2026-08-06',
-      tanggal_kembali: '2026-08-08',
-      status: 'DISETUJUI',
-    },
-    {
-      id: 'IZIN-2026-002',
-      santri_nama: 'Muhammad Farhan',
-      kelas: '11-B (Formal MI)',
-      jenis: 'KELUAR_KOMPLEK',
-      alasan: 'Beli Kitab & Alat Tulis',
-      tanggal_keluar: '2026-08-07',
-      tanggal_kembali: '2026-08-07',
-      status: 'TAP_OUT',
-    },
-  ]);
+
+  // Settings modal state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleHash = () => {
+      const h = window.location.hash;
+      if (h === '#profil') {
+        setIsSettingsOpen(true);
+      } else if (h === '#scan' || h === '#qr') {
+        setIsScanModalOpen(true);
+      } else if (h) {
+        const target = document.querySelector(h);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+  const [perizinanList, setPerizinanList] = useState<PerizinanItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [selectedIzin, setSelectedIzin] = useState<PerizinanItem | null>(null);
+
+  useEffect(() => {
+    async function fetchPerizinanLive() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/v1/perizinan');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mapped = json.data.map((item: any) => ({
+              id: item.id,
+              santri_nama: item.santri?.nama_lengkap || 'Santri Pondok',
+              kelas: item.santri?.kelas?.nama_kelas || 'Kelas Pondok',
+              jenis: (item.jenis as any) || 'PULANG',
+              alasan: item.alasan || 'Keperluan Santri',
+              tanggal_keluar: item.tanggal_mulai ? new Date(item.tanggal_mulai).toISOString().split('T')[0] : '2026-08-01',
+              tanggal_kembali: item.tanggal_selesai ? new Date(item.tanggal_selesai).toISOString().split('T')[0] : '2026-08-03',
+              status: (item.status as any) || 'DISETUJUI',
+            }));
+            setPerizinanList(mapped);
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat perizinan live:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPerizinanLive();
+  }, []);
 
   useEffect(() => {
     const cachedUser = getLocalCache<any>('keamanan_user_session');
@@ -66,6 +100,7 @@ export default function KeamananDashboardPage() {
             const newUser = {
               nama: data.user.name || data.user.nama_lengkap || 'Tim Keamanan & Perizinan',
               role: data.user.role || 'KEAMANAN',
+              email: data.user.email || 'keamanan@darsa.id',
             };
             setUser(newUser);
             setLocalCache('keamanan_user_session', newUser);
@@ -114,27 +149,28 @@ export default function KeamananDashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 pb-20 md:pb-8 font-sans">
+    <div className="min-h-screen bg-slate-900 text-slate-100 pb-24 md:pb-8 font-sans">
       {/* Header Bar Keamanan */}
       <header className="bg-slate-950 border-b border-slate-800 p-4 md:p-6 shadow-xl">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-2xl shadow-lg shrink-0">
-              🛡️
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-lg shrink-0">
+              <Shield className="w-6 h-6" />
             </div>
-            <div>
-              <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">
+            <div className="min-w-0">
+              <span className="text-[9px] md:text-[10px] font-black text-amber-400 uppercase tracking-widest block truncate">
                 PORTAL KEAMANAN & KETERTIBAN PONDOK
               </span>
-              <h1 className="text-base md:text-lg font-black text-white leading-tight">{user.nama}</h1>
-              <p className="text-xs text-slate-400 font-medium">Ma'had Darussa'adah Lirboyo Kota Kediri</p>
+              <h1 className="text-sm md:text-lg font-black text-white leading-tight truncate">{user.nama}</h1>
+              <p className="text-[11px] md:text-xs text-slate-400 font-medium truncate">Ma'had Darussa'adah Lirboyo Kota Kediri</p>
             </div>
           </div>
           <Link
             href="/login"
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-all shrink-0 active:scale-95"
           >
-            🚪 Keluar
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Keluar</span>
           </Link>
         </div>
       </header>
@@ -142,148 +178,204 @@ export default function KeamananDashboardPage() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 shadow-md">
-            <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider block mb-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="bg-slate-800/80 p-3.5 md:p-4 rounded-2xl border border-slate-700/80 shadow-md">
+            <span className="text-[9px] md:text-[10px] font-extrabold text-amber-400 uppercase tracking-wider block mb-1">
               PERIZINAN HARI INI
             </span>
-            <span className="text-2xl font-black text-white">{perizinanList.length}</span>
-            <p className="text-[11px] text-slate-400 mt-1">Disetujui Pengasuh/Sekretariat</p>
+            <span className="text-xl md:text-2xl font-black text-white">{perizinanList.length}</span>
+            <p className="text-[10px] md:text-[11px] text-slate-400 mt-0.5">Disetujui Pengasuh/Sekretariat</p>
           </div>
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 shadow-md">
-            <span className="text-[10px] font-extrabold text-teal-400 uppercase tracking-wider block mb-1">
+          <div className="bg-slate-800/80 p-3.5 md:p-4 rounded-2xl border border-slate-700/80 shadow-md">
+            <span className="text-[9px] md:text-[10px] font-extrabold text-teal-400 uppercase tracking-wider block mb-1">
               SANTRI DI LUAR PONDOK
             </span>
-            <span className="text-2xl font-black text-teal-300">
+            <span className="text-xl md:text-2xl font-black text-teal-300">
               {perizinanList.filter((p) => p.status === 'TAP_OUT').length}
             </span>
-            <p className="text-[11px] text-slate-400 mt-1">Status Tap Out Gerbang</p>
+            <p className="text-[10px] md:text-[11px] text-slate-400 mt-0.5">Status Tap Out Gerbang</p>
           </div>
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 shadow-md">
-            <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider block mb-1">
+          <div className="bg-slate-800/80 p-3.5 md:p-4 rounded-2xl border border-slate-700/80 shadow-md">
+            <span className="text-[9px] md:text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider block mb-1">
               SANTRI KEMBALI TEPAT WAKTU
             </span>
-            <span className="text-2xl font-black text-emerald-300">
+            <span className="text-xl md:text-2xl font-black text-emerald-300">
               {perizinanList.filter((p) => p.status === 'TAP_IN').length}
             </span>
-            <p className="text-[11px] text-slate-400 mt-1">Status Tap In Gerbang</p>
+            <p className="text-[10px] md:text-[11px] text-slate-400 mt-0.5">Status Tap In Gerbang</p>
           </div>
-          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 shadow-md">
-            <span className="text-[10px] font-extrabold text-rose-400 uppercase tracking-wider block mb-1">
+          <div className="bg-slate-800/80 p-3.5 md:p-4 rounded-2xl border border-slate-700/80 shadow-md">
+            <span className="text-[9px] md:text-[10px] font-extrabold text-rose-400 uppercase tracking-wider block mb-1">
               DISIPLIN & PELANGGARAN
             </span>
-            <span className="text-2xl font-black text-rose-400">0</span>
-            <p className="text-[11px] text-slate-400 mt-1">Laporan Pelanggaran Hari Ini</p>
+            <span className="text-xl md:text-2xl font-black text-rose-400">0</span>
+            <p className="text-[10px] md:text-[11px] text-slate-400 mt-0.5">Laporan Pelanggaran Hari Ini</p>
           </div>
         </div>
 
         {/* QR Code & Kode Izin Scanner Bar */}
-        <div className="bg-gradient-to-r from-emerald-950 via-slate-800 to-teal-950 p-6 rounded-3xl border border-emerald-800/50 shadow-xl space-y-4">
+        <div className="bg-gradient-to-r from-emerald-950 via-slate-800 to-teal-950 p-4 md:p-6 rounded-3xl border border-emerald-800/50 shadow-xl space-y-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <div>
               <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">
                 VALIDASI SURAT IZIN GERBANG
               </span>
-              <h2 className="text-base font-black text-white">Scan QR Surat Izin / Input Kode Perizinan</h2>
+              <h2 className="text-sm md:text-base font-black text-white">Scan QR Surat Izin / Input Kode Perizinan</h2>
             </div>
-            <span className="text-xs text-slate-300 font-mono bg-slate-900/60 px-3 py-1 rounded-xl border border-slate-700">
+            <span className="text-[11px] text-slate-300 font-mono bg-slate-900/60 px-3 py-1 rounded-xl border border-slate-700 self-start md:self-auto">
               Gerbang Utama Pos Keamanan
             </span>
           </div>
 
-          <form onSubmit={handleVerifyPass} className="flex gap-3">
-            <input
-              type="text"
-              value={qrInput}
-              onChange={(e) => setQrInput(e.target.value)}
-              placeholder="Ketik Kode Izin (Contoh: IZIN-2026-001) atau Nama Santri..."
-              className="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-white text-xs font-mono placeholder-slate-500 focus:outline-none focus:border-amber-400"
-            />
+          <form onSubmit={handleVerifyPass} className="flex flex-col sm:flex-row gap-2.5">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={qrInput}
+                onChange={(e) => setQrInput(e.target.value)}
+                placeholder="Ketik Kode Izin (IZIN-2026-001) atau Nama..."
+                className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-white text-xs font-mono placeholder-slate-500 focus:outline-none focus:border-amber-400"
+              />
+            </div>
             <button
               type="submit"
-              className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/20"
+              className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/20 inline-flex items-center justify-center gap-1.5 shrink-0 active:scale-95"
             >
-              🔍 Verifikasi
+              <Search className="w-4 h-4" />
+              <span>Verifikasi</span>
             </button>
           </form>
         </div>
 
-        {/* Perizinan Table */}
-        <div className="bg-slate-800/90 rounded-3xl border border-slate-700/80 overflow-hidden shadow-xl space-y-4 p-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        {/* Perizinan Table & Card Stack */}
+        <div className="bg-slate-800/90 rounded-3xl border border-slate-700/80 shadow-xl space-y-4 p-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
               <h3 className="text-sm font-black text-white">Daftar Surat Izin Aktif Santri</h3>
               <p className="text-xs text-slate-400 font-medium">Verifikasi Tap-Out (Keluar Gerbang) & Tap-In (Masuk Gerbang)</p>
             </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari santri..."
-              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 placeholder-slate-500 focus:outline-none"
-            />
+            <div className="w-full sm:w-auto relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari santri..."
+                className="w-full sm:w-48 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile View: Card Stack */}
+          <div className="space-y-3 md:hidden">
+            {filteredList.map((item) => (
+              <div key={item.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="font-mono text-[10px] text-amber-400 block font-bold">{item.id}</span>
+                    <h4 className="font-bold text-white text-sm">{item.santri_nama}</h4>
+                    <p className="text-xs text-slate-400">{item.kelas}</p>
+                  </div>
+                  <span
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                      item.status === 'DISETUJUI'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : item.status === 'TAP_OUT'
+                        ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                </div>
+
+                <div className="bg-slate-800/60 p-2.5 rounded-xl text-xs space-y-1 text-slate-300">
+                  <p><strong className="text-slate-400">Jenis:</strong> {item.jenis}</p>
+                  <p><strong className="text-slate-400">Alasan:</strong> {item.alasan}</p>
+                  <p className="text-[11px] text-slate-400 font-mono">📅 {item.tanggal_keluar} s/d {item.tanggal_kembali}</p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  {item.status === 'DISETUJUI' && (
+                    <button
+                      onClick={() => handleTapOut(item.id)}
+                      className="flex-1 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all active:scale-95 inline-flex items-center justify-center gap-1"
+                    >
+                      <ArrowUpRight className="w-4 h-4" /> Tap Out (Keluar)
+                    </button>
+                  )}
+                  {item.status === 'TAP_OUT' && (
+                    <button
+                      onClick={() => handleTapIn(item.id)}
+                      className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all active:scale-95 inline-flex items-center justify-center gap-1"
+                    >
+                      <ArrowDownLeft className="w-4 h-4" /> Tap In (Kembali)
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop View: Table */}
+          <div className="hidden md:block bg-slate-900 rounded-2xl border border-slate-700/80 overflow-hidden">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/80 text-slate-400 font-bold border-b border-slate-700 uppercase tracking-wider text-[10px]">
+              <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800 uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th className="p-3">Kode & Santri</th>
-                  <th className="p-3">Jenis Izin</th>
-                  <th className="p-3">Jadwal Keluar/Kembali</th>
-                  <th className="p-3">Status Pos Keamanan</th>
-                  <th className="p-3 text-right">Aksi Gerbang</th>
+                  <th className="p-3.5">ID & Santri</th>
+                  <th className="p-3.5">Jenis & Alasan</th>
+                  <th className="p-3.5">Tanggal</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5 text-right">Aksi Gerbang</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/60 font-medium">
+              <tbody className="divide-y divide-slate-800 font-medium">
                 {filteredList.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-700/40 transition-colors">
-                    <td className="p-3">
-                      <span className="font-mono text-[10px] text-amber-400 font-bold block">{item.id}</span>
-                      <span className="font-bold text-white block">{item.santri_nama}</span>
-                      <span className="text-[10px] text-slate-400">{item.kelas}</span>
+                  <tr key={item.id} className="hover:bg-slate-800/50">
+                    <td className="p-3.5">
+                      <span className="font-mono text-[10px] text-amber-400 block font-bold">{item.id}</span>
+                      <span className="font-bold text-white text-sm block">{item.santri_nama}</span>
+                      <span className="text-xs text-slate-400">{item.kelas}</span>
                     </td>
-                    <td className="p-3">
-                      <span className="px-2.5 py-1 rounded-lg bg-teal-500/10 text-teal-300 font-bold border border-teal-500/20 text-[10px]">
-                        {item.jenis}
+                    <td className="p-3.5">
+                      <span className="font-bold text-slate-200 block">{item.jenis}</span>
+                      <span className="text-xs text-slate-400">{item.alasan}</span>
+                    </td>
+                    <td className="p-3.5 font-mono text-xs text-slate-300">
+                      {item.tanggal_keluar} s/d {item.tanggal_kembali}
+                    </td>
+                    <td className="p-3.5">
+                      <span
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                          item.status === 'DISETUJUI'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : item.status === 'TAP_OUT'
+                            ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }`}
+                      >
+                        {item.status}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-300 text-[11px]">
-                      <div>Keluar: {item.tanggal_keluar}</div>
-                      <div>Kembali: {item.tanggal_kembali}</div>
-                    </td>
-                    <td className="p-3">
+                    <td className="p-3.5 text-right">
                       {item.status === 'DISETUJUI' && (
-                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                          ⏳ Belum Keluar
-                        </span>
+                        <button
+                          onClick={() => handleTapOut(item.id)}
+                          className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all active:scale-95"
+                        >
+                          Tap Out
+                        </button>
                       )}
                       {item.status === 'TAP_OUT' && (
-                        <span className="px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 text-[10px] font-bold border border-teal-500/30">
-                          🚪 Di Luar Gerbang
-                        </span>
+                        <button
+                          onClick={() => handleTapIn(item.id)}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all active:scale-95"
+                        >
+                          Tap In
+                        </button>
                       )}
                       {item.status === 'TAP_IN' && (
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
-                          ✅ Sudah Kembali
-                        </span>
+                        <span className="text-xs text-slate-500 font-bold">✓ Selesai</span>
                       )}
-                    </td>
-                    <td className="p-3 text-right space-x-2">
-                      <button
-                        onClick={() => handleTapOut(item.id)}
-                        disabled={item.status !== 'DISETUJUI'}
-                        className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-[11px] transition-all"
-                      >
-                        🚪 Tap Out
-                      </button>
-                      <button
-                        onClick={() => handleTapIn(item.id)}
-                        disabled={item.status !== 'TAP_OUT'}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-[11px] transition-all"
-                      >
-                        ✅ Tap In
-                      </button>
                     </td>
                   </tr>
                 ))}
@@ -336,8 +428,10 @@ export default function KeamananDashboardPage() {
         )}
       </Modal>
 
+      <AccountSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={user} />
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
       <MobileBottomNav role="KEAMANAN" />
     </div>
   );
 }
+

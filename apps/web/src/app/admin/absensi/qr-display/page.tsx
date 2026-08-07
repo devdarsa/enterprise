@@ -5,7 +5,7 @@ import Image from 'next/image';
 import QRCode from 'qrcode';
 
 export default function QRDisplayPage() {
-  const [token, setToken] = useState('DARSA-QR-9F8A2B3C');
+  const [token, setToken] = useState(() => 'DARSA-QR-' + Math.random().toString(36).substring(2, 10).toUpperCase());
   const [countdown, setCountdown] = useState(10);
   const [qrSrc, setQrSrc] = useState<string>('');
 

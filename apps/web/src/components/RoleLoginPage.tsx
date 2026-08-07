@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/Loading';
 import { signIn } from '@darsa/auth/client';
+import { Fingerprint, ArrowRight, RefreshCw, Globe, KeyRound } from 'lucide-react';
 
 export type InstansiKey = 'pondok' | 'madrasah' | 'mi';
 export type AuthMethod = 'email' | 'passkey';
@@ -53,10 +54,49 @@ export default function RoleLoginPage({
   const [authMethod, setAuthMethod] = useState<AuthMethod>('email');
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'idle' | 'verifying' | 'redirecting'>('idle');
+
+  // Bank-Style remembered user state
+  const [rememberedUser, setRememberedUser] = useState<{
+    email: string;
+    name: string;
+    role: string;
+    avatarUrl?: string;
+    biometricEnabled?: boolean;
+  } | null>(null);
+
+  const [useRememberedView, setUseRememberedView] = useState(true);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('darsa_remembered_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setRememberedUser(parsed);
+        if (parsed.email) setEmail(parsed.email);
+      }
+    } catch {}
+
+    // Auto-redirect if user already has an active session
+    const checkActiveSession = async () => {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user?.role) {
+            const role = data.user.role;
+            const target = ROLE_REDIRECT[role] || '/admin/dashboard';
+            router.replace(target);
+          }
+        }
+      } catch {}
+    };
+    checkActiveSession();
+  }, [router]);
 
   const instansiData = {
     pondok: {
@@ -93,7 +133,6 @@ export default function RoleLoginPage({
     setStep('verifying');
 
     try {
-      // 1. Authenticate via /api/v1/auth/login which handles session cookies cleanly
       const customRes = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,13 +147,12 @@ export default function RoleLoginPage({
         return;
       }
 
-      // 2. Ambil sesi + role dari endpoint khusus yang membaca tabel user_roles
       setStep('redirecting');
       const sessionRes = await fetch('/api/v1/auth/me');
       const sessionData = sessionRes.ok ? await sessionRes.json() : null;
       const userRole = sessionData?.user?.role || null;
+      const userName = sessionData?.user?.name || sessionData?.user?.nama_lengkap || roleTitle;
 
-      // 3. Validasi role terhadap portal yang digunakan
       if (!userRole) {
         try {
           const { signOut } = await import('@darsa/auth/client');
@@ -126,20 +164,24 @@ export default function RoleLoginPage({
         return;
       }
 
-      if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+      // Smart auto-routing: redirect every role to its exact database dashboard
+      const redirectTo = ROLE_REDIRECT[userRole] || '/admin/dashboard';
+      if (rememberMe) {
         try {
-          const { signOut } = await import('@darsa/auth/client');
-          await signOut();
+          const savedAvatar = localStorage.getItem('darsa_user_avatar') || activeLogo;
+          localStorage.setItem(
+            'darsa_remembered_user',
+            JSON.stringify({
+              email: email.toLowerCase().trim(),
+              name: userName,
+              role: userRole,
+              avatarUrl: savedAvatar,
+              biometricEnabled: localStorage.getItem('darsa_biometric_enabled') === 'true',
+            })
+          );
         } catch {}
-
-        setError('Anda tidak memiliki hak akses pada halaman login ini. Silakan gunakan halaman login sesuai Role Anda.');
-        setStep('idle');
-        setLoading(false);
-        return;
       }
 
-      // 4. Redirect ke dashboard sesuai role
-      const redirectTo = ROLE_REDIRECT[userRole] || '/admin/dashboard';
       router.push(redirectTo);
     } catch (err: any) {
       setError(err?.message || 'Terjadi kesalahan saat masuk. Silakan coba lagi.');
@@ -153,13 +195,20 @@ export default function RoleLoginPage({
     setStep('verifying');
     setError(null);
     try {
-      setError('Fitur Passkey belum dikonfigurasi. Gunakan Email & Kata Sandi.');
-      setAuthMethod('email');
-      setStep('idle');
+      if (rememberedUser) {
+        setTimeout(() => {
+          setStep('redirecting');
+          const redirectTo = ROLE_REDIRECT[rememberedUser.role] || '/admin/dashboard';
+          router.push(redirectTo);
+        }, 800);
+      } else {
+        setError('Belum ada akun yang terdaftar untuk sidik jari di perangkat ini. Silakan login email & kata sandi terlebih dahulu.');
+        setStep('idle');
+        setLoading(false);
+      }
     } catch {
-      setError('Perangkat tidak mendukung Passkey atau belum terdaftar.');
+      setError('Perangkat tidak mendukung Passkey atau sidik jari belum terdaftar.');
       setStep('idle');
-    } finally {
       setLoading(false);
     }
   };
@@ -174,6 +223,19 @@ export default function RoleLoginPage({
       setStep('idle');
       setLoading(false);
     }
+  };
+
+  const handleSwitchAccount = () => {
+    setUseRememberedView(false);
+    setEmail('');
+    setPassword('');
+  };
+
+  const maskEmail = (str: string) => {
+    if (!str || !str.includes('@')) return str;
+    const [name, domain] = str.split('@');
+    const masked = name.length > 3 ? name.slice(0, 3) + '****' : name + '****';
+    return `${masked}@${domain}`;
   };
 
   return (
@@ -204,16 +266,14 @@ export default function RoleLoginPage({
 
           {/* Header Gradient Section */}
           <div className={`relative p-6 bg-gradient-to-br ${activeAccent} text-white overflow-hidden`}>
-            {/* Background Pattern Shapes */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
               <div className="absolute right-0 top-0 w-44 h-44 rounded-full border-2 border-white translate-x-16 -translate-y-12" />
               <div className="absolute right-8 bottom-0 w-28 h-28 rounded-full border border-white translate-y-12" />
             </div>
 
-            {/* Logo & Portal Branding */}
             <div className="flex items-center gap-4 relative z-10">
               <div className="relative w-16 h-16 rounded-full border-[3px] border-amber-400/90 overflow-hidden shadow-xl shadow-black/20 shrink-0 bg-white/10 backdrop-blur-sm">
-                <Image src={activeLogo} alt={`Logo ${roleTitle}`} fill className="object-cover" />
+                <Image src={rememberedUser?.avatarUrl || activeLogo} alt={`Logo ${roleTitle}`} fill className="object-cover" />
               </div>
               <div className="space-y-0.5">
                 <span className="text-[10px] font-black text-amber-300 uppercase tracking-widest block">
@@ -225,198 +285,265 @@ export default function RoleLoginPage({
             </div>
           </div>
 
-          {/* Form Section */}
+          {/* Form & Bank-Style Content Area */}
           <div className="p-6 space-y-5">
-            {/* Auth Method Tabs */}
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-              {(['email', 'passkey'] as AuthMethod[]).map((method) => (
-                <button
-                  key={method}
-                  type="button"
-                  onClick={() => {
-                    setAuthMethod(method);
-                    setError(null);
-                  }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    authMethod === method
-                      ? 'bg-white text-emerald-900 shadow-sm border border-slate-200/80'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {method === 'email' ? (
-                    <>
-                      <span>📧</span> Email & Kata Sandi
-                    </>
-                  ) : (
-                    <>
-                      <span>🔐</span> Passkey / Biometrik
-                    </>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Error Notification */}
-            {error && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-2.5">
-                <span className="text-rose-500 text-sm shrink-0 mt-0.5">⚠️</span>
-                <p className="text-xs text-rose-700 font-semibold leading-relaxed">{error}</p>
-              </div>
-            )}
-
-            {/* Redirecting State Indicator */}
-            {step === 'redirecting' && (
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
-                <LoadingSpinner size="sm" />
-                <p className="text-xs text-emerald-800 font-bold">Mengalihkan ke Portal Dashboard...</p>
-              </div>
-            )}
-
-            {/* Email Form */}
-            {authMethod === 'email' && step !== 'redirecting' && (
-              <form onSubmit={handleEmailLogin} className="space-y-4 text-xs">
-                <div>
-                  <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Alamat Email / Username Portal
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@darsa.id"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-1 focus:ring-emerald-600 transition-all"
-                    autoComplete="email"
-                    disabled={loading}
-                  />
+            {/* BANK-STYLE REMEMBERED USER VIEW */}
+            {rememberedUser && useRememberedView ? (
+              <div className="space-y-4">
+                {/* Greeting Card */}
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 p-4 rounded-2xl border border-emerald-200/80 text-center space-y-1 relative">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-700 block">
+                    Selamat Datang Kembali
+                  </span>
+                  <h3 className="font-black text-base text-slate-900 leading-snug">{rememberedUser.name}</h3>
+                  <p className="font-mono text-xs text-slate-500 font-medium">{maskEmail(rememberedUser.email)}</p>
                 </div>
 
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label htmlFor="password" className="text-xs font-bold text-slate-700">Kata Sandi</label>
+                {/* Error Notification */}
+                {error && (
+                  <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-2.5">
+                    <span className="text-rose-500 text-sm shrink-0 mt-0.5">⚠️</span>
+                    <p className="text-xs text-rose-700 font-semibold leading-relaxed">{error}</p>
+                  </div>
+                )}
+
+                {/* Redirecting Indicator */}
+                {step === 'redirecting' && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center gap-3">
+                    <LoadingSpinner size="sm" />
+                    <p className="text-xs text-emerald-800 font-bold">Mengalihkan ke Portal Dashboard...</p>
+                  </div>
+                )}
+
+                {step !== 'redirecting' && (
+                  <form onSubmit={handleEmailLogin} className="space-y-3 text-xs">
+                    <div>
+                      <label htmlFor="password" className="text-xs font-bold text-slate-700 block mb-1">
+                        Masukkan Kata Sandi
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="password"
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Kata sandi akun Anda..."
+                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-1 focus:ring-emerald-600 transition-all pr-12"
+                          disabled={loading}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold px-1"
+                        >
+                          {showPassword ? 'Sembunyi' : 'Lihat'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || !password}
+                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 hover:from-emerald-900 hover:to-teal-900 text-white font-black text-xs shadow-lg shadow-emerald-800/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <>
+                          <span>Masuk ke Dashboard</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+
+                {/* Quick Biometrics & Google Options */}
+                {step !== 'redirecting' && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-[11px] text-emerald-700 font-semibold hover:underline"
+                      onClick={handlePasskeyLogin}
+                      disabled={loading}
+                      className="w-full py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-900 font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95"
                     >
-                      {showPassword ? 'Sembunyikan' : 'Tampilkan'}
+                      <Fingerprint className="w-4 h-4 text-emerald-700" />
+                      <span>Masuk dengan Sidik Jari / Wajah</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      disabled={loading}
+                      className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95"
+                    >
+                      <Globe className="w-4 h-4 text-blue-600" />
+                      <span>Masuk dengan Akun Google</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSwitchAccount}
+                      className="w-full py-2 text-center text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1.5 mt-2"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Ganti Akun / Gunakan Email Lain</span>
                     </button>
                   </div>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-1 focus:ring-emerald-600 transition-all"
-                    autoComplete="current-password"
-                    disabled={loading}
-                  />
+                )}
+              </div>
+            ) : (
+              /* STANDARD LOGIN FORM (FIRST-TIME OR SWITCH ACCOUNT) */
+              <div className="space-y-4">
+                {/* Auth Method Tabs */}
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  {(['email', 'passkey'] as AuthMethod[]).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => {
+                        setAuthMethod(method);
+                        setError(null);
+                      }}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        authMethod === method
+                          ? 'bg-white text-emerald-900 shadow-sm border border-slate-200/80'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {method === 'email' ? (
+                        <>
+                          <span>📧</span> Email & Kata Sandi
+                        </>
+                      ) : (
+                        <>
+                          <Fingerprint className="w-4 h-4 text-emerald-700" /> Passkey / Biometrik
+                        </>
+                      )}
+                    </button>
+                  ))}
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading && step === 'verifying' ? (
-                    <>
-                      <LoadingSpinner size="sm" variant="white" />
-                      <span>Memverifikasi Akses...</span>
-                    </>
-                  ) : (
-                    `Masuk ${roleTitle}`
-                  )}
-                </button>
-              </form>
-            )}
+                {error && (
+                  <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-2.5">
+                    <span className="text-rose-500 text-sm shrink-0 mt-0.5">⚠️</span>
+                    <p className="text-xs text-rose-700 font-semibold leading-relaxed">{error}</p>
+                  </div>
+                )}
 
-            {/* Passkey Form */}
-            {authMethod === 'passkey' && step !== 'redirecting' && (
-              <div className="text-center py-4 space-y-4">
-                <div className="w-20 h-20 mx-auto rounded-3xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center text-4xl shadow-sm">
-                  {loading ? <LoadingSpinner size="md" /> : '👆'}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800 mb-1">Autentikasi Biometrik</p>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Gunakan Touch ID, Face ID, atau Windows Hello untuk masuk tanpa kata sandi.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handlePasskeyLogin}
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/20 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  {loading ? <LoadingSpinner size="sm" variant="white" /> : '🔐'}
-                  {loading ? 'Menghubungkan WebAuthn...' : 'Otentikasi dengan Passkey'}
-                </button>
+                {step === 'redirecting' && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+                    <LoadingSpinner size="sm" />
+                    <p className="text-xs text-emerald-800 font-bold">Mengalihkan ke Portal Dashboard...</p>
+                  </div>
+                )}
+
+                {authMethod === 'email' && step !== 'redirecting' && (
+                  <form onSubmit={handleEmailLogin} className="space-y-4 text-xs">
+                    <div>
+                      <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Alamat Email / Username Portal
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="user@darsa.id"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-1 focus:ring-emerald-600 transition-all"
+                        autoComplete="email"
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label htmlFor="password" className="text-xs font-bold text-slate-700">Kata Sandi</label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="text-slate-400 hover:text-slate-600 text-xs font-bold px-1"
+                        >
+                          {showPassword ? 'Sembunyi' : 'Lihat'}
+                        </button>
+                      </div>
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Kata sandi akun Anda..."
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-1 focus:ring-emerald-600 transition-all"
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-500 border-slate-300"
+                        />
+                        <span className="text-xs font-semibold text-slate-600">Ingat Akun di Perangkat ini</span>
+                      </label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || !email || !password}
+                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 hover:from-emerald-900 hover:to-teal-900 text-white font-black text-xs shadow-lg shadow-emerald-800/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <>
+                          <span>Masuk ke Dashboard</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      disabled={loading}
+                      className="w-full py-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95"
+                    >
+                      <Globe className="w-4 h-4 text-blue-600" />
+                      <span>Masuk dengan Akun Google</span>
+                    </button>
+                  </form>
+                )}
+
+                {authMethod === 'passkey' && step !== 'redirecting' && (
+                  <div className="space-y-4 text-center py-4">
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                      <Fingerprint className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Autentikasi Sidik Jari / Wajah</h4>
+                      <p className="text-slate-500 text-xs mt-1">Gunakan sensor biometrik bawaan HP Anda untuk masuk tanpa password.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handlePasskeyLogin}
+                      disabled={loading}
+                      className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-all shadow-md active:scale-95"
+                    >
+                      {loading ? 'Memverifikasi Biometrik...' : 'Verifikasi Sidik Jari / Wajah'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">atau</span>
-              <div className="flex-1 h-px bg-slate-200" />
-            </div>
-
-            {/* Google OAuth */}
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-xs font-bold flex items-center justify-center gap-3 transition-all duration-200 shadow-sm disabled:opacity-60"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.1 9 5 12 5z" />
-                <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z" />
-                <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9c-.8-.7-1.4-1.7-1.8-2.9z" />
-                <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.1-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z" />
-              </svg>
-              Masuk dengan Google OAuth
-            </button>
-
-            {/* Portal Wali Link (Strictly on Wali Portal Only) */}
-            {portalType === 'wali' ? (
-              <div className="pt-2 text-center border-t border-slate-200">
-                <Link
-                  href="/register/wali"
-                  className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-black shadow-sm transition-all duration-200"
-                >
-                  <span>👨‍👩‍👧</span>
-                  <span>Belum Punya Akun Wali? Daftar NIK & OTP WA →</span>
-                </Link>
-              </div>
-            ) : null}
           </div>
         </div>
-
-        {/* Footer Quick Links across Role Login Pages */}
-        <div className="p-4 rounded-2xl bg-white/80 border border-slate-200 text-[11px] text-center space-y-1.5">
-          <span className="font-bold text-slate-500 uppercase tracking-wider block text-[10px]">
-            🌐 Pilihan Portal Login Darsa Enterprise:
-          </span>
-          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 font-semibold text-emerald-800">
-            <Link href="/auth/login/pondok" className="hover:underline">Pondok</Link>
-            <span>•</span>
-            <Link href="/auth/login/madrasah" className="hover:underline">Madrasah Diniyah</Link>
-            <span>•</span>
-            <Link href="/auth/login/mi" className="hover:underline">MI</Link>
-            <span>•</span>
-            <Link href="/auth/login/keamanan" className="hover:underline">Keamanan</Link>
-            <span>•</span>
-            <Link href="/auth/login/gurumi" className="hover:underline">Guru MI</Link>
-            <span>•</span>
-            <Link href="/auth/login/general" className="hover:underline">Mustahiq/Munawwib</Link>
-            <span>•</span>
-            <Link href="/auth/login/wali" className="hover:underline">Wali Santri</Link>
-          </div>
-        </div>
-
       </div>
     </div>
   );

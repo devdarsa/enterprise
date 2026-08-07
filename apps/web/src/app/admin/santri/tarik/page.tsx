@@ -1,20 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+
+interface SantriOption {
+  nisp: string;
+  nisn: string;
+  nama: string;
+  kelas_pondok: string;
+  status_pondok: string;
+}
 
 export default function TarikDataSantriPage() {
   const [targetInstansi, setTargetInstansi] = useState('Madrasah Diniyah');
-  const [selectedSantri, setSelectedSantri] = useState<string[]>(['0012345678', '0012345679']);
+  const [selectedSantri, setSelectedSantri] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingSantri, setLoadingSantri] = useState(true);
+  const [availablePondokSantri, setAvailablePondokSantri] = useState<SantriOption[]>([]);
   const [message, setMessage] = useState<string | null>(null);
 
-  const availablePondokSantri = [
-    { nisp: 'PNDK-0012345678', nisn: '0012345678', nama: 'Muhammad Raihan', kelas_pondok: 'Pesantren 10-A', status_pondok: 'AKTIF_TERDAFTAR' },
-    { nisp: 'PNDK-0012345679', nisn: '0012345679', nama: 'Ahmad Fauzi', kelas_pondok: 'Pesantren 10-A', status_pondok: 'AKTIF_TERDAFTAR' },
-    { nisp: 'PNDK-0012345680', nisn: '0012345680', nama: 'Siti Aminah', kelas_pondok: 'Pesantren 11-B', status_pondok: 'AKTIF_TERDAFTAR' },
-    { nisp: 'PNDK-0012345681', nisn: '0012345681', nama: 'Fajar Hidayat', kelas_pondok: 'Pesantren 12-C', status_pondok: 'AKTIF_TERDAFTAR' },
-  ];
+  useEffect(() => {
+    async function fetchPondokSantriLive() {
+      setLoadingSantri(true);
+      try {
+        const res = await fetch('/api/v1/santri?limit=50');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mapped = json.data.map((s: any) => ({
+              nisp: s.nisp,
+              nisn: s.nisn,
+              nama: s.nama_lengkap,
+              kelas_pondok: s.kelas?.nama_kelas || 'Pondok Utama',
+              status_pondok: s.status || 'AKTIF_TERDAFTAR',
+            }));
+            setAvailablePondokSantri(mapped);
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat master santri pondok:', e);
+      } finally {
+        setLoadingSantri(false);
+      }
+    }
+    fetchPondokSantriLive();
+  }, []);
 
   const handleToggleSelect = (nisn: string) => {
     if (selectedSantri.includes(nisn)) {
@@ -46,121 +76,126 @@ export default function TarikDataSantriPage() {
       const data = await res.json();
       setLoading(false);
       if (data.success) {
-        setMessage(data.message);
+        setMessage(data.message || 'Penarikan data santri dari Pondok Pesantren SSOT berhasil.');
         setTimeout(() => {
           window.location.href = '/admin/santri';
-        }, 2000);
+        }, 1500);
+      } else {
+        setMessage(`Gagal: ${data.error || 'Terjadi kesalahan sistem'}`);
       }
-    } catch (err) {
+    } catch {
       setLoading(false);
-      setMessage('Gagal menarik data santri.');
+      setMessage('Gagal menghubungi server.');
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
+      {/* Top Banner Warning Single Source of Truth */}
+      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs font-semibold flex items-start gap-3 shadow-sm">
+        <span className="text-xl shrink-0">🏛️</span>
+        <div>
+          <strong className="block font-bold mb-0.5">BAB I PASAL 1 — SINGLE SOURCE OF TRUTH (SSOT):</strong>
+          Data santri Pondok Pesantren adalah Master Utama. Madrasah & MI Formal dilarang membuat data santri baru secara manual. Gunakan modul ini untuk menarik penempatan data akademik dari Pondok Pesantren SSOT.
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">📥 Penarikan Data Santri (Sinkronisasi)</h1>
-          <p className="text-xs text-slate-500">
-            Penarikan data Santri dari Pondok Pesantren (Source of Truth) ke {targetInstansi}
-          </p>
+          <h1 className="text-xl font-black text-slate-900">Tarik Data Penempatan Santri Pondok</h1>
+          <p className="text-xs text-slate-500 mt-1">Sinkronisasi Referensi Data Master Pondok ➔ {targetInstansi}</p>
         </div>
         <Link
           href="/admin/santri"
-          className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-all"
+          className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition-all"
         >
-          ← Kembali ke Tabel Santri
+          ← Kembali ke Master Santri
         </Link>
       </div>
 
-      {/* Notice Banner */}
-      <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium space-y-1">
-        <span className="font-bold block">📌 Aturan Penarikan Data Santri:</span>
-        <p>
-          Sesuai aturan bisnis Darsa Enterprise, data Santri **TIDAK BISA** dibuat secara manual di Madrasah Diniyah atau MI. Seluruh data Santri wajib berasal dari proses penarikan/sinkronisasi dari **Pondok Pesantren Darussa'adah**.
-        </p>
-      </div>
-
-      {/* Target Selector Card */}
-      <div className="p-5 rounded-2xl bg-white border border-emerald-100 shadow-sm flex items-center justify-between text-xs">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
         <div>
-          <span className="font-bold text-slate-700 block mb-1">Target Instansi Penerima:</span>
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">Pilih Unit Instansi Tujuan Penempatan:</label>
           <select
             value={targetInstansi}
             onChange={(e) => setTargetInstansi(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-emerald-900 font-bold focus:outline-none"
+            className="w-full sm:w-72 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-slate-50 focus:ring-2 focus:ring-emerald-500 outline-none"
           >
-            <option value="Madrasah Diniyah">Madrasah Diniyah Darussa'adah</option>
-            <option value="Madrasah Ibtida'iyyah (MI)">Madrasah Ibtida'iyyah (MI) Darussa'adah</option>
+            <option value="Madrasah Diniyah">Madrasah Diniyah (Ula / Wustha / Aliyah)</option>
+            <option value="MI Formal">Madrasah Ibtidaiyah (MI Formal)</option>
           </select>
         </div>
-        <div className="text-right">
-          <span className="text-slate-500 font-semibold block">Santri Terpilih:</span>
-          <span className="text-lg font-black text-emerald-800">{selectedSantri.length} Santri</span>
-        </div>
-      </div>
 
-      {message && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold text-center">
-          {message}
-        </div>
-      )}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs font-bold text-slate-900">
+              Pilih Santri Master Pondok Pesantren ({selectedSantri.length} Dipilih):
+            </label>
+            <button
+              type="button"
+              onClick={() => setSelectedSantri(availablePondokSantri.map((s) => s.nisn))}
+              className="text-[11px] font-bold text-emerald-700 hover:underline"
+            >
+              Pilih Semua Santri
+            </button>
+          </div>
 
-      {/* List of Available Pondok Santri to Pull */}
-      <div className="p-6 rounded-2xl bg-white border border-emerald-100 shadow-sm space-y-4">
-        <h2 className="text-sm font-bold text-slate-900">Daftar Santri Pondok Pesantren yang Siap Ditarik:</h2>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-500 font-bold bg-slate-50">
-                <th className="p-3 text-center">Pilih</th>
-                <th className="p-3">NISP / Stambuk</th>
-                <th className="p-3">NISN</th>
-                <th className="p-3">Nama Santri</th>
-                <th className="p-3">Kelas Pondok</th>
-                <th className="p-3">Status Pondok</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {availablePondokSantri.map((santri) => {
-                const isChecked = selectedSantri.includes(santri.nisn);
+          <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+            {loadingSantri ? (
+              <div className="p-8 text-center text-xs font-bold text-slate-500">Memuat master santri dari Pondok Pesantren SSOT...</div>
+            ) : availablePondokSantri.length === 0 ? (
+              <div className="p-8 text-center text-xs font-bold text-slate-400">Belum ada master santri di Pondok Pesantren SSOT.</div>
+            ) : (
+              availablePondokSantri.map((santri) => {
+                const isSelected = selectedSantri.includes(santri.nisn);
                 return (
-                  <tr key={santri.nisn} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 text-center">
+                  <div
+                    key={santri.nisn}
+                    onClick={() => handleToggleSelect(santri.nisn)}
+                    className={`p-3.5 flex items-center justify-between cursor-pointer transition-all ${
+                      isSelected ? 'bg-emerald-50/60 font-medium' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
                       <input
                         type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleToggleSelect(santri.nisn)}
-                        className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
                       />
-                    </td>
-                    <td className="p-3 font-mono font-black text-amber-800 bg-amber-50/50">{santri.nisp}</td>
-                    <td className="p-3 font-mono font-bold text-emerald-800">{santri.nisn}</td>
-                    <td className="p-3 font-bold text-slate-900">{santri.nama}</td>
-                    <td className="p-3 text-slate-600">{santri.kelas_pondok}</td>
-                    <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {santri.status_pondok}
-                      </span>
-                    </td>
-                  </tr>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block">{santri.nama}</span>
+                        <span className="text-[11px] text-slate-500">
+                          NISP: {santri.nisp} | NISN: {santri.nisn} | {santri.kelas_pondok}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase">
+                      {santri.status_pondok}
+                    </span>
+                  </div>
                 );
-              })}
-            </tbody>
-          </table>
+              })
+            )}
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExecutePull}
-          disabled={loading}
-          className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-600/30 hover:bg-emerald-700 transition-all disabled:opacity-50 mt-4"
-        >
-          {loading ? 'Memproses Penarikan Data...' : `Eksekusi Penarikan (${selectedSantri.length} Santri) ke ${targetInstansi}`}
-        </button>
+        {message && (
+          <div className={`p-3.5 rounded-xl text-xs font-bold ${message.startsWith('Gagal') ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+            {message}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleExecutePull}
+            disabled={loading || selectedSantri.length === 0}
+            className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+          >
+            {loading ? 'Memproses Penarikan...' : `📥 Eksekusi Tarik ${selectedSantri.length} Santri`}
+          </button>
+        </div>
       </div>
     </div>
   );

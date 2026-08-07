@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SearchBar } from '@/components/Loading';
 import { TableActions, ImportExportToolbar } from '@/components/TableActions';
@@ -16,19 +16,44 @@ interface Alumni {
   telepon: string;
 }
 
-const INITIAL_ALUMNI: Alumni[] = [
-  { id: '1', nisp: 'PNDK-2022001', nama: 'Ust. Moh. Hilmi Mubarak', tahunLulus: 2024, jenjangTerakhir: 'Aliyah Diniyah', statusAlumni: 'KHIDMAH', lokasiKhidmah: 'Pondok Cabang Kediri', telepon: '081233445566' },
-  { id: '2', nisp: 'PNDK-2022002', nama: 'Ahmad Zaenuri, S.Pd', tahunLulus: 2023, jenjangTerakhir: 'Tsanawiyyah', statusAlumni: 'KULIAH', lokasiKhidmah: 'UIN Sunan Ampel', telepon: '085788990011' },
-  { id: '3', nisp: 'PNDK-2022003', nama: 'Fathur Rahman', tahunLulus: 2025, jenjangTerakhir: 'Aliyah Diniyah', statusAlumni: 'WIRAUSAHA', telepon: '081900112233' },
-];
-
 export default function DataAlumniPage() {
-  const [alumniList, setAlumniList] = useState<Alumni[]>(INITIAL_ALUMNI);
+  const [alumniList, setAlumniList] = useState<Alumni[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
+
+  useEffect(() => {
+    async function fetchAlumniLive() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/v1/santri?status=LULUS');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mapped = json.data.map((a: any) => ({
+              id: a.id,
+              nisp: a.nisp,
+              nama: a.nama_lengkap,
+              tahunLulus: a.updated_at ? new Date(a.updated_at).getFullYear() : 2025,
+              jenjangTerakhir: a.kelas?.nama_kelas || 'Aliyah Diniyah',
+              statusAlumni: 'KHIDMAH' as const,
+              lokasiKhidmah: a.alamat || 'Pondok Pesantren Ma\'had Darussa\'adah',
+              telepon: a.telepon || '-',
+            }));
+            setAlumniList(mapped);
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat alumni live:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAlumniLive();
+  }, []);
 
   const filtered = alumniList.filter(
     (a) => a.nama.toLowerCase().includes(search.toLowerCase()) || a.nisp.toLowerCase().includes(search.toLowerCase())
@@ -38,71 +63,69 @@ export default function DataAlumniPage() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
-      {/* Header Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block mb-1">
-            DATABASE PONDOK
-          </span>
-          <h1 className="text-xl font-black text-slate-900">Data Alumni & Riwayat Kelulusan</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Master Arsip Data Kelulusan Santri, Status Khidmah, & Riwayat Pendidikan
-          </p>
+          <h1 className="text-xl font-black text-slate-900 leading-tight">Pendataan Alumni & Kelulusan</h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">Direktori Alumni Lulusan Pondok Pesantren & Khidmah</p>
         </div>
-
-        <ImportExportToolbar
-          onAdd={() => showToast('info', 'Pendataan Alumni', 'Form alumni baru.')}
-          addLabel="🎓 + Pendataan Alumni Baru"
-          onExport={() => showToast('info', 'Export Data', 'Mengeksport data alumni.')}
-          onPrint={() => showToast('info', 'Cetak Data', 'Mencetak direktori alumni.')}
-        />
+        <ImportExportToolbar addLabel="Tambah Alumni" />
       </div>
 
-      <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <SearchBar value={search} onChange={setSearch} placeholder="Cari nama alumni atau NISP stambuk..." />
+      {/* Search */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-3">
+        <div className="flex-1">
+          <SearchBar value={search} onChange={setSearch} placeholder="Cari nama alumni atau NISP..." />
+        </div>
+        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border">
+          {filtered.length} Alumni
+        </span>
       </div>
 
+      {/* Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <table className="table-premium">
-          <thead>
-            <tr>
-              <th>NISP Stambuk</th>
-              <th>Nama Alumni</th>
-              <th>Tahun Lulus</th>
-              <th>Jenjang Terakhir</th>
-              <th>Status Alumni</th>
-              <th>Catatan / Lokasi</th>
-              <th className="text-right">Aksi Standards (RBAC)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((a) => (
-              <tr key={a.id} className="hover:bg-slate-50/80">
-                <td className="font-mono text-xs font-bold text-emerald-800">{a.nisp}</td>
-                <td className="font-bold text-slate-900">{a.nama}</td>
-                <td className="font-bold text-slate-700">{a.tahunLulus}</td>
-                <td className="text-xs text-slate-600 font-medium">{a.jenjangTerakhir}</td>
-                <td>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 font-extrabold text-[10px] border border-amber-200">
-                    {a.statusAlumni}
-                  </span>
-                </td>
-                <td className="text-xs text-slate-500">{a.lokasiKhidmah || '-'}</td>
-                <td className="text-right">
-                  <TableActions
-                    onDetail={() => showToast('info', 'Detail Alumni', `Detail ${a.nama}`)}
-                    onEdit={() => showToast('info', 'Edit Alumni', `Edit ${a.nama}`)}
-                    onArsip={() => showToast('info', 'Arsip Alumni', `Arsip ${a.nama}`)}
-                    onDelete={() => {
-                      setAlumniList((prev) => prev.filter((item) => item.id !== a.id));
-                      showToast('success', 'Soft Delete', `Data alumni ${a.nama} dipindahkan ke Recycle Bin.`);
-                    }}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="p-8 text-center text-xs font-bold text-slate-500">Memuat data alumni dari database...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-xs font-bold text-slate-400">Belum ada alumni lulusan tercatat di database.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-600 font-bold border-b uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="p-3.5">Nama Alumni</th>
+                  <th className="p-3.5">NISP Stambuk</th>
+                  <th className="p-3.5">Tahun Lulus</th>
+                  <th className="p-3.5">Jenjang Terakhir</th>
+                  <th className="p-3.5">Status Alumni</th>
+                  <th className="p-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50">
+                    <td className="p-3.5 font-bold text-slate-900">{item.nama}</td>
+                    <td className="p-3.5 font-mono text-slate-600">{item.nisp}</td>
+                    <td className="p-3.5 font-bold text-slate-700">{item.tahunLulus}</td>
+                    <td className="p-3.5 text-slate-600">{item.jenjangTerakhir}</td>
+                    <td className="p-3.5">
+                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase">
+                        {item.statusAlumni}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <TableActions
+                        onDetail={() => showToast('info', 'Detail Alumni', item.nama)}
+                        onEdit={() => showToast('info', 'Edit Alumni', item.nama)}
+                        onDelete={() => showToast('info', 'Soft Delete', item.nama)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -83,28 +83,28 @@ export default function DocsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 <tr>
-                  <td className="py-2.5 px-3 font-bold text-emerald-800">Sekretariat Utama</td>
-                  <td className="py-2.5 px-3"><code>/loginpondok</code></td>
+                  <td className="py-2.5 px-3 font-bold text-emerald-800">Sekretariat Utama & Admin Instansi</td>
+                  <td className="py-2.5 px-3"><code>/admin/login</code></td>
                   <td className="py-2.5 px-3">sekretariat.pondok@darsa.my.id</td>
                 </tr>
                 <tr>
-                  <td className="py-2.5 px-3 font-bold text-emerald-800">Admin Instansi (Madrasah/MI)</td>
-                  <td className="py-2.5 px-3"><code>/loginmadrasah</code> / <code>/loginmi</code></td>
-                  <td className="py-2.5 px-3">sekretariat.madrasah@darsa.my.id</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 font-bold text-emerald-800">Mustahiq / Munawwib</td>
+                  <td className="py-2.5 px-3 font-bold text-emerald-800">Mustahiq / Munawwib (Guru Diniyah)</td>
                   <td className="py-2.5 px-3"><code>/login</code></td>
                   <td className="py-2.5 px-3">mustahiq@darsa.my.id</td>
                 </tr>
                 <tr>
+                  <td className="py-2.5 px-3 font-bold text-emerald-800">Ustadz / Guru MI (Formal)</td>
+                  <td className="py-2.5 px-3"><code>/login</code></td>
+                  <td className="py-2.5 px-3">guru.mi@darsa.my.id</td>
+                </tr>
+                <tr>
                   <td className="py-2.5 px-3 font-bold text-emerald-800">Tim Keamanan & Perizinan</td>
-                  <td className="py-2.5 px-3"><code>/loginkeamanan</code></td>
+                  <td className="py-2.5 px-3"><code>/login</code></td>
                   <td className="py-2.5 px-3">keamanan@darsa.my.id</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-3 font-bold text-emerald-800">Wali Santri</td>
-                  <td className="py-2.5 px-3"><code>/loginwali</code></td>
+                  <td className="py-2.5 px-3"><code>/login</code></td>
                   <td className="py-2.5 px-3">wali@darsa.my.id</td>
                 </tr>
               </tbody>

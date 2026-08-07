@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export default function GeneratorSuratPage() {
-  const [nomor, setNomor] = useState('SRT/2026/08/005');
-  const [santri, setSantri] = useState('Muhammad Raihan');
-  const [keperluan, setKeperluan] = useState('Izin Pulang Keperluan Keluarga');
+  const [nomor, setNomor] = useState(() => `SRT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(100 + Math.random() * 900)}`);
+  const [santri, setSantri] = useState('');
+  const [keperluan, setKeperluan] = useState('');
   const [instansi, setInstansi] = useState<'PONDOK' | 'MADRASAH' | 'MI'>('PONDOK');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

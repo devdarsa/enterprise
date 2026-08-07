@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SearchBar } from '@/components/Loading';
 
@@ -14,18 +14,43 @@ interface ArsipItem {
   fileSize: string;
 }
 
-const INITIAL_ARSIP: ArsipItem[] = [
-  { id: '1', kodeArsip: 'ARSIP-2024-001', kategori: 'Kurikulum Diniyah', judul: 'Dokumen Silabus & Kurikulum Kitab Kuning Ganjil 2024', tahunAjaran: '2024/2025', tanggalArsip: '15 Jan 2025', fileSize: '2.4 MB' },
-  { id: '2', kodeArsip: 'ARSIP-2024-002', kategori: 'Surat Keputusan', judul: 'SK Pengangkatan Mustahiq & Wali Kelas Semester Genap 2024', tahunAjaran: '2024/2025', tanggalArsip: '20 Feb 2025', fileSize: '1.8 MB' },
-];
-
 export default function ArsipHistorisPage() {
-  const [list, setList] = useState<ArsipItem[]>(INITIAL_ARSIP);
+  const [list, setList] = useState<ArsipItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
+
+  useEffect(() => {
+    async function fetchArsipLive() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/v1/surat');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mapped = json.data.map((s: any) => ({
+              id: s.id,
+              kodeArsip: s.nomor_surat || `ARSIP-${s.id.substring(0, 8)}`,
+              kategori: s.jenis_surat || 'Dokumen Resmi',
+              judul: s.perihal || 'Dokumen Pesantren',
+              tahunAjaran: '2025/2026',
+              tanggalArsip: s.tanggal ? new Date(s.tanggal).toLocaleDateString('id-ID') : '01 Jan 2026',
+              fileSize: '1.2 MB',
+            }));
+            setList(mapped);
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat arsip:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchArsipLive();
+  }, []);
 
   const filtered = list.filter((a) => a.judul.toLowerCase().includes(search.toLowerCase()) || a.kodeArsip.toLowerCase().includes(search.toLowerCase()));
 
@@ -50,34 +75,46 @@ export default function ArsipHistorisPage() {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <table className="table-premium">
-          <thead>
-            <tr>
-              <th>Kode Arsip</th>
-              <th>Kategori</th>
-              <th>Judul Dokumen</th>
-              <th>Tahun Ajaran</th>
-              <th>Tanggal Disimpan</th>
-              <th className="text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((a) => (
-              <tr key={a.id} className="hover:bg-slate-50/80">
-                <td className="font-mono text-xs font-bold text-slate-700">{a.kodeArsip}</td>
-                <td><span className="px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">{a.kategori}</span></td>
-                <td className="font-bold text-slate-900">{a.judul}</td>
-                <td className="text-xs font-semibold text-slate-600">{a.tahunAjaran}</td>
-                <td className="text-xs text-slate-500">{a.tanggalArsip}</td>
-                <td className="text-right">
-                  <button onClick={() => showToast('info', 'Unduh Arsip', `Mengunduh berkas ${a.kodeArsip}`)} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                    📥 Unduh ({a.fileSize})
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="p-8 text-center text-xs font-bold text-slate-500">Memuat arsip dari database...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-xs font-bold text-slate-400">Belum ada arsip historis tercatat di database.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-600 font-bold border-b uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="p-3.5">Kode Arsip</th>
+                  <th className="p-3.5">Judul Dokumen</th>
+                  <th className="p-3.5">Kategori</th>
+                  <th className="p-3.5">Tahun Ajaran</th>
+                  <th className="p-3.5">Tanggal</th>
+                  <th className="p-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50">
+                    <td className="p-3.5 font-mono text-slate-600">{item.kodeArsip}</td>
+                    <td className="p-3.5 font-bold text-slate-900">{item.judul}</td>
+                    <td className="p-3.5 text-slate-600">{item.kategori}</td>
+                    <td className="p-3.5 text-slate-600">{item.tahunAjaran}</td>
+                    <td className="p-3.5 text-slate-600">{item.tanggalArsip}</td>
+                    <td className="p-3.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => showToast('info', 'Unduh Arsip', item.judul)}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold text-[10px] border border-emerald-200 transition-all"
+                      >
+                        📥 Unduh
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

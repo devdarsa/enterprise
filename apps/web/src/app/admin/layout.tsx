@@ -6,7 +6,22 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import Toast, { ToastProps } from '@/components/Toast';
 import DesktopOnlyGuard from '@/components/DesktopOnlyGuard';
+import AccountSettingsModal from '@/components/AccountSettingsModal';
 import { clearAllLocalCache } from '@/lib/cache-storage';
+import {
+  Bell,
+  Calendar,
+  CheckCheck,
+  Trash2,
+  ShieldAlert,
+  FileText,
+  QrCode,
+  LogOut,
+  ChevronDown,
+  Settings,
+  User,
+  Info
+} from 'lucide-react';
 
 interface SessionUser {
   email: string;
@@ -14,6 +29,16 @@ interface SessionUser {
   role: string;
   instansi: string;
   loginAt: string;
+}
+
+interface NotificationItem {
+  id: string;
+  type: 'PERIZINAN' | 'PRESENSI' | 'PELANGGARAN' | 'INFO';
+  title: string;
+  desc: string;
+  time: string;
+  unread: boolean;
+  link: string;
 }
 
 function getInitials(nama: string) {
@@ -29,18 +54,55 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [tahunAjaran, setTahunAjaran] = useState('2025/2026 (Ganjil)');
-  const [instansiActive, setInstansiActive] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
+
+  // Popover States
   const [notifOpen, setNotifOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
+
   const notifRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Live Interactive Notifications State
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 'notif-1',
+      type: 'PERIZINAN',
+      title: 'Permohonan Izin Santri Baru',
+      desc: 'Santri Ahmad Muzakki mengajukan izin pulang (28 Jul - 30 Jul)',
+      time: '5 menit lalu',
+      unread: true,
+      link: '/admin/surat',
+    },
+    {
+      id: 'notif-2',
+      type: 'PRESENSI',
+      title: 'Scan QR Presensi Guru MI',
+      desc: '12 Ustadz/Ustadzah telah melakukan presensi lokasi',
+      time: '35 menit lalu',
+      unread: true,
+      link: '/admin/santri',
+    },
+    {
+      id: 'notif-3',
+      type: 'PELANGGARAN',
+      title: 'Pencatatan Takzir Keamanan',
+      desc: 'Terlibat pelanggaran terlambat kembali komplek',
+      time: '2 jam lalu',
+      unread: false,
+      link: '/admin/pelanggaran',
+    },
+  ]);
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) => {
     setToast({ isOpen: true, type, title, message });
   };
 
-  // Fetch session from /api/v1/auth/me (includes exact database role)
+  // Fetch session from /api/v1/auth/me
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -51,7 +113,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const u = data.user;
             const role = u.role || 'SEKRETARIAT';
 
-            // Jika role non-admin mengakses area /admin, redirect ke dashboard mereka
             const roleRedirects: Record<string, string> = {
               GURU_MADRASAH: '/guru_madrasah/dashboard',
               GURU_MI: '/guru_mi/dashboard',
@@ -77,18 +138,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             });
           }
         }
-      } catch {
-        // Session tidak tersedia
-      }
+      } catch {}
     };
     fetchSession();
   }, [router]);
 
-  // Close notif on outside click
+  // Close popovers on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -96,6 +158,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   const handleLogout = async () => {
+    setUserMenuOpen(false);
     clearAllLocalCache();
     try {
       const { signOut } = await import('@darsa/auth/client');
@@ -105,34 +168,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setTimeout(() => router.push('/login'), 1200);
   };
 
-  const handleSwitchInstansi = (inst: 'pondok' | 'madrasah' | 'mi') => {
-    setInstansiActive(inst);
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    showToast('info', 'Notifikasi Diperbarui', 'Seluruh notifikasi telah ditandai sebagai dibaca.');
   };
 
-  const instansiConfig = {
-    pondok: {
-      nama: "Pondok Pesantren Ma'had Darussa'adah",
-      sub: 'LIRBOYO KOTA KEDIRI',
-      logo: '/logo-pondok.png',
-      badge: 'Instansi Pondok Pesantren',
-    },
-    madrasah: {
-      nama: "Madrasah Diniyah Darussa'adah",
-      sub: 'LIRBOYO KOTA KEDIRI',
-      logo: '/logo-madrasah.png',
-      badge: 'Sekretariat Madrasah Diniyah',
-    },
-    mi: {
-      nama: "Madrasah Ibtida'iyyah Darussa'adah",
-      sub: 'LIRBOYO KOTA KEDIRI',
-      logo: '/logo-mi.png',
-      badge: 'Sekretariat Formal / MI',
-    },
+  const handleClearNotifications = () => {
+    setNotifications([]);
+    setNotifOpen(false);
+    showToast('info', 'Notifikasi Bersih', 'Daftar notifikasi telah dibersihkan.');
   };
 
-  const currentInstansi = instansiConfig[instansiActive];
+  const handleNotificationClick = (item: NotificationItem) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
+    );
+    setNotifOpen(false);
+    router.push(item.link);
+  };
 
-  // Full Master Menu List according to Official Darsa Enterprise Specification
+  const currentInstansi = {
+    nama: "Pondok Pesantren Ma'had Darussa'adah",
+    sub: 'LIRBOYO KOTA KEDIRI',
+    logo: '/logo-pondok.png',
+    badge: 'Sekretariat Utama Enterprise',
+  };
+
   const navigationGroups = [
     {
       groupTitle: 'DASHBOARD',
@@ -170,12 +231,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     },
   ];
 
-  // RBAC Filtering according to BAB VII Role Specification
   const userRole = user?.role || 'SEKRETARIAT';
 
   const visibleGroups = navigationGroups
     .map((group) => {
-      // Keamanan Role: Only sees Dashboard, Keamanan, and SOP (BAB VII)
       if (userRole === 'KEAMANAN') {
         if (group.groupTitle === 'DATABASE PONDOK') return null;
         if (group.groupTitle === 'SISTEM & UTILITAS') {
@@ -186,7 +245,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       }
 
-      // Mustahiq / Munawwib / Guru Role: Cannot see Database Pondok, System Config, Audit Log, Akun (BAB VII)
       if (['MUSTAHIQ', 'MUNAWWIB', 'GURU_MADRASAH', 'GURU_MI', 'GURU'].includes(userRole)) {
         if (group.groupTitle === 'DATABASE PONDOK') return null;
         if (group.groupTitle === 'SISTEM & UTILITAS') {
@@ -197,23 +255,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       }
 
-      // Madrasah / MI Sekretariat: Cannot access Pondok System Configuration
-      if (instansiActive !== 'pondok') {
-        if (group.groupTitle === 'SISTEM & UTILITAS') {
-          return {
-            ...group,
-            items: group.items.filter((item) => item.path !== '/admin/konfigurasi'),
-          };
-        }
-      }
       return group;
     })
     .filter(Boolean) as typeof navigationGroups;
-
-  const notifications = [
-    { icon: '📱', text: 'QR Absensi baru: 12 santri scan pagi ini', time: '2m lalu', unread: true },
-    { icon: '✉️', text: 'Surat izin baru dari Ahmad Fauzi', time: '3j lalu', unread: false },
-  ];
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -225,9 +269,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }));
   })();
 
+  const getNotifIcon = (type: NotificationItem['type']) => {
+    switch (type) {
+      case 'PERIZINAN':
+        return <FileText className="w-4 h-4 text-amber-600 shrink-0" />;
+      case 'PRESENSI':
+        return <QrCode className="w-4 h-4 text-emerald-600 shrink-0" />;
+      case 'PELANGGARAN':
+        return <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />;
+      default:
+        return <Info className="w-4 h-4 text-blue-600 shrink-0" />;
+    }
+  };
+
   return (
     <DesktopOnlyGuard>
-      <div className="h-screen w-full bg-slate-50 text-slate-900 flex flex-col md:flex-row overflow-hidden relative">
+      <div className="h-screen w-full bg-slate-50 text-slate-900 flex flex-col md:flex-row overflow-hidden relative font-sans">
         {/* Mobile Overlay */}
         {sidebarOpen && (
           <div
@@ -236,7 +293,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           />
         )}
 
-        {/* SIDEBAR (Sticky on Desktop) */}
+        {/* SIDEBAR */}
         <aside
           className={`
             fixed md:sticky top-0 h-screen z-40 md:z-30
@@ -247,10 +304,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             shrink-0 overflow-y-auto
           `}
         >
-          {/* Header card: Tahun Ajaran + Instansi switcher */}
+          {/* Header Card */}
           <div className="p-4 border-b border-slate-100">
-            {/* Brand Row */}
-            <div className="flex items-center gap-2.5 mb-4">
+            <div className="flex items-center gap-2.5 mb-3">
               <div className="relative w-9 h-9 rounded-full border-2 border-amber-400 overflow-hidden shadow-sm shrink-0">
                 <Image src={currentInstansi.logo} alt={`Logo ${currentInstansi.nama}`} fill className="object-cover" />
               </div>
@@ -267,40 +323,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
             </div>
 
-            {/* Tahun Ajaran */}
-            <div className="mb-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tahun Ajaran</span>
-                <select
-                  value={tahunAjaran}
-                  onChange={(e) => setTahunAjaran(e.target.value)}
-                  className="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg px-2 py-0.5 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                >
-                  <option value="2025/2026 (Ganjil)">2025/2026 (Ganjil)</option>
-                  <option value="2025/2026 (Genap)">2025/2026 (Genap)</option>
-                  <option value="2026/2027 (Ganjil)">2026/2027 (Ganjil)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Active Instansi Dropdown Switcher */}
             <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
-              <label className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wider block mb-1">
-                Instansi Aktif
-              </label>
-              <select
-                value={instansiActive}
-                onChange={(e) => handleSwitchInstansi(e.target.value as 'pondok' | 'madrasah' | 'mi')}
-                className="w-full text-xs font-bold text-emerald-950 bg-white border border-emerald-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
-              >
-                <option value="pondok">🏛️ Pondok Pesantren</option>
-                <option value="madrasah">📚 Madrasah Diniyah</option>
-                <option value="mi">🏫 MI / Formal</option>
-              </select>
+              <span className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wider block mb-0.5">
+                PORTAL SEKRETARIAT
+              </span>
+              <p className="text-xs font-black text-emerald-950">Pondok Pesantren Ma'had Darussa'adah</p>
             </div>
           </div>
 
-          {/* Navigation Menu (Grouped and RBAC Filtered) */}
+          {/* Navigation Menu */}
           <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
             {visibleGroups.map((group) => (
               <div key={group.groupTitle} className="space-y-1">
@@ -318,13 +349,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className={`
                           flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150
                           ${isActive
-                            ? 'bg-emerald-700 text-white shadow-md shadow-emerald-700/20 font-bold'
+                            ? 'bg-emerald-800 text-white shadow-md shadow-emerald-900/20 font-bold'
                             : 'text-slate-600 hover:text-emerald-800 hover:bg-emerald-50'
                           }
                         `}
                       >
-                        <span className="text-sm shrink-0 leading-none">{item.icon}</span>
-                        <span className="truncate leading-tight">{item.label}</span>
+                        <span className="text-sm shrink-0">{item.icon}</span>
+                        <span className="truncate">{item.label}</span>
                         {isActive && (
                           <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0" />
                         )}
@@ -335,35 +366,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             ))}
           </div>
-
-          {/* User Footer */}
-          <div className="p-4 border-t border-slate-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center font-black text-white text-xs shrink-0 shadow-sm">
-                {user ? getInitials(user.nama) : 'UA'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="block text-xs font-bold text-slate-900 truncate">
-                  {user?.nama ?? 'Sekretariat Utama'}
-                </span>
-                <span className="block text-[9px] text-emerald-700 font-bold truncate uppercase tracking-wide">
-                  {user?.role?.replace('_', ' ') ?? 'Admin Instansi'}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-2 border border-rose-200"
-            >
-              <span>🚪</span> Keluar Sistem
-            </button>
-          </div>
         </aside>
 
         {/* MAIN CONTENT WRAPPER */}
         <div className="flex-1 h-screen overflow-y-auto flex flex-col min-w-0">
-          {/* Top Bar */}
-          <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-6 py-3 flex items-center justify-between shadow-xs">
+          {/* Top Header Bar */}
+          <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-6 py-2.5 flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -392,38 +400,165 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </nav>
             </div>
 
-            {/* Right Top Actions */}
-            <div className="flex items-center gap-3">
+            {/* Right Top Actions Row: [Tahun Ajaran] -> [Lonceng Notifikasi] -> [Profile & Logout Dropdown] */}
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* 1. Tahun Ajaran Selector */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/90 text-xs shadow-xs">
+                <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden lg:inline">
+                  Tahun Ajaran:
+                </span>
+                <select
+                  value={tahunAjaran}
+                  onChange={(e) => setTahunAjaran(e.target.value)}
+                  className="bg-transparent text-xs font-black text-emerald-950 focus:outline-none cursor-pointer pr-1"
+                >
+                  <option value="2025/2026 (Ganjil)">2025/2026 (Ganjil)</option>
+                  <option value="2025/2026 (Genap)">2025/2026 (Genap)</option>
+                  <option value="2026/2027 (Ganjil)">2026/2027 (Ganjil)</option>
+                </select>
+              </div>
+
+              {/* 2. Functional Notification Bell */}
               <div className="relative" ref={notifRef}>
                 <button
+                  type="button"
                   onClick={() => setNotifOpen(!notifOpen)}
-                  className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors relative"
+                  className="p-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200/90 transition-all relative active:scale-95"
+                  title="Notifikasi Sistem"
                 >
-                  🔔
+                  <Bell className="w-4 h-4 text-emerald-800" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-md animate-pulse px-1">
                       {unreadCount}
                     </span>
                   )}
                 </button>
 
+                {/* Dropdown Panel Notifikasi */}
                 {notifOpen && (
-                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-slate-200 shadow-xl p-3 z-50 animate-scale-up space-y-2">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                      <span className="text-xs font-bold text-slate-900">Notifikasi System</span>
-                      <span className="text-[10px] text-emerald-700 font-bold">{unreadCount} Baru</span>
+                  <div className="absolute right-0 mt-2.5 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 z-50 animate-scale-up space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-emerald-700" />
+                        <h4 className="text-xs font-black text-slate-900">Notifikasi Sistem Enterprise</h4>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black">
+                        {unreadCount} Baru
+                      </span>
                     </div>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {notifications.map((n, i) => (
-                        <div key={i} className={`p-2 rounded-xl text-xs flex items-start gap-2 ${n.unread ? 'bg-emerald-50/80' : 'bg-slate-50'}`}>
-                          <span className="text-base">{n.icon}</span>
-                          <div>
-                            <p className="text-slate-800 font-semibold">{n.text}</p>
-                            <span className="text-[9px] text-slate-400">{n.time}</span>
+
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                      {notifications.length > 0 ? (
+                        notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-3 rounded-2xl text-xs transition-all cursor-pointer border flex items-start gap-3 hover:shadow-sm ${
+                              n.unread
+                                ? 'bg-emerald-50/70 border-emerald-200/80'
+                                : 'bg-slate-50 border-slate-200/60 opacity-80'
+                            }`}
+                          >
+                            <div className="p-2 rounded-xl bg-white shadow-xs shrink-0 mt-0.5">
+                              {getNotifIcon(n.type)}
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-0.5">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-bold text-slate-900 text-xs truncate">{n.title}</span>
+                                {n.unread && <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />}
+                              </div>
+                              <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">{n.desc}</p>
+                              <span className="text-[9px] font-mono text-slate-400 block pt-0.5">{n.time}</span>
+                            </div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="p-6 text-center text-xs text-slate-400 font-medium">
+                          Tidak ada notifikasi baru.
                         </div>
-                      ))}
+                      )}
                     </div>
+
+                    {/* Bottom Action Controls */}
+                    {notifications.length > 0 && (
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={handleMarkAllRead}
+                          className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 transition-colors"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" />
+                          <span>Tandai Semua Dibaca</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleClearNotifications}
+                          className="text-slate-400 hover:text-rose-600 font-bold flex items-center gap-1 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Bersihkan</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Far Right User Profile & Account Settings / Logout Dropdown */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-2xl bg-slate-100 hover:bg-emerald-50 border border-slate-200/90 transition-all cursor-pointer active:scale-95"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-700 to-teal-800 flex items-center justify-center font-black text-white text-xs shrink-0 shadow-sm">
+                    {user ? getInitials(user.nama) : 'SP'}
+                  </div>
+                  <div className="text-left hidden sm:block">
+                    <span className="block text-xs font-extrabold text-slate-900 leading-tight truncate max-w-[120px]">
+                      {user?.nama ?? 'Sekretariat Utama'}
+                    </span>
+                    <span className="block text-[9px] font-bold text-emerald-700 uppercase tracking-wider">
+                      {user?.role?.replace('_', ' ') ?? 'SEKRETARIAT'}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 ml-0.5" />
+                </button>
+
+                {/* Dropdown User Menu */}
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2.5 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2.5 z-50 animate-scale-up space-y-1">
+                    <div className="p-3 bg-gradient-to-br from-emerald-50 to-teal-50/60 rounded-xl border border-emerald-200/80 mb-2">
+                      <p className="text-xs font-black text-slate-900 truncate">{user?.nama ?? 'Sekretariat Utama'}</p>
+                      <p className="text-[10px] text-emerald-800 font-mono font-medium truncate">{user?.email ?? 'sekretariat@darsa.id'}</p>
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-emerald-700 text-white text-[9px] font-black uppercase">
+                        {user?.role ?? 'SEKRETARIAT'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setIsSettingsOpen(true);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all flex items-center gap-2.5 text-left"
+                    >
+                      <Settings className="w-4 h-4 text-emerald-700" />
+                      <span>Pengaturan Akun & Keamanan</span>
+                    </button>
+
+                    <div className="border-t border-slate-100 my-1" />
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center gap-2.5 text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-600" />
+                      <span>Keluar Sistem</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -432,6 +567,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Toast */}
           <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
+
+          {/* Account Settings Modal */}
+          <AccountSettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            user={{
+              nama: user?.nama || 'Sekretariat Utama',
+              role: user?.role || 'SEKRETARIAT',
+              email: user?.email || 'sekretariat@darsa.id',
+            }}
+          />
 
           {/* Page Body */}
           <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">

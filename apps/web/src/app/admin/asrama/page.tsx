@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
 import { TableActions, ImportExportToolbar } from '@/components/TableActions';
@@ -23,11 +23,37 @@ export default function ManajemenAsramaPage() {
   const [submitting, setSubmitting] = useState(false);
   const [detailKamar, setDetailKamar] = useState<KamarAsrama | null>(null);
 
-  const [kamarList, setKamarList] = useState<KamarAsrama[]>([
-    { id: '1', gedung: 'Gedung A (Al-Farabi)', nomorKamar: 'A-101', kapasitas: 8, terisi: 8, waliKamar: 'Ustadz Ahmad Fauzan', status: 'PENUH' },
-    { id: '2', gedung: 'Gedung A (Al-Farabi)', nomorKamar: 'A-102', kapasitas: 8, terisi: 6, waliKamar: 'Ustadz Ahmad Fauzan', status: 'TERSEDIA' },
-    { id: '3', gedung: 'Gedung B (Al-Ghazali)', nomorKamar: 'B-201', kapasitas: 10, terisi: 7, waliKamar: 'Ustadz Ridwan Syah', status: 'TERSEDIA' },
-  ]);
+  const [kamarList, setKamarList] = useState<KamarAsrama[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchAsramaLive() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/v1/asrama');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mapped = json.data.map((k: any) => ({
+              id: k.id,
+              gedung: k.gedung?.nama_gedung || 'Gedung Asrama',
+              nomorKamar: k.nama_kamar,
+              kapasitas: k.kapasitas || 15,
+              terisi: k.santri?.length || 0,
+              waliKamar: 'Ustadz Pembina',
+              status: (k.santri?.length || 0) >= (k.kapasitas || 15) ? 'PENUH' : 'TERSEDIA',
+            }));
+            setKamarList(mapped);
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat kamar asrama:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAsramaLive();
+  }, []);
 
   const [form, setForm] = useState({
     gedung: 'Gedung A (Al-Farabi)',

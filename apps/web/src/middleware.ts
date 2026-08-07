@@ -15,13 +15,10 @@ const PUBLIC_EXACT = ['/'];
 // Route → Role yang diizinkan (enforced di API level, middleware hanya cek presence)
 const PROTECTED_PREFIXES = [
   '/admin',
-  '/sekretariat',
   '/guru_madrasah',
   '/guru_mi',
-  '/guru',
+  '/keamanan',
   '/wali_santri',
-  '/wali',
-  '/santri',
 ];
 
 // Nama cookie yang digunakan Better Auth (default)

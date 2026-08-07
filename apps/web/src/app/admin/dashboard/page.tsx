@@ -64,7 +64,7 @@ export default function AdminDashboardPage() {
       ]);
 
       if (statsRes.status === 401 || statsRes.status === 403 || taRes.status === 401 || taRes.status === 403) {
-        window.location.href = '/auth/login/pondok';
+        window.location.href = '/admin/login';
         return;
       }
 
