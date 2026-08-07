@@ -18,12 +18,14 @@ interface KamarAsrama {
 
 export default function ManajemenAsramaPage() {
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
-  const showToast = (type: ToastProps['type'], title: string, msg?: string) => setToast({ isOpen: true, type, title, message: msg });
+  const showToast = (type: ToastProps['type'], title: string, msg?: string) =>
+    setToast({ isOpen: true, type, title, message: msg });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [editKamar, setEditKamar] = useState<KamarAsrama | null>(null);
   const [detailKamar, setDetailKamar] = useState<KamarAsrama | null>(null);
 
+  const [submitting, setSubmitting] = useState(false);
   const [kamarList, setKamarList] = useState<KamarAsrama[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +39,7 @@ export default function ManajemenAsramaPage() {
           if (json.success && Array.isArray(json.data)) {
             const mapped = json.data.map((k: any) => ({
               id: k.id,
-              gedung: k.gedung?.nama_gedung || 'Gedung Asrama',
+              gedung: k.gedung?.nama_gedung || 'Gedung A (Al-Farabi)',
               nomorKamar: k.nama_kamar,
               kapasitas: k.kapasitas || 15,
               terisi: k.santri?.length || 0,
@@ -86,17 +88,29 @@ export default function ManajemenAsramaPage() {
       setKamarList([newKamar, ...kamarList]);
       setForm({ gedung: 'Gedung A (Al-Farabi)', nomorKamar: '', kapasitas: 8, waliKamar: '' });
       showToast('success', 'Kamar Berhasil Ditambahkan', `Kamar ${newKamar.nomorKamar} (${newKamar.gedung}) tersimpan di Master Asrama.`);
-    }, 600);
+    }, 400);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editKamar) return;
+    setSubmitting(true);
+    setTimeout(() => {
+      setKamarList((prev) => prev.map((k) => (k.id === editKamar.id ? editKamar : k)));
+      setSubmitting(false);
+      setEditKamar(null);
+      showToast('success', 'Kamar Diperbarui', `Data kamar ${editKamar.nomorKamar} berhasil disimpan.`);
+    }, 400);
   };
 
   const handleDelete = (id: string, nama: string) => {
     setKamarList((prev) => prev.filter((k) => k.id !== id));
-    showToast('success', 'Kamar Dihapus (Soft Delete)', `Kamar ${nama} dipindahkan ke Recycle Bin.`);
+    showToast('success', 'Kamar Dihapus', `Kamar ${nama} dipindahkan ke Recycle Bin.`);
   };
 
   return (
     <div className="space-y-5">
-      <Toast {...toast} onClose={() => setToast(t => ({ ...t, isOpen: false }))} />
+      <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
 
       {/* Page Header */}
       <PageHeader
@@ -128,152 +142,208 @@ export default function ManajemenAsramaPage() {
       {/* Table */}
       <div className="table-container">
         {loading ? (
-          <div className="p-6"><SkeletonTable rows={4} cols={6} /></div>
+          <div className="p-6">
+            <SkeletonTable rows={4} cols={6} />
+          </div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="table-premium">
-          <thead>
-            <tr>
-              <th>Gedung Asrama</th>
-              <th>Nomor Kamar</th>
-              <th>Wali / Pembina Kamar</th>
-              <th>Kapasitas</th>
-              <th>Status</th>
-              <th className="text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {kamarList.map((kamar) => (
-              <tr key={kamar.id} className="hover:bg-slate-50/80">
-                <td className="font-bold text-slate-900">{kamar.gedung}</td>
-                <td className="font-mono text-xs font-bold text-emerald-800">{kamar.nomorKamar}</td>
-                <td className="text-xs text-slate-700 font-semibold">{kamar.waliKamar}</td>
-                <td className="text-xs text-slate-600">
-                  <span className="font-bold text-slate-900">{kamar.terisi}</span> / {kamar.kapasitas} Santri
-                </td>
-                <td>
-                  <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold border ${
-                    kamar.status === 'PENUH'
-                      ? 'bg-rose-50 text-rose-800 border-rose-200'
-                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  }`}>
-                    {kamar.status}
-                  </span>
-                </td>
-                <td className="text-right pr-4">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button
-                      onClick={() => setDetailKamar(kamar)}
-                      className="btn-action-detail"
-                    >
-                      🔍 Detail
-                    </button>
-                    <button
-                      onClick={() => handleDelete(kamar.id, kamar.nomorKamar)}
-                      className="btn-action-danger"
-                    >
-                      🗑️ Hapus
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          </table>
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Gedung Asrama</th>
+                  <th>Nomor Kamar</th>
+                  <th>Wali / Pembina Kamar</th>
+                  <th>Kapasitas</th>
+                  <th>Status</th>
+                  <th className="text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {kamarList.map((kamar) => (
+                  <tr key={kamar.id} className="hover:bg-slate-50/80">
+                    <td className="font-bold text-slate-900">{kamar.gedung}</td>
+                    <td className="font-mono text-xs font-bold text-emerald-800">{kamar.nomorKamar}</td>
+                    <td className="text-xs text-slate-700 font-semibold">{kamar.waliKamar}</td>
+                    <td className="text-xs text-slate-600">
+                      <span className="font-bold text-slate-900">{kamar.terisi}</span> / {kamar.kapasitas} Santri
+                    </td>
+                    <td>
+                      <span
+                        className={`px-2.5 py-0.5 rounded text-[10px] font-bold border ${
+                          kamar.status === 'PENUH'
+                            ? 'bg-rose-50 text-rose-800 border-rose-200'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        }`}
+                      >
+                        {kamar.status}
+                      </span>
+                    </td>
+                    <td className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setDetailKamar(kamar)}
+                          className="btn-action-detail cursor-pointer"
+                        >
+                          🔍 Detail
+                        </button>
+                        <button
+                          onClick={() => setEditKamar(kamar)}
+                          className="btn-action-edit cursor-pointer"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(kamar.id, kamar.nomorKamar)}
+                          className="btn-action-danger cursor-pointer"
+                        >
+                          🗑️ Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Modal Detail Kamar */}
-      <Modal isOpen={!!detailKamar} onClose={() => setDetailKamar(null)} title="Detail Kamar & Penghuni Asrama">
+      {/* Modal Detail Kamar — IDENTICAL FIELDS */}
+      <Modal isOpen={!!detailKamar} onClose={() => setDetailKamar(null)} title="🔍 Detail Kamar & Penghuni Asrama">
         {detailKamar && (
           <div className="space-y-4 text-xs">
             <div className="p-4 rounded-2xl bg-emerald-900 text-white space-y-1">
               <span className="text-[10px] text-amber-300 font-bold">GEDUNG ASRAMA</span>
-              <h3 className="text-base font-black">{detailKamar.gedung} - Kamar {detailKamar.nomorKamar}</h3>
+              <h3 className="text-base font-black">
+                {detailKamar.gedung} - Kamar {detailKamar.nomorKamar}
+              </h3>
               <p className="text-emerald-200">Pembina: {detailKamar.waliKamar}</p>
             </div>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-              <span className="font-bold text-slate-800 block">Daftar Penghuni Terdaftar:</span>
-              <ul className="list-disc pl-4 text-slate-600 space-y-0.5">
-                <li>Muhammad Raihan (Stambuk: PNDK-0012345678)</li>
-                <li>Ahmad Fauzi (Stambuk: PNDK-0012345679)</li>
-              </ul>
+
+            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-white border border-slate-200">
+              <div>
+                <span className="text-slate-400 block font-medium">Gedung Asrama</span>
+                <span className="font-bold text-slate-900">{detailKamar.gedung}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Nomor Kamar</span>
+                <span className="font-mono font-bold text-emerald-800">{detailKamar.nomorKamar}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Pembina / Wali Kamar</span>
+                <span className="font-bold text-slate-900">{detailKamar.waliKamar}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Kapasitas Maksimal</span>
+                <span className="font-bold text-slate-900">{detailKamar.terisi} / {detailKamar.kapasitas} Santri</span>
+              </div>
             </div>
-            <button onClick={() => setDetailKamar(null)} className="w-full py-2.5 rounded-xl bg-slate-100 font-bold text-slate-700">
-              Tutup
+
+            <button
+              onClick={() => setDetailKamar(null)}
+              className="w-full py-2.5 rounded-xl bg-slate-100 font-bold text-slate-700 cursor-pointer"
+            >
+              Tutup Detail
             </button>
           </div>
         )}
       </Modal>
 
-      {/* Modal Add Kamar */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Tambah Kamar Asrama Baru">
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Pilih Gedung Asrama</label>
-            <select
-              value={form.gedung}
-              onChange={(e) => setForm({ ...form, gedung: e.target.value })}
-              className="input-premium"
-            >
-              <option value="Gedung A (Al-Farabi)">Gedung A (Al-Farabi)</option>
-              <option value="Gedung B (Al-Ghazali)">Gedung B (Al-Ghazali)</option>
-              <option value="Gedung C (Al-Kindi)">Gedung C (Al-Kindi)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Kamar</label>
-            <input
-              type="text"
-              required
-              placeholder="Misal: A-103"
-              value={form.nomorKamar}
-              onChange={(e) => setForm({ ...form, nomorKamar: e.target.value })}
-              className="input-premium"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Kapasitas Maksimal (Santri)</label>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={form.kapasitas}
-              onChange={(e) => setForm({ ...form, kapasitas: Number(e.target.value) })}
-              className="input-premium"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Pembina / Wali Kamar</label>
-            <input
-              type="text"
-              required
-              placeholder="Nama Ustadz Pembina"
-              value={form.waliKamar}
-              onChange={(e) => setForm({ ...form, waliKamar: e.target.value })}
-              className="input-premium"
-            />
-          </div>
+      {/* Modal Add / Edit Kamar — IDENTICAL FORM FIELDS TO MANUAL INPUT FORM */}
+      {(isModalOpen || editKamar) && (
+        <Modal
+          isOpen={isModalOpen || !!editKamar}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditKamar(null);
+          }}
+          title={isModalOpen ? '➕ Tambah Kamar Asrama Baru' : `✏️ Edit Kamar Asrama — ${editKamar?.nomorKamar}`}
+        >
+          <form onSubmit={isModalOpen ? handleCreate : handleSaveEdit} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Pilih Gedung Asrama</label>
+              <select
+                value={isModalOpen ? form.gedung : editKamar?.gedung || ''}
+                onChange={(e) =>
+                  isModalOpen
+                    ? setForm({ ...form, gedung: e.target.value })
+                    : setEditKamar(editKamar ? { ...editKamar, gedung: e.target.value } : null)
+                }
+                className="input-premium"
+              >
+                <option value="Gedung A (Al-Farabi)">Gedung A (Al-Farabi)</option>
+                <option value="Gedung B (Al-Ghazali)">Gedung B (Al-Ghazali)</option>
+                <option value="Gedung C (Al-Kindi)">Gedung C (Al-Kindi)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Kamar</label>
+              <input
+                type="text"
+                required
+                placeholder="Misal: A-103"
+                value={isModalOpen ? form.nomorKamar : editKamar?.nomorKamar || ''}
+                onChange={(e) =>
+                  isModalOpen
+                    ? setForm({ ...form, nomorKamar: e.target.value })
+                    : setEditKamar(editKamar ? { ...editKamar, nomorKamar: e.target.value } : null)
+                }
+                className="input-premium font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Kapasitas Maksimal (Santri)</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={isModalOpen ? form.kapasitas : editKamar?.kapasitas || 8}
+                onChange={(e) =>
+                  isModalOpen
+                    ? setForm({ ...form, kapasitas: Number(e.target.value) })
+                    : setEditKamar(editKamar ? { ...editKamar, kapasitas: Number(e.target.value) } : null)
+                }
+                className="input-premium font-bold"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Pembina / Wali Kamar</label>
+              <input
+                type="text"
+                required
+                placeholder="Nama Ustadz Pembina"
+                value={isModalOpen ? form.waliKamar : editKamar?.waliKamar || ''}
+                onChange={(e) =>
+                  isModalOpen
+                    ? setForm({ ...form, waliKamar: e.target.value })
+                    : setEditKamar(editKamar ? { ...editKamar, waliKamar: e.target.value } : null)
+                }
+                className="input-premium"
+              />
+            </div>
 
-          <div className="pt-2 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 btn-primary text-xs font-bold"
-            >
-              {submitting ? 'Simpan...' : '💾 Simpan Kamar'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditKamar(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 btn-primary text-xs font-bold cursor-pointer"
+              >
+                {submitting ? 'Simpan...' : '💾 Simpan Data Kamar'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

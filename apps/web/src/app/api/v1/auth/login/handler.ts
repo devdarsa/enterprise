@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: 'AKSES DITOLAK: Akun Wali Santri / Umum dilarang login melalui Portal Kesekretariatan Admin (/admin/login). Silakan gunakan Portal Umum (/login).',
+          message: 'AKSES DITOLAK: Akun Wali Santri / Umum dilarang login melalui Portal Kesekretariatan Admin. Silakan gunakan Portal Umum.',
         },
         { status: 403 }
       );

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
+import Modal from '@/components/Modal';
 import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface Pengurus {
@@ -14,6 +15,7 @@ interface Pengurus {
   unit: 'PONDOK' | 'MADRASAH' | 'MI';
   telepon: string;
   status: 'AKTIF' | 'NON_AKTIF';
+  avatar_url?: string;
 }
 
 export default function DataPengurusPage() {
@@ -21,6 +23,24 @@ export default function DataPengurusPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
+
+  // Modal States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [detailPengurus, setDetailPengurus] = useState<Pengurus | null>(null);
+  const [editPengurus, setEditPengurus] = useState<Pengurus | null>(null);
+
+  // Form State for Add / Edit
+  const [formData, setFormData] = useState({
+    nik: '',
+    nama: '',
+    jabatan: '',
+    unit: 'PONDOK' as 'PONDOK' | 'MADRASAH' | 'MI',
+    telepon: '',
+    status: 'AKTIF' as 'AKTIF' | 'NON_AKTIF',
+    avatar_url: '',
+  });
+
+  const [saving, setSaving] = useState(false);
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
@@ -51,12 +71,13 @@ export default function DataPengurusPage() {
             unit: (p.unit as any) || 'PONDOK',
             telepon: p.telepon || '-',
             status: (p.status as any) || 'AKTIF',
+            avatar_url: p.avatar_url,
           }));
           setList(mapped);
           setIndexedDBCache('general', 'pengurus_list', mapped);
         }
       }
-    } catch (e) {
+    } catch {
       if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat mengambil data pengurus.');
     } finally {
       setLoading(false);
@@ -64,20 +85,70 @@ export default function DataPengurusPage() {
   };
 
   const filtered = list.filter(
-    (p) => p.nama.toLowerCase().includes(search.toLowerCase()) || p.jabatan.toLowerCase().includes(search.toLowerCase())
+    (p) =>
+      p.nama.toLowerCase().includes(search.toLowerCase()) ||
+      p.jabatan.toLowerCase().includes(search.toLowerCase()) ||
+      p.nik.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleToggleStatus = (id: string, name: string) => {
     setList((prev) =>
       prev.map((p) => (p.id === id ? { ...p, status: p.status === 'NON_AKTIF' ? 'AKTIF' : 'NON_AKTIF' } : p))
     );
-    showToast('success', 'Status Diperbarui', `Status ${name} diperbarui.`);
+    showToast('success', 'Status Diperbarui', `Status ${name} berhasil diperbarui.`);
+  };
+
+  const handleSaveAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nama.trim()) {
+      showToast('warning', 'Form Belum Lengkap', 'Nama Pengurus wajib diisi.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const newPengurus: Pengurus = {
+        id: `PGR-${Date.now()}`,
+        nik: formData.nik.trim() || '3571000000000000',
+        nama: formData.nama.trim(),
+        jabatan: formData.jabatan.trim() || 'Sekretariat Utama',
+        unit: formData.unit,
+        telepon: formData.telepon.trim() || '-',
+        status: formData.status,
+        avatar_url: formData.avatar_url,
+      };
+
+      setList((prev) => [newPengurus, ...prev]);
+      setShowAddModal(false);
+      showToast('success', 'Pengurus Didaftarkan', `Data ${formData.nama} berhasil disimpan.`);
+    } catch {
+      showToast('error', 'Gagal', 'Terjadi kesalahan saat menyimpan pengurus.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editPengurus) return;
+    setSaving(true);
+    try {
+      setList((prev) => prev.map((p) => (p.id === editPengurus.id ? editPengurus : p)));
+      showToast('success', 'Berhasil Disimpan', `Data pengurus ${editPengurus.nama} berhasil diperbarui.`);
+      setEditPengurus(null);
+    } catch {
+      showToast('error', 'Gagal', 'Gagal menyimpan perubahan.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleExport = () => {
-    const csv = [['NIK','Nama Pengurus','Jabatan / Divisi','Unit Instansi','No. HP','Status'],
-      ...filtered.map(p => [p.nik, p.nama, p.jabatan, p.unit, p.telepon, p.status])
-    ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const csv = [
+      ['NIK', 'Nama Pengurus', 'Jabatan / Divisi', 'Unit Instansi', 'No. HP', 'Status'],
+      ...filtered.map((p) => [p.nik, p.nama, p.jabatan, p.unit, p.telepon, p.status]),
+    ]
+      .map((r) => r.map((c) => `"${c}"`).join(','))
+      .join('\n');
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
       download: `pengurus-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -96,7 +167,21 @@ export default function DataPengurusPage() {
         title="Data Pengurus & Pengelola Pesantren"
         subtitle="Direktori Pengurus Pondok Pesantren, Sekretariat, & Pengurus Komplek"
         badge="DATABASE PONDOK"
-        primaryAction={{ label: '+ Tambah Pengurus Baru', onClick: () => showToast('info', 'Tambah Pengurus', 'Form pendaftaran pengurus baru.') }}
+        primaryAction={{
+          label: '+ Tambah Pengurus Baru',
+          onClick: () => {
+            setFormData({
+              nik: '',
+              nama: '',
+              jabatan: '',
+              unit: 'PONDOK',
+              telepon: '',
+              status: 'AKTIF',
+              avatar_url: '',
+            });
+            setShowAddModal(true);
+          },
+        }}
         search={search}
         onSearch={setSearch}
         searchPlaceholder="Cari nama pengurus atau jabatan..."
@@ -109,7 +194,9 @@ export default function DataPengurusPage() {
       {/* Table */}
       <div className="table-container">
         {loading ? (
-          <div className="p-6"><SkeletonTable rows={5} cols={6} /></div>
+          <div className="p-6">
+            <SkeletonTable rows={5} cols={6} />
+          </div>
         ) : filtered.length === 0 ? (
           <EmptyState
             icon="👥"
@@ -136,7 +223,9 @@ export default function DataPengurusPage() {
                     <td className="font-mono text-xs font-bold text-[#135e35]">{item.nik}</td>
                     <td className="font-bold text-slate-900">{item.nama}</td>
                     <td className="font-semibold text-slate-700">{item.jabatan}</td>
-                    <td><span className="badge-aktif">{item.unit}</span></td>
+                    <td>
+                      <span className="badge-aktif">{item.unit}</span>
+                    </td>
                     <td className="font-mono text-xs text-slate-600">{item.telepon}</td>
                     <td>
                       <span className={item.status === 'NON_AKTIF' ? 'badge-danger' : 'badge-aktif'}>
@@ -146,20 +235,23 @@ export default function DataPengurusPage() {
                     <td className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => showToast('info', 'Detail Pengurus', item.nama)}
-                          className="btn-action-detail"
+                          type="button"
+                          onClick={() => setDetailPengurus(item)}
+                          className="btn-action-detail cursor-pointer"
                         >
                           🔍 Detail
                         </button>
                         <button
-                          onClick={() => showToast('info', 'Edit Pengurus', item.nama)}
-                          className="btn-action-edit"
+                          type="button"
+                          onClick={() => setEditPengurus(item)}
+                          className="btn-action-edit cursor-pointer"
                         >
                           ✏️ Edit
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleToggleStatus(item.id, item.nama)}
-                          className={item.status === 'NON_AKTIF' ? 'btn-action-detail' : 'btn-action-danger'}
+                          className={item.status === 'NON_AKTIF' ? 'btn-action-detail cursor-pointer' : 'btn-action-danger cursor-pointer'}
                         >
                           {item.status === 'NON_AKTIF' ? '⚡ Aktifkan' : '⏸ Nonaktif'}
                         </button>
@@ -172,6 +264,203 @@ export default function DataPengurusPage() {
           </div>
         )}
       </div>
+
+      {/* DETAIL MODAL — IDENTICAL FORM FIELDS */}
+      {detailPengurus && (
+        <Modal
+          isOpen={!!detailPengurus}
+          onClose={() => setDetailPengurus(null)}
+          title={`🔍 Detail Pengurus — ${detailPengurus.nama}`}
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-white border border-emerald-300 flex items-center justify-center font-black text-emerald-900 text-xl overflow-hidden shrink-0 shadow-sm">
+                {detailPengurus.avatar_url ? (
+                  <img src={detailPengurus.avatar_url} alt={detailPengurus.nama} className="w-full h-full object-cover" />
+                ) : (
+                  '👥'
+                )}
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest block">
+                  REGISTRASI TERPADU PENGURUS
+                </span>
+                <h3 className="font-black text-base text-slate-900">{detailPengurus.nama}</h3>
+                <p className="font-mono text-slate-600">NIK: {detailPengurus.nik}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+              <div>
+                <span className="text-slate-400 block font-medium">NIK Pengurus (16 Digit)</span>
+                <span className="font-mono font-bold text-slate-900">{detailPengurus.nik}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Nama Lengkap Pengurus</span>
+                <span className="font-bold text-slate-900">{detailPengurus.nama}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Jabatan / Divisi</span>
+                <span className="font-bold text-slate-900">{detailPengurus.jabatan}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Unit Instansi</span>
+                <span className="font-bold text-emerald-800">{detailPengurus.unit}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Nomor Telepon / WhatsApp</span>
+                <span className="font-mono font-bold text-emerald-800">{detailPengurus.telepon}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Status Keaktifan</span>
+                <span className="font-bold text-slate-900">{detailPengurus.status}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setDetailPengurus(null)}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ADD / EDIT MODAL — IDENTICAL FORM FIELDS */}
+      {(showAddModal || editPengurus) && (
+        <Modal
+          isOpen={showAddModal || !!editPengurus}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditPengurus(null);
+          }}
+          title={showAddModal ? '➕ Registrasi Pengurus Baru' : `✏️ Edit Pengurus — ${editPengurus?.nama}`}
+        >
+          <form onSubmit={showAddModal ? handleSaveAdd : handleSaveEdit} className="space-y-4 text-xs">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">NIK Pengurus (16 Digit KTP/KK)</label>
+              <input
+                type="text"
+                maxLength={16}
+                required
+                value={showAddModal ? formData.nik : editPengurus?.nik || ''}
+                onChange={(e) =>
+                  showAddModal
+                    ? setFormData({ ...formData, nik: e.target.value })
+                    : setEditPengurus(editPengurus ? { ...editPengurus, nik: e.target.value } : null)
+                }
+                placeholder="3571011508080001"
+                className="input-premium font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Nama Lengkap Pengurus *</label>
+              <input
+                type="text"
+                required
+                value={showAddModal ? formData.nama : editPengurus?.nama || ''}
+                onChange={(e) =>
+                  showAddModal
+                    ? setFormData({ ...formData, nama: e.target.value })
+                    : setEditPengurus(editPengurus ? { ...editPengurus, nama: e.target.value } : null)
+                }
+                placeholder="Ustadz Mochammad Fauzi"
+                className="input-premium font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Jabatan / Divisi Kepengurusan</label>
+              <input
+                type="text"
+                required
+                value={showAddModal ? formData.jabatan : editPengurus?.jabatan || ''}
+                onChange={(e) =>
+                  showAddModal
+                    ? setFormData({ ...formData, jabatan: e.target.value })
+                    : setEditPengurus(editPengurus ? { ...editPengurus, jabatan: e.target.value } : null)
+                }
+                placeholder="Kepala Sekretariat Utama"
+                className="input-premium"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Unit Instansi Kepengurusan</label>
+              <select
+                value={showAddModal ? formData.unit : editPengurus?.unit || 'PONDOK'}
+                onChange={(e) =>
+                  showAddModal
+                    ? setFormData({ ...formData, unit: e.target.value as any })
+                    : setEditPengurus(editPengurus ? { ...editPengurus, unit: e.target.value as any } : null)
+                }
+                className="input-premium font-bold"
+              >
+                <option value="PONDOK">PONDOK PESANTREN</option>
+                <option value="MADRASAH">MADRASAH DINIYAH</option>
+                <option value="MI">FORMAL / MI</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Nomor Telepon / WhatsApp Aktif</label>
+              <input
+                type="text"
+                required
+                value={showAddModal ? formData.telepon : editPengurus?.telepon || ''}
+                onChange={(e) =>
+                  showAddModal
+                    ? setFormData({ ...formData, telepon: e.target.value })
+                    : setEditPengurus(editPengurus ? { ...editPengurus, telepon: e.target.value } : null)
+                }
+                placeholder="081234567890"
+                className="input-premium font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Status Keaktifan</label>
+              <select
+                value={showAddModal ? formData.status : editPengurus?.status || 'AKTIF'}
+                onChange={(e) =>
+                  showAddModal
+                    ? setFormData({ ...formData, status: e.target.value as any })
+                    : setEditPengurus(editPengurus ? { ...editPengurus, status: e.target.value as any } : null)
+                }
+                className="input-premium font-bold"
+              >
+                <option value="AKTIF">AKTIF</option>
+                <option value="NON_AKTIF">NON_AKTIF</option>
+              </select>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditPengurus(null);
+                }}
+                className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {saving ? 'Menyimpan...' : '💾 Simpan Data Pengurus'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }
