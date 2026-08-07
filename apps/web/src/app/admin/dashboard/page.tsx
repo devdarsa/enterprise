@@ -52,6 +52,11 @@ export default function AdminDashboardPage() {
         fetch('/api/v1/tahun-ajaran'),
       ]);
 
+      if (statsRes.status === 401 || statsRes.status === 403) {
+        window.location.href = '/auth/login/pondok';
+        return;
+      }
+
       if (!statsRes.ok) {
         throw new Error('Gagal memuat statistik dashboard.');
       }
