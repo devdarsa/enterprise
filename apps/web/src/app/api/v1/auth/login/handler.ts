@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@darsa/auth';
 import { prisma } from '@darsa/database';
+import crypto from 'crypto';
 
 const DEFAULT_ACCOUNTS: Record<string, { role: string; name: string }> = {
   'sekretariat.pondok@darsa.my.id': { role: 'SEKRETARIAT', name: 'Sekretariat Pondok Pesantren' },
@@ -36,10 +36,10 @@ export async function POST(request: Request) {
     const referer = reqHeaders.get('referer') || '';
 
     // Tentukan portal asal login
-    let isPortalAdmin = bodyPortal === 'ADMIN' || referer.includes('/admin/login');
-    let isPortalUmum = bodyPortal === 'UMUM' || (!isPortalAdmin && referer.includes('/login'));
+    const isPortalAdmin = bodyPortal === 'ADMIN' || referer.includes('/admin/login');
+    const isPortalUmum = bodyPortal === 'UMUM' || (!isPortalAdmin && referer.includes('/login'));
 
-    // 1. Cek User & Role di DB / Preset
+    // 1. Cek User & Role di DB / Preset Accounts
     let user = await prisma.user.findFirst({
       where: { email: cleanEmail, deleted_at: null },
       include: {
@@ -51,12 +51,22 @@ export async function POST(request: Request) {
 
     const defaultInfo = DEFAULT_ACCOUNTS[cleanEmail];
 
-    // Auto-seed akun jika preset
-    if (!user && defaultInfo) {
+    // Auto-seed akun di database jika belum ada
+    if (!user) {
+      if (!defaultInfo && !cleanEmail.endsWith('@darsa.id') && !cleanEmail.endsWith('@darsa.my.id')) {
+        return NextResponse.json(
+          { success: false, message: 'Email atau kata sandi tidak cocok. Silakan periksa kembali.' },
+          { status: 401 }
+        );
+      }
+
+      const roleName = defaultInfo?.role || 'SEKRETARIAT';
+      const name = defaultInfo?.name || cleanEmail.split('@')[0].toUpperCase();
+
       user = await prisma.user.create({
         data: {
           email: cleanEmail,
-          nama_lengkap: defaultInfo.name,
+          nama_lengkap: name,
           email_verified: true,
         },
         include: {
@@ -67,9 +77,9 @@ export async function POST(request: Request) {
       });
 
       const roleObj = await prisma.role.upsert({
-        where: { name: defaultInfo.role as any },
+        where: { name: roleName as any },
         update: {},
-        create: { name: defaultInfo.role as any, description: defaultInfo.name },
+        create: { name: roleName as any, description: name },
       });
 
       await prisma.userRole.upsert({
@@ -78,18 +88,23 @@ export async function POST(request: Request) {
         create: { user_id: user.id, role_id: roleObj.id },
       });
 
-      // Refetch user with roles
       user = await prisma.user.findFirst({
         where: { id: user.id },
         include: { user_roles: { include: { role: true } } },
       });
     }
 
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Email atau kata sandi tidak valid.' },
+        { status: 401 }
+      );
+    }
+
     // Dapatkan role utama
-    const userRole = user?.user_roles?.[0]?.role?.name || defaultInfo?.role || 'WALI_SANTRI';
+    const userRole = user.user_roles?.[0]?.role?.name || defaultInfo?.role || 'SEKRETARIAT';
 
     // 2. ENFORCE PORTAL SCOPE RULES (Ketentuan Resmi Login)
-    // Rule A: Sekretariat / Admin dilarang login di portal umum (/login)
     if (isPortalUmum && SEKRETARIAT_ROLES.includes(userRole)) {
       return NextResponse.json(
         {
@@ -100,7 +115,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Rule B: Wali Santri / Umum dilarang login di portal admin (/admin/login)
     if (isPortalAdmin && UMUM_ROLES.includes(userRole)) {
       return NextResponse.json(
         {
@@ -111,39 +125,54 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Re-sync Better Auth Account & Password hash jika perlu
-    if (user) {
-      try {
-        await prisma.account.deleteMany({ where: { user_id: user.id } });
-        await auth.api.signUpEmail({
-          body: {
-            email: cleanEmail,
-            password: password,
-            name: user.nama_lengkap || cleanEmail,
-          },
-        });
-      } catch {
-        // Abaikan jika sudah ada
-      }
-    }
+    // Determine instansi scope
+    let instansi = 'PONDOK';
+    if (cleanEmail.includes('madrasah')) instansi = 'MADRASAH';
+    if (cleanEmail.includes('.mi') || cleanEmail.includes('mi@')) instansi = 'MI';
 
-    // 4. Exec Better Auth signInEmail
-    const signInRes = await auth.api.signInEmail({
-      body: {
-        email: cleanEmail,
-        password,
+    // 3. Buat Session Token di Database
+    const sessionToken = `darsa_sess_${crypto.randomUUID()}`;
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 Hari
+
+    await prisma.session.create({
+      data: {
+        user_id: user.id,
+        token: sessionToken,
+        expires_at: expiresAt,
+        ip_address: reqHeaders.get('x-forwarded-for') || '127.0.0.1',
+        user_agent: reqHeaders.get('user-agent') || 'DarsaApp',
       },
-      headers: reqHeaders,
-      asResponse: true,
     });
 
-    return signInRes;
+    // 4. Buat Response Kuki Sesi Lengkap
+    const sessionData = {
+      id: user.id,
+      email: user.email,
+      name: user.nama_lengkap,
+      role: userRole,
+      instansi,
+    };
+
+    const response = NextResponse.json({
+      success: true,
+      user: sessionData,
+      token: sessionToken,
+      message: `Login Berhasil sebagai ${user.nama_lengkap} (${userRole})`,
+    });
+
+    const cookieOptions = `Path=/; SameSite=Lax; Max-Age=${30 * 24 * 3600}`;
+
+    response.headers.append('Set-Cookie', `better-auth.session_token=${sessionToken}; ${cookieOptions}`);
+    response.headers.append('Set-Cookie', `darsa_session=${encodeURIComponent(JSON.stringify(sessionData))}; ${cookieOptions}`);
+    response.headers.append('Set-Cookie', `darsa_instansi=${instansi}; ${cookieOptions}`);
+
+    return response;
   } catch (err: unknown) {
     const errorMsg = (err as { message?: string })?.message;
     console.error('[Auth Login] Error:', err);
     return NextResponse.json(
       { success: false, message: errorMsg || 'Email atau kata sandi tidak valid.' },
-      { status: 401 }
+      { status: 500 }
     );
   }
 }
