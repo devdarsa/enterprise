@@ -53,6 +53,10 @@ function getInitials(nama: string) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
   const [tahunAjaran, setTahunAjaran] = useState('2025/2026 (Ganjil)');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
