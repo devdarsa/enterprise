@@ -107,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setToast({ isOpen: true, type, title, message });
   };
 
-  // Fetch session & active Tahun Ajaran from API
+  // Fetch session, active Tahun Ajaran, and REALTIME Notifications from API
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -164,8 +164,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       } catch {}
     };
 
+    const fetchLiveNotifications = async () => {
+      try {
+        const res = await fetch('/api/v1/pengumuman?limit=10');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mapped: NotificationItem[] = json.data.map((p: any) => ({
+              id: p.id,
+              type: p.penting ? 'PELANGGARAN' : 'INFO',
+              title: p.judul,
+              desc: p.isi,
+              time: new Date(p.created_at || Date.now()).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+              unread: true,
+              link: '/admin/pengumuman',
+            }));
+            setNotifications(mapped);
+          }
+        }
+      } catch {}
+    };
+
     fetchSession();
     fetchActiveTahunAjaran();
+    fetchLiveNotifications();
+
+    const notifInterval = setInterval(fetchLiveNotifications, 10000);
+    return () => clearInterval(notifInterval);
   }, [router]);
 
   // Close popovers on outside click

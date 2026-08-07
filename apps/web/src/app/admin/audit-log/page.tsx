@@ -35,6 +35,8 @@ export default function AuditLogRecycleBinPage() {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -167,6 +169,10 @@ export default function AuditLogRecycleBinPage() {
         <div className="table-container">
           <div className="p-3 bg-amber-50/80 border-b border-amber-200 text-amber-900 text-xs font-bold flex items-center justify-between">
             <span>🛡️ AUDIT LOG IMMUTABLE STANDARD: Audit log dicatat secara otomatis dari database & TIDAK DAPAT diubah maupun dihapus.</span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 flex items-center gap-1.5 animate-pulse shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+              REALTIME STREAMING (5s)
+            </span>
           </div>
           <table className="table-premium">
             <thead>
