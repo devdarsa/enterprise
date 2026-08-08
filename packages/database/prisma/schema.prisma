@@ -745,3 +745,14 @@ model Surat {
 
   @@map("surat")
 }
+
+model MasterJabatan {
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
+  nama        String   @unique
+  unit        String   @default("PONDOK")
+  deskripsi   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("master_jabatan")
+}

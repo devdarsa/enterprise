@@ -48,6 +48,12 @@ export default function DataPengurusPage() {
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
 
+  // Master Jabatan State & Quick Add
+  const [masterJabatanList, setMasterJabatanList] = useState<{ id: string; nama: string; unit: string }[]>([]);
+  const [showQuickAddJabatanModal, setShowQuickAddJabatanModal] = useState(false);
+  const [quickJabatanNama, setQuickJabatanNama] = useState('');
+  const [submittingQuickJabatan, setSubmittingQuickJabatan] = useState(false);
+
   const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
 
   useEffect(() => {
@@ -61,7 +67,62 @@ export default function DataPengurusPage() {
       }
     } catch {}
     fetchPengurus();
+    fetchMasterJabatan();
   }, []);
+
+  const fetchMasterJabatan = async () => {
+    try {
+      const res = await fetch('/api/v1/konfigurasi/jabatan');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setMasterJabatanList(json.data);
+        }
+      }
+    } catch {}
+  };
+
+  const handleQuickAddJabatan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickJabatanNama.trim()) {
+      showToast('warning', 'Nama Jabatan Kosong', 'Nama Jabatan wajib diisi.');
+      return;
+    }
+
+    setSubmittingQuickJabatan(true);
+    try {
+      const res = await fetch('/api/v1/konfigurasi/jabatan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nama: quickJabatanNama.trim(),
+          unit: formData.unit || 'PONDOK',
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        showToast('success', 'Master Jabatan Ditambahkan', `Jabatan '${quickJabatanNama}' disimpan ke master konfigurasi.`);
+        const newName = quickJabatanNama.trim();
+        setQuickJabatanNama('');
+        setShowQuickAddJabatanModal(false);
+        await fetchMasterJabatan();
+
+        // Auto select new position in form
+        if (showAddModal) {
+          setFormData((prev) => ({ ...prev, jabatan: newName }));
+        } else if (editPengurus) {
+          setEditPengurus((prev) => (prev ? { ...prev, jabatan: newName } : null));
+        }
+      } else {
+        showToast('error', 'Gagal', json.error);
+      }
+    } catch {
+      showToast('error', 'Gagal', 'Terjadi kesalahan server.');
+    } finally {
+      setSubmittingQuickJabatan(false);
+    }
+  };
 
   const fetchPengurus = async () => {
     const cached = await getIndexedDBCache<Pengurus[]>('general', 'pengurus_list');
@@ -449,21 +510,54 @@ export default function DataPengurusPage() {
               </div>
 
               <div>
-                <label className="block font-extrabold text-slate-800 mb-1">
-                  Jabatan / Divisi Kepengurusan <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={showAddModal ? formData.jabatan : editPengurus?.jabatan || ''}
-                  onChange={(e) =>
-                    showAddModal
-                      ? setFormData({ ...formData, jabatan: e.target.value })
-                      : setEditPengurus(editPengurus ? { ...editPengurus, jabatan: e.target.value } : null)
-                  }
-                  placeholder="Kepala Sekretariat Utama"
-                  className="input-premium"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-extrabold text-slate-800">
+                    Jabatan / Divisi Kepengurusan <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickAddJabatanModal(true)}
+                    className="text-[10px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>➕</span> Tambah Jabatan Baru
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    required
+                    value={showAddModal ? formData.jabatan : editPengurus?.jabatan || ''}
+                    onChange={(e) =>
+                      showAddModal
+                        ? setFormData({ ...formData, jabatan: e.target.value })
+                        : setEditPengurus(editPengurus ? { ...editPengurus, jabatan: e.target.value } : null)
+                    }
+                    className="input-premium font-bold flex-1 cursor-pointer"
+                  >
+                    <option value="">-- Pilih Jabatan Pengurus --</option>
+                    {masterJabatanList.map((j) => (
+                      <option key={j.id} value={j.nama}>
+                        {j.nama} ({j.unit})
+                      </option>
+                    ))}
+                    {(showAddModal ? formData.jabatan : editPengurus?.jabatan) &&
+                      !masterJabatanList.some(
+                        (j) => j.nama === (showAddModal ? formData.jabatan : editPengurus?.jabatan)
+                      ) && (
+                        <option value={showAddModal ? formData.jabatan : editPengurus?.jabatan}>
+                          {showAddModal ? formData.jabatan : editPengurus?.jabatan} (Kustom)
+                        </option>
+                      )}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickAddJabatanModal(true)}
+                    title="Tambah Jabatan Baru ke Master Konfigurasi"
+                    className="px-3 py-2.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black text-xs border border-emerald-300 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                  >
+                    <span>➕</span> Quick Add
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -540,6 +634,51 @@ export default function DataPengurusPage() {
           </form>
         </Modal>
       )}
+
+      {/* MINI MODAL: QUICK ADD MASTER JABATAN */}
+      <Modal
+        isOpen={showQuickAddJabatanModal}
+        onClose={() => setShowQuickAddJabatanModal(false)}
+        title="➕ Quick Add Master Jabatan Baru"
+      >
+        <form onSubmit={handleQuickAddJabatan} className="space-y-4 text-xs">
+          <p className="text-slate-500 font-medium">
+            Jabatan baru akan langsung disimpan ke <strong>⚙️ Konfigurasi Sistem</strong> dan dapat digunakan oleh pengurus lain.
+          </p>
+
+          <div>
+            <label className="block font-extrabold text-slate-800 mb-1">
+              Nama Jabatan Pengurus Baru <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              autoFocus
+              placeholder="Contoh: Kabid Keamanan / Lurah Pondok / Sie Dapur"
+              value={quickJabatanNama}
+              onChange={(e) => setQuickJabatanNama(e.target.value)}
+              className="input-premium font-bold"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowQuickAddJabatanModal(false)}
+              className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submittingQuickJabatan}
+              className="flex-1 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-black shadow-sm disabled:opacity-50"
+            >
+              {submittingQuickJabatan ? '⏳ Menyimpan...' : '💾 Simpan & Pilih'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
