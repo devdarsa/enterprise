@@ -7,6 +7,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import { Pagination } from '@/components/Pagination';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader, InfoBanner } from '@/components/PageHeader';
+import { ImportProgressModal } from '@/components/ImportProgressModal';
 import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
 
 interface PenempatanPendidikan {
@@ -256,9 +257,25 @@ export default function MasterSantriPage() {
     showToast('success', 'Export Excel Berhasil', `${filtered.length} data santri diexport ke file .xlsx.`);
   };
 
-  // State Report Validasi Import Excel
+  // State Report Validasi Import Excel & Progress Realtime
   const [validationReport, setValidationReport] = useState<any | null>(null);
   const [importingValidOnly, setImportingValidOnly] = useState(false);
+
+  const [importProgress, setImportProgress] = useState<{
+    isOpen: boolean;
+    totalRows: number;
+    currentRow: number;
+    currentName: string;
+    successCount: number;
+    errorCount: number;
+  }>({
+    isOpen: false,
+    totalRows: 0,
+    currentRow: 0,
+    currentName: '',
+    successCount: 0,
+    errorCount: 0,
+  });
 
   const handleDownloadTemplate = async () => {
     const { downloadOfficialSantriTemplate } = await import('@/lib/excel-helper');
@@ -293,8 +310,27 @@ export default function MasterSantriPage() {
     setImportingValidOnly(true);
     let successCount = 0;
     let errorCount = 0;
+    let currentRowIdx = 0;
+
+    setImportProgress({
+      isOpen: true,
+      totalRows: rows.length,
+      currentRow: 0,
+      currentName: '',
+      successCount: 0,
+      errorCount: 0,
+    });
 
     for (const row of rows) {
+      currentRowIdx++;
+      const currentNama = row.nama_lengkap || row['Nama Lengkap Santri'] || `Baris Ke-${currentRowIdx}`;
+
+      setImportProgress((prev) => ({
+        ...prev,
+        currentRow: currentRowIdx,
+        currentName: currentNama,
+      }));
+
       const payload = {
         nisp: row.nisp || row['NISP Stambuk'] || '',
         nisn: row.nisn || row['NISN'] || '',
@@ -309,7 +345,6 @@ export default function MasterSantriPage() {
         jenjang: row.jenjang || row['Jenjang Pendidikan'] || 'PONDOK',
         kamar: row.kamar || row['Gedung / Kamar Asrama'] || '',
         status_tempat_tinggal: row.status_tempat_tinggal || 'PONDOK_PESANTREN',
-        hafalan_juz: row.hafalan_juz || 0,
         alamat: row.alamat || row['Alamat Lengkap Kependudukan'] || '',
         no_kk: row.no_kk || row['Nomor Kartu Keluarga (KK)'] || '',
         nik_wali: row.nik_wali || row['NIK Wali (16 Digit)'] || '',
@@ -332,8 +367,15 @@ export default function MasterSantriPage() {
       } catch {
         errorCount++;
       }
+
+      setImportProgress((prev) => ({
+        ...prev,
+        successCount,
+        errorCount,
+      }));
     }
 
+    setImportProgress((prev) => ({ ...prev, isOpen: false }));
     setImportingValidOnly(false);
     setValidationReport(null);
 
@@ -713,6 +755,17 @@ export default function MasterSantriPage() {
           </div>
         </Modal>
       )}
+
+      {/* REALTIME IMPORT PROGRESS MODAL */}
+      <ImportProgressModal
+        isOpen={importProgress.isOpen}
+        title="Proses Impor Data Santri Ke Database PostgreSQL"
+        totalRows={importProgress.totalRows}
+        currentRow={importProgress.currentRow}
+        currentName={importProgress.currentName}
+        successCount={importProgress.successCount}
+        errorCount={importProgress.errorCount}
+      />
     </div>
   );
 }
