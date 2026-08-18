@@ -1,5 +1,23 @@
 import { PrismaClient } from '@prisma/client';
 
+function getDatabaseUrl(): string | undefined {
+  let url = process.env.DATABASE_URL;
+  if (!url) return undefined;
+
+  // Auto-normalize database region for project mndzkrskxavewncykcgh
+  if (url.includes('mndzkrskxavewncykcgh')) {
+    url = url
+      .replace('aws-0-ap-southeast-1.pooler.supabase.com', 'aws-0-ap-northeast-1.pooler.supabase.com')
+      .replace('aws-0-me-central-1.pooler.supabase.com', 'aws-0-ap-northeast-1.pooler.supabase.com');
+  }
+  return url;
+}
+
+const resolvedDbUrl = getDatabaseUrl();
+if (resolvedDbUrl) {
+  process.env.DATABASE_URL = resolvedDbUrl;
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
@@ -7,6 +25,7 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    datasources: resolvedDbUrl ? { db: { url: resolvedDbUrl } } : undefined,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 

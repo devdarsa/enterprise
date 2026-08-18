@@ -83,6 +83,7 @@ import { authenticateRequest } from '@/lib/api-auth';
 const PUBLIC_ROUTES: Record<string, string[]> = {
   'health': ['GET'],
   'auth/login': ['POST'],
+  'auth/me': ['GET'],
   'auth/seed-default-accounts': ['POST'],
   'auth/register-wali/check-nik': ['POST'],
   'auth/register-wali/send-otp': ['POST'],
