@@ -34,7 +34,6 @@ export type UserRole =
   | 'KEAMANAN'
   | 'MUSTAHIQ'
   | 'MUNAWWIB'
-  | 'SANTRI'
   | 'WALI_SANTRI';
 
 export type SystemPermission =

@@ -21,7 +21,6 @@ const ROLE_REDIRECT: Record<string, string> = {
   MUSTAHIQ: '/guru_madrasah/dashboard',
   MUNAWWIB: '/guru_madrasah/dashboard',
   WALI_SANTRI: '/wali_santri/dashboard',
-  SANTRI: '/wali_santri/dashboard',
 };
 
 export interface RoleLoginPageProps {

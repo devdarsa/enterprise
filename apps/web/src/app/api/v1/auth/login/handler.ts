@@ -14,11 +14,10 @@ const DEFAULT_ACCOUNTS: Record<string, { role: string; name: string; defaultPass
   'wali@darsa.my.id': { role: 'WALI_SANTRI', name: 'Wali Santri Lirboyo', defaultPass: 'darsa25' },
   'admin@darsa.id': { role: 'ADMIN_INSTANSI', name: 'Ustadz Ahmad Al-Farisi', defaultPass: 'darsa25' },
   'guru@darsa.id': { role: 'GURU', name: 'Dr. KH. Abdullah Ridwan', defaultPass: 'darsa25' },
-  'santri@darsa.id': { role: 'SANTRI', name: 'Muhammad Raihan', defaultPass: 'darsa25' },
 };
 
 const SEKRETARIAT_ROLES = ['SEKRETARIAT', 'ADMIN_INSTANSI', 'SUPERADMIN', 'PENGURUS', 'KEAMANAN'];
-const UMUM_ROLES = ['WALI_SANTRI', 'SANTRI', 'ALUMNI'];
+const UMUM_ROLES = ['WALI_SANTRI', 'ALUMNI'];
 
 export async function POST(request: Request) {
   try {

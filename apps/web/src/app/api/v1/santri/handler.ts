@@ -126,7 +126,7 @@ export const POST = withAuth(
       finalKelasId = defaultKelas.id;
     }
 
-    // Jika tidak ada user_id, buat user baru dahulu
+    // Upload foto santri ke Cloudinary (tanpa membuat akun User)
     let resolvedPhotoUrl = avatar_url || foto_url || null;
     if (resolvedPhotoUrl && resolvedPhotoUrl.startsWith('data:image/')) {
       try {
@@ -138,27 +138,8 @@ export const POST = withAuth(
       }
     }
 
-    let finalUserId = user_id;
-    if (!finalUserId) {
-      const newUser = await prisma.user.create({
-        data: {
-          email: `${finalNisp.toLowerCase()}@darsa.santri.id`,
-          nama_lengkap: nama_lengkap,
-          foto_url: resolvedPhotoUrl,
-          email_verified: false,
-        },
-      });
-      finalUserId = newUser.id;
-    } else if (resolvedPhotoUrl) {
-      await prisma.user.update({
-        where: { id: finalUserId },
-        data: { foto_url: resolvedPhotoUrl },
-      }).catch(() => {});
-    }
-
     const santri = await prisma.santri.create({
       data: {
-        user_id: finalUserId,
         pondok_id: finalPondokId,
         kelas_id: finalKelasId,
         nisp: finalNisp,
@@ -167,6 +148,7 @@ export const POST = withAuth(
         nik,
         nama_lengkap,
         nama_panggilan,
+        foto_url: resolvedPhotoUrl,
         jenis_kelamin: jenis_kelamin === 'P' || jenis_kelamin === 'PEREMPUAN' ? 'PEREMPUAN' : 'LAKI_LAKI',
         tempat_lahir,
         tanggal_lahir: tanggal_lahir ? new Date(tanggal_lahir) : undefined,

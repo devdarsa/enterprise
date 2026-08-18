@@ -15,7 +15,6 @@ async function main() {
     { name: RoleType.KEAMANAN, description: 'Tim Keamanan & Ketertiban' },
     { name: RoleType.MUSTAHIQ, description: 'Mustahiq Wali Kelas Diniyah' },
     { name: RoleType.MUNAWWIB, description: 'Munawwib Pengajar Diniyah' },
-    { name: RoleType.SANTRI, description: 'Santri / Santriwati' },
     { name: RoleType.WALI_SANTRI, description: 'Orang Tua / Wali Santri' },
   ];
 

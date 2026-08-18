@@ -25,7 +25,7 @@ export const GET = withAuth(
 
     const formatted = {
       ...santri,
-      avatar_url: santri.user?.foto_url || undefined,
+      avatar_url: santri.foto_url || santri.user?.foto_url || undefined,
     };
 
     return apiSuccess(formatted);
@@ -44,14 +44,7 @@ export const PUT = withAuth(
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);
 
     let photoUrl = body.avatar_url || body.foto_url;
-    let userId = existing.user_id;
-
-    // Ambil foto lama untuk pembersihan Cloudinary jika diganti
-    let oldPhotoUrl: string | null = null;
-    if (userId) {
-      const existingUser = await prisma.user.findUnique({ where: { id: userId }, select: { foto_url: true } });
-      oldPhotoUrl = existingUser?.foto_url || null;
-    }
+    let oldPhotoUrl: string | null = existing.foto_url || null;
 
     if (photoUrl && photoUrl.startsWith('data:image/')) {
       try {
@@ -68,32 +61,10 @@ export const PUT = withAuth(
       }
     }
 
-    // Sinkronisasi foto santri ke User Profile
-    if (photoUrl) {
-      if (userId) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { foto_url: photoUrl, nama_lengkap: body.nama_lengkap || existing.nama_lengkap },
-        }).catch(() => {});
-      } else {
-        const newUser = await prisma.user.create({
-          data: {
-            email: `santri.${(existing.nisp || existing.id).toLowerCase()}@darsa.santri.id`,
-            nama_lengkap: body.nama_lengkap || existing.nama_lengkap,
-            foto_url: photoUrl,
-            email_verified: false,
-          },
-        }).catch(() => null);
-        if (newUser) {
-          userId = newUser.id;
-        }
-      }
-    }
-
     const updated = await prisma.santri.update({
       where: { id },
       data: {
-        user_id: userId,
+        foto_url: photoUrl !== undefined ? photoUrl : existing.foto_url,
         nama_lengkap: body.nama_lengkap !== undefined ? body.nama_lengkap : existing.nama_lengkap,
         nama_panggilan: body.nama_panggilan !== undefined ? body.nama_panggilan : existing.nama_panggilan,
         nisp: body.nisp !== undefined ? body.nisp : existing.nisp,
@@ -125,7 +96,6 @@ export const PUT = withAuth(
         deleted_at: body.deleted_at !== undefined ? body.deleted_at : existing.deleted_at,
       },
       include: {
-        user: { select: { foto_url: true } },
         kelas: true,
       },
     });
@@ -220,7 +190,7 @@ export const PUT = withAuth(
 
     const responseData = {
       ...updated,
-      avatar_url: photoUrl || updated.user?.foto_url || undefined,
+      avatar_url: photoUrl || updated.foto_url || undefined,
     };
 
     return apiSuccess(responseData, 'Data santri berhasil diperbarui.');

@@ -139,28 +139,19 @@ async function main() {
     });
   }
 
-  // 6. Seed Santri
-  let santriUser = await prisma.user.findUnique({ where: { email: 'santri@darsa.id' } });
-  if (!santriUser) {
-    santriUser = await prisma.user.create({
-      data: {
-        email: 'santri@darsa.id',
-        nama_lengkap: 'Muhammad Raihan',
-        email_verified: true,
-      },
-    });
-  }
-
-  const existingSantri = await prisma.santri.findUnique({ where: { user_id: santriUser.id } });
+  // 6. Seed Master Data Santri (Santri tidak memiliki akun User)
+  const existingSantri = await prisma.santri.findFirst({ where: { nisp: '2026100845' } });
   if (!existingSantri) {
     await prisma.santri.create({
       data: {
-        user_id: santriUser.id,
         pondok_id: pondok.id,
         kelas_id: kelas10.id,
-        nisp: 'PNDK-0012345678',
+        nisp: '2026100845',
         nisn: '0012345678',
-        nama_lengkap: santriUser.nama_lengkap,
+        nama_lengkap: 'Muhammad Raihan',
+        no_kk: '3571012304850001',
+        nama_wali: 'Bapak Hendra',
+        nik_wali: '3571012304850001',
       },
     });
   }
