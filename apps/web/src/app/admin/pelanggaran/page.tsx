@@ -411,7 +411,7 @@ export default function PelanggaranPage() {
                 </label>
                 <SantriPicker
                   required
-                  placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
+                  placeholder="Ketik nama santri, No. Stambuk, atau NISN..."
                   selectedSantriObj={
                     isModalOpen
                       ? form.santri_id

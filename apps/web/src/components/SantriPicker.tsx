@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Search } from 'lucide-react';
 
 export interface SelectedSantri {
   id: string;
@@ -125,7 +126,8 @@ export default function SantriPicker({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <div className="relative">
+      <div className="relative flex items-center">
+        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
         <input
           type="text"
           value={query}
@@ -135,11 +137,9 @@ export default function SantriPicker({
           }}
           placeholder={placeholder}
           required={required && !selected}
-          className="input-premium pl-9 font-semibold text-xs"
+          className="input-premium font-semibold text-xs"
+          style={{ paddingLeft: '2.6rem' }}
         />
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-          🔍
-        </span>
         {loading && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-600 font-bold animate-pulse">
             Searching...

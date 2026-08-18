@@ -387,7 +387,7 @@ export default function PersuratanDigitalPage() {
                 </label>
                 <SantriPicker
                   required
-                  placeholder="Ketik nama santri, NISP stambuk, atau NISN..."
+                  placeholder="Ketik nama santri, No. Stambuk, atau NISN..."
                   selectedSantriObj={
                     isModalOpen
                       ? santri
