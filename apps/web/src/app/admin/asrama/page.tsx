@@ -7,6 +7,8 @@ import Modal from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
 import { Pagination } from '@/components/Pagination';
 
+import { getLocalCache, setLocalCache } from '@/lib/cache-storage';
+
 interface KamarAsrama {
   id: string;
   gedung: string;
@@ -27,15 +29,15 @@ export default function ManajemenAsramaPage() {
   const [detailKamar, setDetailKamar] = useState<KamarAsrama | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
-  const [kamarList, setKamarList] = useState<KamarAsrama[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [kamarList, setKamarList] = useState<KamarAsrama[]>(() => getLocalCache<KamarAsrama[]>('asrama_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<KamarAsrama[]>('asrama_list')?.length);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
 
   useEffect(() => {
     async function fetchAsramaLive() {
-      setLoading(true);
+      if (!kamarList.length) setLoading(true);
       try {
         const res = await fetch('/api/v1/asrama');
         if (res.ok) {
@@ -51,6 +53,7 @@ export default function ManajemenAsramaPage() {
               status: k.status || 'TERSEDIA',
             }));
             setKamarList(mapped);
+            setLocalCache('asrama_list', mapped);
           }
         }
       } catch (e) {
@@ -60,6 +63,7 @@ export default function ManajemenAsramaPage() {
       }
     }
     fetchAsramaLive();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [form, setForm] = useState({

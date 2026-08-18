@@ -7,7 +7,7 @@ import { SkeletonTable, EmptyState } from '@/components/Loading';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
 import { Pagination } from '@/components/Pagination';
-import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
+import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface Guru {
   id: string;
@@ -21,8 +21,8 @@ interface Guru {
 }
 
 export default function MasterGuruPage() {
-  const [guruList, setGuruList] = useState<Guru[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [guruList, setGuruList] = useState<Guru[]>(() => getLocalCache<Guru[]>('guru_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<Guru[]>('guru_list')?.length);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -57,7 +57,7 @@ export default function MasterGuruPage() {
     if (cached && cached.length > 0) {
       setGuruList(cached);
       setLoading(false);
-    } else {
+    } else if (!guruList.length) {
       setLoading(true);
     }
 
@@ -76,6 +76,7 @@ export default function MasterGuruPage() {
           foto_url: g.avatar_url,
         }));
         setGuruList(mapped);
+        setLocalCache('guru_list', mapped);
         setIndexedDBCache('guru', 'master_list', mapped);
       }
     } catch {

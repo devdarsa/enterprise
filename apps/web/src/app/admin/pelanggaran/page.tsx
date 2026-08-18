@@ -33,9 +33,11 @@ const TINGKAT_COLOR = {
   BERAT: 'bg-rose-100 text-rose-800 border-rose-200',
 };
 
+import { getLocalCache, setLocalCache } from '@/lib/cache-storage';
+
 export default function PelanggaranPage() {
-  const [list, setList] = useState<Pelanggaran[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [list, setList] = useState<Pelanggaran[]>(() => getLocalCache<Pelanggaran[]>('pelanggaran_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<Pelanggaran[]>('pelanggaran_list')?.length);
   const [search, setSearch] = useState('');
   const [tingkatFilter, setTingkatFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -63,28 +65,31 @@ export default function PelanggaranPage() {
 
   useEffect(() => {
     fetchPelanggaran();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, tingkatFilter]);
 
   const fetchPelanggaran = async () => {
-    setLoading(true);
+    if (!list.length) setLoading(true);
     try {
       const params = new URLSearchParams({
         page: String(page),
         limit: '20',
-        ...(search && { search }),
-        ...(tingkatFilter && { tingkat: tingkatFilter }),
+        ...(tingkatFilter ? { tingkat: tingkatFilter } : {}),
       });
       const res = await fetch(`/api/v1/pelanggaran?${params}`);
-      const json = await res.json();
-      if (json.success) {
-        setList(json.data);
-        setTotal(json.meta?.total || 0);
-        setTotalPages(json.meta?.totalPages || 1);
-      } else {
-        showToast('error', 'Gagal Memuat', json.error || 'Tidak dapat mengambil data pelanggaran.');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setList(json.data);
+          setLocalCache('pelanggaran_list', json.data);
+          if (json.pagination) {
+            setTotalPages(json.pagination.totalPages || 1);
+            setTotal(json.pagination.total || json.data.length);
+          }
+        }
       }
     } catch {
-      showToast('error', 'Koneksi Error', 'Tidak dapat terhubung ke server.');
+      if (!list.length) showToast('error', 'Gagal Memuat', 'Tidak dapat mengambil data pelanggaran.');
     } finally {
       setLoading(false);
     }

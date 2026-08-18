@@ -8,7 +8,7 @@ import { Pagination } from '@/components/Pagination';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader, InfoBanner } from '@/components/PageHeader';
 import { ImportProgressModal } from '@/components/ImportProgressModal';
-import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
+import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface PenempatanPendidikan {
   id: string;
@@ -74,8 +74,8 @@ const MUTASI_OPTIONS: Array<{
 export default function MasterSantriPage() {
   const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
   const [userRole, setUserRole] = useState<string>('ADMIN_INSTANSI');
-  const [santriList, setSantriList] = useState<Santri[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [santriList, setSantriList] = useState<Santri[]>(() => getLocalCache<Santri[]>('santri_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<Santri[]>('santri_list')?.length);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -116,7 +116,7 @@ export default function MasterSantriPage() {
     if (cached && cached.length > 0) {
       setSantriList(cached);
       setLoading(false);
-    } else {
+    } else if (!santriList.length) {
       setLoading(true);
     }
 
@@ -156,6 +156,7 @@ export default function MasterSantriPage() {
           penempatan: s.penempatan,
         }));
         setSantriList(mapped);
+        setLocalCache('santri_list', mapped);
         setIndexedDBCache('santri', cacheKey, mapped);
       }
     } catch {

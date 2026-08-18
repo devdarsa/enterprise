@@ -7,7 +7,7 @@ import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import { Pagination } from '@/components/Pagination';
-import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
+import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface Pengurus {
   id: string;
@@ -21,8 +21,8 @@ interface Pengurus {
 }
 
 export default function DataPengurusPage() {
-  const [list, setList] = useState<Pengurus[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [list, setList] = useState<Pengurus[]>(() => getLocalCache<Pengurus[]>('pengurus_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<Pengurus[]>('pengurus_list')?.length);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -131,7 +131,7 @@ export default function DataPengurusPage() {
     if (cached && cached.length > 0) {
       setList(cached);
       setLoading(false);
-    } else {
+    } else if (!list.length) {
       setLoading(true);
     }
 
@@ -151,11 +151,12 @@ export default function DataPengurusPage() {
             avatar_url: p.avatar_url,
           }));
           setList(mapped);
+          setLocalCache('pengurus_list', mapped);
           setIndexedDBCache('general', 'pengurus_list', mapped);
         }
       }
     } catch {
-      if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat mengambil data pengurus.');
+      if (!cached && !list.length) showToast('error', 'Gagal Memuat', 'Tidak dapat mengambil data pengurus.');
     } finally {
       setLoading(false);
     }

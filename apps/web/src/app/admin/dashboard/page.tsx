@@ -45,13 +45,13 @@ interface AuditLogEntry {
 }
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [grafik, setGrafik] = useState<GrafikData | null>(null);
-  const [aktivitas, setAktivitas] = useState<AuditLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(() => getLocalCache<any>('admin_dashboard_data')?.stats || null);
+  const [grafik, setGrafik] = useState<GrafikData | null>(() => getLocalCache<any>('admin_dashboard_data')?.grafik || null);
+  const [aktivitas, setAktivitas] = useState<AuditLogEntry[]>(() => getLocalCache<any>('admin_dashboard_data')?.aktivitas || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<any>('admin_dashboard_data')?.stats);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
-  const [tahunAjaran, setTahunAjaran] = useState<string>('');
+  const [tahunAjaran, setTahunAjaran] = useState<string>(() => getLocalCache<any>('admin_dashboard_data')?.tahunAjaran || '');
 
   useEffect(() => {
     setCurrentTime(new Date());
@@ -60,14 +60,6 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    const cached = getLocalCache<any>('admin_dashboard_data');
-    if (cached) {
-      if (cached.stats) setStats(cached.stats);
-      if (cached.grafik) setGrafik(cached.grafik);
-      if (cached.aktivitas) setAktivitas(cached.aktivitas);
-      if (cached.tahunAjaran) setTahunAjaran(cached.tahunAjaran);
-      setLoading(false);
-    }
     fetchDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

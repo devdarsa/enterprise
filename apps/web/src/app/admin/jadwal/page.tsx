@@ -5,7 +5,7 @@ import Modal, { ConfirmDialog } from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
-import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
+import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface SlotJadwal {
   id: string;
@@ -30,8 +30,8 @@ const JENIS_CONFIG = {
 export default function JadwalKBMPage() {
   const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
   const [userRole, setUserRole] = useState<string>('ADMIN_INSTANSI');
-  const [jadwalList, setJadwalList] = useState<SlotJadwal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [jadwalList, setJadwalList] = useState<SlotJadwal[]>(() => getLocalCache<SlotJadwal[]>('jadwal_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<SlotJadwal[]>('jadwal_list')?.length);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedHari, setSelectedHari] = useState<string>('Semua');
   const [search, setSearch] = useState('');
@@ -80,7 +80,7 @@ export default function JadwalKBMPage() {
     if (cached && cached.length > 0) {
       setJadwalList(cached);
       setLoading(false);
-    } else {
+    } else if (!jadwalList.length) {
       setLoading(true);
     }
 
@@ -99,10 +99,11 @@ export default function JadwalKBMPage() {
           jenis: j.jenis || 'WAJIB',
         }));
         setJadwalList(mapped);
+        setLocalCache('jadwal_list', mapped);
         setIndexedDBCache('general', cacheKey, mapped);
       }
     } catch {
-      if (!cached) showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
+      if (!cached && !jadwalList.length) showToast('error', 'Gagal Memuat', 'Tidak dapat terhubung ke database.');
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
-import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
+import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface AuditItem {
   id: string;
@@ -25,9 +25,9 @@ interface RecycleBinItem {
 
 export default function AuditLogRecycleBinPage() {
   const [activeTab, setActiveTab] = useState<'audit' | 'recycle'>('audit');
-  const [auditList, setAuditList] = useState<AuditItem[]>([]);
+  const [auditList, setAuditList] = useState<AuditItem[]>(() => getLocalCache<AuditItem[]>('audit_log_list') || []);
   const [recycleList, setRecycleList] = useState<RecycleBinItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !getLocalCache<AuditItem[]>('audit_log_list')?.length);
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
@@ -39,7 +39,7 @@ export default function AuditLogRecycleBinPage() {
       if (cached && cached.length > 0) {
         setAuditList(cached);
         setLoading(false);
-      } else {
+      } else if (!auditList.length) {
         setLoading(true);
       }
 
@@ -56,8 +56,9 @@ export default function AuditLogRecycleBinPage() {
             ipAddress: item.ip_address || item.ipAddress || '127.0.0.1',
           }));
           setAuditList(mapped);
+          setLocalCache('audit_log_list', mapped);
           setIndexedDBCache('audit_log', 'list', mapped);
-        } else if (!cached) {
+        } else if (!cached && !auditList.length) {
           showToast('error', 'Gagal', json.error || 'Gagal mengambil audit log.');
         }
       } catch {

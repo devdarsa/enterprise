@@ -43,20 +43,23 @@ const PERMISSION_TYPES = [
   { key: 'approval', label: 'Persetujuan (Approval)' },
 ];
 
+import { getLocalCache, setLocalCache } from '@/lib/cache-storage';
+
 export default function ManajemenRolePage() {
-  const [roleList, setRoleList] = useState<RoleItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [roleList, setRoleList] = useState<RoleItem[]>(() => getLocalCache<RoleItem[]>('roles_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<RoleItem[]>('roles_list')?.length);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     async function fetchRolesLive() {
-      setLoading(true);
+      if (!roleList.length) setLoading(true);
       try {
         const res = await fetch('/api/v1/roles');
         if (res.ok) {
           const json = await res.json();
           if (json.success && Array.isArray(json.data)) {
             setRoleList(json.data);
+            setLocalCache('roles_list', json.data);
           }
         }
       } catch (e) {
@@ -66,6 +69,7 @@ export default function ManajemenRolePage() {
       }
     }
     fetchRolesLive();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Modal State (Form Dynamic Role & Permission Matrix)

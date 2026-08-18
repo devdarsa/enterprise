@@ -5,7 +5,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
-import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
+import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface TahunAjaran {
   id: string;
@@ -27,8 +27,8 @@ interface FormState {
 }
 
 export default function TahunAjaranPage() {
-  const [list, setList] = useState<TahunAjaran[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [list, setList] = useState<TahunAjaran[]>(() => getLocalCache<TahunAjaran[]>('tahun_ajaran_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<TahunAjaran[]>('tahun_ajaran_list')?.length);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
 
@@ -57,7 +57,7 @@ export default function TahunAjaranPage() {
     if (cached && cached.length > 0) {
       setList(cached);
       setLoading(false);
-    } else {
+    } else if (!list.length) {
       setLoading(true);
     }
 
@@ -77,6 +77,7 @@ export default function TahunAjaranPage() {
             rawSelesai: t.tanggal_akhir ? new Date(t.tanggal_akhir).toISOString().slice(0, 10) : '',
           }));
           setList(mapped);
+          setLocalCache('tahun_ajaran_list', mapped);
           setIndexedDBCache('general', 'tahun_ajaran_list', mapped);
         }
       }

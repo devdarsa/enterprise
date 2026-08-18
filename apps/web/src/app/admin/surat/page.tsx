@@ -6,7 +6,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import { LoadingSpinner, SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
 import SantriPicker from '@/components/SantriPicker';
-import { getIndexedDBCache, setIndexedDBCache } from '@/lib/cache-storage';
+import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
 
 interface Surat {
   id: string;
@@ -16,15 +16,16 @@ interface Surat {
   pengirim: string;
   penerima: string;
   tanggal: string;
-  status: string;
+  status: 'TERKIRIM' | 'DIPROSES' | 'DISETUJUI' | 'DITOLAK' | 'PENDING' | 'SELESAI' | string;
+  file_url?: string;
   instansi: 'PONDOK' | 'MADRASAH' | 'MI';
   santri_nama?: string;
 }
 
 export default function PersuratanDigitalPage() {
   const [instansiFilter, setInstansiFilter] = useState<'pondok' | 'madrasah' | 'mi'>('pondok');
-  const [suratList, setSuratList] = useState<Surat[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [suratList, setSuratList] = useState<Surat[]>(() => getLocalCache<Surat[]>('surat_list') || []);
+  const [loading, setLoading] = useState(() => !getLocalCache<Surat[]>('surat_list')?.length);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,7 +74,7 @@ export default function PersuratanDigitalPage() {
     if (cached && cached.length > 0) {
       setSuratList(cached);
       setLoading(false);
-    } else {
+    } else if (!suratList.length) {
       setLoading(true);
     }
 
@@ -82,6 +83,7 @@ export default function PersuratanDigitalPage() {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setSuratList(json.data);
+        setLocalCache('surat_list', json.data);
         setIndexedDBCache('surat', cacheKey, json.data);
       }
     } catch (e) {
@@ -89,7 +91,7 @@ export default function PersuratanDigitalPage() {
     } finally {
       setLoading(false);
     }
-  }, [instansiFilter]);
+  }, [instansiFilter, suratList.length]);
 
   useEffect(() => {
     fetchSurat();
