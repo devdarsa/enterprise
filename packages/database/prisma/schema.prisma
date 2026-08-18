@@ -83,6 +83,8 @@ model Session {
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@index([token, expires_at])
+  @@index([user_id])
   @@map("sessions")
 }
 
@@ -353,6 +355,11 @@ model Santri {
   alumni_record AlumniRecord?
   rapor         RaporSantri[]
 
+  @@index([status, deleted_at])
+  @@index([jenjang, status])
+  @@index([kelas_id])
+  @@index([nik_wali])
+  @@index([no_kk])
   @@map("santri")
 }
 

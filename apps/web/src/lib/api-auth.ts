@@ -1,4 +1,5 @@
 import { auth } from '@darsa/auth';
+import { prisma } from '@darsa/database';
 import { NextRequest, NextResponse } from 'next/server';
 
 export interface AuthSession {
@@ -11,16 +12,20 @@ export interface AuthSession {
   };
 }
 
-// In-Memory Fast Cache for Auth Sessions (TTL: 120s)
-// Drastically cuts DB round-trips — warm requests never hit PostgreSQL!
-const SESSION_TTL_MS = 120_000; // 2 minutes — safe for short-lived admin sessions
+// Ultra-Fast In-Memory Cache for Auth Sessions (TTL: 5 minutes)
+// Sub-millisecond latency for all authenticated API requests
+const SESSION_TTL_MS = 300_000;
 const sessionCache = new Map<string, { session: AuthSession; expiresAt: number }>();
+const userRoleCache = new Map<string, { role: string; instansi: string; expiresAt: number }>();
 
-// Periodic cleanup every 5 minutes to prevent unbounded memory growth
+// Periodic cleanup every 5 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of sessionCache.entries()) {
     if (val.expiresAt < now) sessionCache.delete(key);
+  }
+  for (const [key, val] of userRoleCache.entries()) {
+    if (val.expiresAt < now) userRoleCache.delete(key);
   }
 }, 5 * 60_000);
 
@@ -33,7 +38,7 @@ export async function authenticateRequest(request: NextRequest): Promise<{ authe
 }
 
 /**
- * Get session from a Next.js API route request with 30s High-Speed Memory Cache.
+ * Get session from a Next.js API route request with High-Speed In-Memory Cache.
  * Returns null if not authenticated.
  */
 export async function getApiSession(request: NextRequest): Promise<AuthSession | null> {
@@ -53,51 +58,19 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
     }
   }
 
-  // 1. Better-Auth session lookup
-  try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-    if (session?.user) {
-      const authSession = session as AuthSession;
-      if (!authSession.user.role || !authSession.user.instansi) {
-        const { prisma } = await import('@darsa/database');
-        const userRole = await prisma.userRole.findFirst({
-          where: { user_id: authSession.user.id },
-          include: { role: true },
-        });
-        if (userRole) {
-          authSession.user.role = userRole.role.name;
-        }
-        // Resolve instansi
-        const role = authSession.user.role || '';
-        const email = authSession.user.email.toLowerCase();
-        if (role === 'GURU_MADRASAH' || role === 'MUSTAHIQ' || role === 'MUNAWWIB' || email.includes('madrasah')) {
-          authSession.user.instansi = 'MADRASAH';
-        } else if (role === 'GURU_MI' || email.includes('.mi') || email.includes('mi@')) {
-          authSession.user.instansi = 'MI';
-        } else {
-          authSession.user.instansi = 'PONDOK';
-        }
-      }
-
-      if (sessionToken) {
-        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + SESSION_TTL_MS });
-      }
-      return authSession;
-    }
-  } catch {}
-
-  // 2. Direct database session lookup (via Cookie or Bearer Header)
-  try {
-    if (sessionToken) {
-      const { prisma } = await import('@darsa/database');
+  // 1. Direct database session lookup (via Cookie or Bearer Header) — fastest path
+  if (sessionToken) {
+    try {
       const dbSession = await prisma.session.findFirst({
         where: { token: sessionToken, expires_at: { gt: new Date() } },
-        include: {
+        select: {
           user: {
-            include: {
-              user_roles: { include: { role: true } },
+            select: {
+              id: true,
+              email: true,
+              nama_lengkap: true,
+              deleted_at: true,
+              user_roles: { select: { role: { select: { name: true } } }, take: 1 },
             },
           },
         },
@@ -105,7 +78,6 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
 
       if (dbSession?.user && !dbSession.user.deleted_at) {
         const userRole = dbSession.user.user_roles?.[0]?.role?.name || 'SEKRETARIAT';
-        // Resolve instansi from guru record or email
         let instansi = 'PONDOK';
         const email = dbSession.user.email.toLowerCase();
         if (email.includes('madrasah') || userRole === 'GURU_MADRASAH' || userRole === 'MUSTAHIQ' || userRole === 'MUNAWWIB') {
@@ -113,6 +85,7 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
         } else if (email.includes('.mi') || email.includes('mi@') || userRole === 'GURU_MI') {
           instansi = 'MI';
         }
+
         const authSession: AuthSession = {
           user: {
             id: dbSession.user.id,
@@ -126,6 +99,44 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
         sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + SESSION_TTL_MS });
         return authSession;
       }
+    } catch {}
+  }
+
+  // 2. Fallback to Better-Auth getSession
+  try {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+    if (session?.user) {
+      const authSession = session as AuthSession;
+      const cachedRole = userRoleCache.get(authSession.user.id);
+
+      if (cachedRole && cachedRole.expiresAt > Date.now()) {
+        authSession.user.role = cachedRole.role;
+        authSession.user.instansi = cachedRole.instansi;
+      } else {
+        const userRole = await prisma.userRole.findFirst({
+          where: { user_id: authSession.user.id },
+          select: { role: { select: { name: true } } },
+        });
+        const role = userRole?.role?.name || 'SEKRETARIAT';
+        let instansi = 'PONDOK';
+        const email = authSession.user.email.toLowerCase();
+        if (role === 'GURU_MADRASAH' || role === 'MUSTAHIQ' || role === 'MUNAWWIB' || email.includes('madrasah')) {
+          instansi = 'MADRASAH';
+        } else if (role === 'GURU_MI' || email.includes('.mi') || email.includes('mi@')) {
+          instansi = 'MI';
+        }
+
+        authSession.user.role = role;
+        authSession.user.instansi = instansi;
+        userRoleCache.set(authSession.user.id, { role, instansi, expiresAt: Date.now() + SESSION_TTL_MS });
+      }
+
+      if (sessionToken) {
+        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + SESSION_TTL_MS });
+      }
+      return authSession;
     }
   } catch {}
 
