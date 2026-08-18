@@ -126,19 +126,32 @@ export default function GuruMIDashboardPage() {
         }),
       });
 
-      const newLog: PresensiLog = {
-        id: Date.now().toString(),
-        tanggal: new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' }),
-        waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
-        lokasi: 'Gerbang Formal MI Lirboyo',
-        status: 'HADIR',
-        jarak: '12m',
-      };
-      setRiwayat([newLog, ...riwayat]);
-      setIsScanModalOpen(false);
-      showToast('success', 'Presensi Berhasil!', 'Scan QR Code kehadiran Guru MI terverifikasi dalam radius Geofencing.');
+      const json = await scanRes.json();
+      if (json.success) {
+        setIsScanModalOpen(false);
+        showToast('success', 'Presensi Berhasil!', 'Scan QR Code kehadiran Guru MI terverifikasi dan tercatat di database.');
+
+        // Re-fetch live attendance logs from database
+        const logsRes = await fetch('/api/v1/absensi/logs?limit=10');
+        if (logsRes.ok) {
+          const logsJson = await logsRes.json();
+          if (logsJson.success && Array.isArray(logsJson.data)) {
+            const mapped = logsJson.data.map((l: any, i: number) => ({
+              id: l.id || String(i + 1),
+              tanggal: l.waktu_scan ? new Date(l.waktu_scan).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini',
+              waktu: l.waktu_scan ? new Date(l.waktu_scan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '07:00 WIB',
+              lokasi: l.lokasi || 'Pos Formal MI Lirboyo',
+              status: (l.status as any) || 'HADIR',
+              jarak: l.jarak || 'Radius Valid',
+            }));
+            setRiwayat(mapped);
+          }
+        }
+      } else {
+        showToast('error', 'Gagal Presensi', json.message || 'Terjadi kesalahan saat memproses scan QR.');
+      }
     } catch {
-      showToast('error', 'Gagal Presensi', 'Terjadi kesalahan saat memproses scan QR Code.');
+      showToast('error', 'Gagal Presensi', 'Terjadi kesalahan saat menghubungi server presensi.');
     } finally {
       setScanning(false);
     }

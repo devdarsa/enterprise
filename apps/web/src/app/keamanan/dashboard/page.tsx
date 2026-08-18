@@ -147,20 +147,38 @@ export default function KeamananDashboardPage() {
     }
   };
 
-  const handleTapOut = (id: string) => {
-    setPerizinanList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: 'TAP_OUT' } : item))
-    );
-    setIsScanModalOpen(false);
-    showToast('success', 'Verifikasi Tap Out Selesai', 'Santri dicatat telah keluar dari gerbang pondok.');
+  const handleTapOut = async (id: string) => {
+    try {
+      await fetch(`/api/v1/perizinan/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'TAP_OUT' }),
+      });
+      setPerizinanList((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, status: 'TAP_OUT' } : item))
+      );
+      setIsScanModalOpen(false);
+      showToast('success', 'Verifikasi Tap Out Selesai', 'Status santri berhasil diperbarui di database (Keluar Gerbang).');
+    } catch {
+      showToast('error', 'Gagal Memperbarui Status', 'Terjadi kesalahan saat menghubungi database.');
+    }
   };
 
-  const handleTapIn = (id: string) => {
-    setPerizinanList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: 'TAP_IN' } : item))
-    );
-    setIsScanModalOpen(false);
-    showToast('success', 'Verifikasi Tap In Selesai', 'Santri dicatat telah kembali ke asrama pondok.');
+  const handleTapIn = async (id: string) => {
+    try {
+      await fetch(`/api/v1/perizinan/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'TAP_IN' }),
+      });
+      setPerizinanList((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, status: 'TAP_IN' } : item))
+      );
+      setIsScanModalOpen(false);
+      showToast('success', 'Verifikasi Tap In Selesai', 'Status santri berhasil diperbarui di database (Kembali ke Asrama).');
+    } catch {
+      showToast('error', 'Gagal Memperbarui Status', 'Terjadi kesalahan saat menghubungi database.');
+    }
   };
 
   const filteredList = perizinanList.filter((item) =>

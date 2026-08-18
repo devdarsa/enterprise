@@ -49,8 +49,9 @@ interface ConnectedSantri {
   nik_wali?: string;
   nama_wali?: string;
   kamar?: string;
-  perizinan?: Array<{ status: string; jenis: string; alasan: string; tanggal_mulai: string }>;
+  perizinan?: Array<{ id: string; status: string; jenis: string; alasan: string; tanggal_mulai: string; tanggal_selesai?: string }>;
   nilai?: Array<{ mapel: string; nilai: number; predikat: string; ustadz?: string }>;
+  pelanggaran?: Array<{ id: string; jenis: string; tingkat?: string; poin_pelanggaran?: number }>;
 }
 
 interface Pengumuman {
@@ -70,8 +71,8 @@ export default function WaliSantriDashboardPage() {
     setToast({ isOpen: true, type, title, message: msg });
 
   const [user, setUser] = useState({
-    nama: 'Bapak Hendra',
-    nik: '3571012304850001',
+    nama: 'Wali Santri',
+    nik: '-',
     role: 'WALI_SANTRI',
     instansi: 'PONDOK',
     email: 'walisantri@darsa.id',
@@ -91,6 +92,7 @@ export default function WaliSantriDashboardPage() {
   const [activeChildIndex, setActiveChildIndex] = useState(0);
   const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [formIzin, setFormIzin] = useState({
     jenis: 'PULANG' as 'PULANG' | 'SAKIT' | 'KEPERLUAN_KELUARGA',
@@ -99,149 +101,100 @@ export default function WaliSantriDashboardPage() {
     tanggalSelesai: '',
   });
 
-  const [riwayatIzin, setRiwayatIzin] = useState<any[]>([
-    {
-      id: '1',
-      jenis: 'IZIN PULANG',
-      alasan: 'Acara pernikahan kakak kandung',
-      status: 'DISETUJUI',
-      tanggal: '12 Agustus 2026',
-    },
-  ]);
+  const [riwayatIzin, setRiwayatIzin] = useState<any[]>([]);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Ambil session user aktif
-        const resMe = await fetch('/api/v1/auth/me');
-        if (resMe.ok) {
-          const jsonMe = await resMe.json();
-          if (jsonMe.user) {
-            setUser((prev) => ({
-              ...prev,
-              nama: jsonMe.user.name || jsonMe.user.nama_lengkap || prev.nama,
-              email: jsonMe.user.email || prev.email,
-              nik: jsonMe.user.nik || jsonMe.user.no_kk || prev.nik,
-            }));
-          }
+  // Function to load live data from database
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      // 1. Ambil session user aktif
+      const resMe = await fetch('/api/v1/auth/me');
+      if (resMe.ok) {
+        const jsonMe = await resMe.json();
+        if (jsonMe.user) {
+          setUser({
+            nama: jsonMe.user.name || jsonMe.user.nama_lengkap || 'Wali Santri',
+            email: jsonMe.user.email || 'walisantri@darsa.id',
+            nik: jsonMe.user.nik || jsonMe.user.no_kk || '-',
+            role: 'WALI_SANTRI',
+            instansi: 'PONDOK',
+          });
         }
+      }
 
-        // Ambil data anak terhubung
-        const resWali = await fetch('/api/v1/wali/anak');
+      // 2. Ambil data anak terhubung secara live dari database
+      const resWali = await fetch('/api/v1/wali/anak');
+      if (resWali.ok) {
         const jsonWali = await resWali.json();
         if (jsonWali.success && Array.isArray(jsonWali.data) && jsonWali.data.length > 0) {
-          const mapped = jsonWali.data.map((item: any) => ({
+          const mapped: ConnectedSantri[] = jsonWali.data.map((item: any) => ({
             id: item.santri.id,
-            nisp: item.santri.nisp,
+            nisp: item.santri.nisp || '-',
             nisn: item.santri.nisn || '-',
             nik: item.santri.nik || '-',
             nama: item.santri.nama_lengkap,
             foto_url: item.santri.foto_url,
-            kamar: item.santri.kamar || 'Asrama Utama',
+            kamar: item.santri.kamar || 'Asrama Pondok',
             kelas: item.santri.kelas?.nama_kelas || item.santri.jenjang || 'Kelas Pondok',
             instansi: 'PONDOK',
             status: item.santri.status || 'AKTIF',
             hafalan_juz: item.santri.hafalan_juz || 0,
-            nilai: item.santri.nilai || [
-              { mapel: "Nahwu & Sharaf (Imrithi)", nilai: 94, predikat: "Mumtaz (A)", ustadz: "Ustadz Hasan" },
-              { mapel: "Fiqih (Fathul Qorib)", nilai: 90, predikat: "Jayyid Jiddan (A)", ustadz: "Ustadz Fathurrahman" },
-              { mapel: "Tahfidz Al-Qur'an", nilai: 96, predikat: "Mumtaz (A+)", ustadz: "KH. Abdullah" },
-            ],
+            nilai: (item.santri.nilai || []).map((n: any) => ({
+              mapel: n.mata_pelajaran?.nama_mapel || n.mapel || 'Mata Pelajaran',
+              nilai: n.nilai || 0,
+              predikat: n.predikat || (n.nilai >= 90 ? 'Mumtaz (A)' : n.nilai >= 75 ? 'Jayyid (B)' : 'Maqbul (C)'),
+              ustadz: n.guru?.nama_lengkap || n.ustadz || 'Ustadz Pengampu',
+            })),
             pelanggaran: item.santri.pelanggaran || [],
-            perizinan: item.santri.perizinan || [],
+            perizinan: (item.santri.perizinan || []).map((p: any) => ({
+              id: p.id,
+              status: p.status || 'MENUNGGU VERIFIKASI',
+              jenis: p.jenis ? `IZIN ${p.jenis}` : 'IZIN SANTRI',
+              alasan: p.alasan || '-',
+              tanggal_mulai: p.tanggal_mulai ? new Date(p.tanggal_mulai).toLocaleDateString('id-ID') : 'Hari ini',
+              tanggal_selesai: p.tanggal_selesai ? new Date(p.tanggal_selesai).toLocaleDateString('id-ID') : undefined,
+            })),
           }));
-          setConnectedChildren(mapped);
-        } else {
-          // Fallback sample data
-          setConnectedChildren([
-            {
-              id: 'sample-1',
-              nisp: '2026100845',
-              nisn: '0085471201',
-              nik: '3571011504080001',
-              nama: 'Ahmad Muzakki',
-              kelas: 'Kelas 10-A (Ula Diniyah)',
-              instansi: 'PONDOK',
-              status: 'AKTIF',
-              hafalan_juz: 5,
-              kamar: 'Kamar 101 (Al-Farabi)',
-              nilai: [
-                { mapel: "Nahwu & Sharaf (Imrithi)", nilai: 94, predikat: "Mumtaz (A)", ustadz: "Ustadz Hasan" },
-                { mapel: "Fiqih (Fathul Qorib)", nilai: 90, predikat: "Jayyid Jiddan (A)", ustadz: "Ustadz Fathurrahman" },
-                { mapel: "Tahfidz Al-Qur'an", nilai: 96, predikat: "Mumtaz (A+)", ustadz: "KH. Abdullah" },
-              ],
-            },
-            {
-              id: 'sample-2',
-              nisp: '2026100846',
-              nisn: '0085471202',
-              nik: '3571012005090002',
-              nama: 'Muhammad Farhan',
-              kelas: 'Kelas 11-B (Wustha Diniyah)',
-              instansi: 'PONDOK',
-              status: 'AKTIF',
-              hafalan_juz: 8,
-              kamar: 'Kamar 201 (An-Nawawi)',
-              nilai: [
-                { mapel: "Tafsir Jalalain", nilai: 92, predikat: "Mumtaz (A)", ustadz: "Ustadz Abdul Halim" },
-                { mapel: "Hadits (Bulughul Maram)", nilai: 88, predikat: "Jayyid Jiddan (B+)", ustadz: "Ustadz Fathurrahman" },
-              ],
-            },
-          ]);
-        }
 
-        const resP = await fetch('/api/v1/pengumuman?target=WALI_SANTRI&limit=5');
+          setConnectedChildren(mapped);
+          if (mapped[0]?.perizinan) {
+            setRiwayatIzin(mapped[0].perizinan);
+          }
+        } else {
+          setConnectedChildren([]);
+          setRiwayatIzin([]);
+        }
+      }
+
+      // 3. Ambil pengumuman live
+      const resP = await fetch('/api/v1/pengumuman?target=WALI_SANTRI&limit=10');
+      if (resP.ok) {
         const jsonP = await resP.json();
-        if (jsonP.success && jsonP.data && jsonP.data.length > 0) {
+        if (jsonP.success && Array.isArray(jsonP.data)) {
           setPengumumanList(jsonP.data);
         } else {
-          setPengumumanList([
-            {
-              id: 'p1',
-              judul: 'Jadwal Sambang Santri & Penilaian Tengah Semester',
-              isi: 'Diberitahukan kepada seluruh wali santri bahwa jadwal sambang santri dibuka pada hari Ahad, pukul 08.00 - 16.00 WIB.',
-              target: 'WALI_SANTRI',
-              instansi: 'PONDOK',
-              tanggal: '18 Agustus 2026',
-              penulis: 'Sekretariat Pondok',
-              penting: true,
-            },
-            {
-              id: 'p2',
-              judul: 'Panduan Pembayaran Syahriah Bulanan',
-              isi: 'Pembayaran syahriah dapat dilakukan langsung melalui transfer rekening resmi pondok atau konfirmasi ke bendahara.',
-              target: 'WALI_SANTRI',
-              instansi: 'PONDOK',
-              tanggal: '10 Agustus 2026',
-              penulis: 'Bendahara Pondok',
-              penting: false,
-            },
-          ]);
+          setPengumumanList([]);
         }
-      } catch (e) {
-        console.error('Gagal memuat data live:', e);
       }
+    } catch (e) {
+      console.error('Gagal memuat data live:', e);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
-  }, []);
-
-  const activeSantri = connectedChildren[activeChildIndex] || {
-    id: '',
-    nisp: '-',
-    nisn: '-',
-    nik: '-',
-    nama: 'Santri Pondok',
-    kelas: 'Kelas Pondok',
-    instansi: 'PONDOK',
-    status: 'AKTIF',
-    hafalan_juz: 0,
-    kamar: 'Asrama Pondok',
-    perizinan: [],
-    pelanggaran: [],
-    nilai: [],
   };
 
-  const nilaiTerakhir = activeSantri?.nilai?.slice(0, 6) || [];
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // Update riwayat izin when active child changes
+  useEffect(() => {
+    if (connectedChildren[activeChildIndex]?.perizinan) {
+      setRiwayatIzin(connectedChildren[activeChildIndex].perizinan || []);
+    }
+  }, [activeChildIndex, connectedChildren]);
+
+  const activeSantri = connectedChildren[activeChildIndex];
 
   const handleKirimIzin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,13 +203,13 @@ export default function WaliSantriDashboardPage() {
       return;
     }
 
+    if (!activeSantri?.id) {
+      showToast('error', 'Data Santri Kosong', 'Tidak ada data anak yang terhubung.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      if (!activeSantri?.id) {
-        showToast('error', 'Data Santri Kosong', 'Tidak ada data anak yang terhubung.');
-        setSubmitting(false);
-        return;
-      }
       const res = await fetch('/api/v1/perizinan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -271,37 +224,15 @@ export default function WaliSantriDashboardPage() {
 
       const json = await res.json();
       if (json.success) {
-        setRiwayatIzin([
-          {
-            id: Date.now().toString(),
-            jenis: `IZIN ${formIzin.jenis}`,
-            alasan: formIzin.alasan.trim(),
-            status: 'MENUNGGU VERIFIKASI',
-            tanggal: 'Hari Ini',
-          },
-          ...riwayatIzin,
-        ]);
         setIsIzinModalOpen(false);
         setFormIzin({ jenis: 'PULANG', alasan: '', tanggalMulai: '', tanggalSelesai: '' });
-        showToast('success', 'Permohonan Izin Terkirim!', 'Permohonan izin santri telah dikirimkan ke Sekretariat untuk diverifikasi.');
+        showToast('success', 'Permohonan Izin Terkirim!', 'Permohonan izin santri telah disimpan ke database dan diteruskan ke Sekretariat.');
+        await loadDashboardData();
       } else {
-        setRiwayatIzin([
-          {
-            id: Date.now().toString(),
-            jenis: `IZIN ${formIzin.jenis}`,
-            alasan: formIzin.alasan.trim(),
-            status: 'MENUNGGU VERIFIKASI',
-            tanggal: 'Hari Ini',
-          },
-          ...riwayatIzin,
-        ]);
-        setIsIzinModalOpen(false);
-        setFormIzin({ jenis: 'PULANG', alasan: '', tanggalMulai: '', tanggalSelesai: '' });
-        showToast('success', 'Permohonan Izin Terkirim!', 'Permohonan izin santri berhasil diajukan.');
+        showToast('error', 'Gagal Mengajukan Izin', json.message || 'Terjadi kesalahan saat memproses data.');
       }
     } catch {
-      showToast('success', 'Permohonan Izin Terkirim!', 'Permohonan izin santri telah tercatat.');
-      setIsIzinModalOpen(false);
+      showToast('error', 'Gangguan Koneksi', 'Gagal menghubungi server database.');
     } finally {
       setSubmitting(false);
     }
@@ -337,7 +268,7 @@ export default function WaliSantriDashboardPage() {
               <h1 className="text-sm sm:text-base md:text-lg font-black text-white leading-tight truncate">{user.nama}</h1>
               <p className="text-[10px] sm:text-xs text-emerald-200 font-medium truncate">
                 No. KK: <strong className="font-mono text-amber-200">{user.nik}</strong> •{' '}
-                <strong className="text-white">{connectedChildren.length} Santri</strong>
+                <strong className="text-white">{connectedChildren.length} Santri Terdaftar</strong>
               </p>
             </div>
           </div>
@@ -366,504 +297,554 @@ export default function WaliSantriDashboardPage() {
 
       {/* Main Content Area */}
       <main className="max-w-4xl mx-auto p-3.5 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
-        
-        {/* TAB 1: BERANDA */}
-        {activeTab === 'beranda' && (
-          <div className="space-y-4 sm:space-y-5">
-            {/* Multiple Children Switcher Chips */}
-            {connectedChildren.length > 1 && (
-              <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                  Pilih Santri Binaan (No. KK {user.nik}):
-                </span>
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {connectedChildren.map((c, idx) => (
+        {loading ? (
+          <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-slate-500 font-bold">Memuat data santri binaan dari database...</p>
+          </div>
+        ) : connectedChildren.length === 0 ? (
+          <div className="p-8 sm:p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-2xl font-black">
+              📋
+            </div>
+            <div className="space-y-1 max-w-md mx-auto">
+              <h3 className="font-black text-base text-slate-900">Belum Ada Santri Terhubung</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Akun Anda belum memiliki santri yang terhubung dengan No. KK <strong>{user.nik}</strong>. Silakan hubungi Sekretariat Pondok untuk verifikasi nomor kartu keluarga.
+              </p>
+            </div>
+            <Link
+              href="/wali_santri/aktivasi"
+              className="inline-block px-5 py-2.5 rounded-xl bg-emerald-800 text-white font-bold text-xs hover:bg-emerald-900 transition active:scale-95"
+            >
+              Cek & Hubungkan Santri Baru
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* TAB 1: BERANDA */}
+            {activeTab === 'beranda' && activeSantri && (
+              <div className="space-y-4 sm:space-y-5">
+                {/* Multiple Children Switcher Chips */}
+                {connectedChildren.length > 1 && (
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Pilih Santri Binaan (No. KK {user.nik}):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {connectedChildren.map((c, idx) => (
+                        <button
+                          key={c.id || idx}
+                          type="button"
+                          onClick={() => setActiveChildIndex(idx)}
+                          className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer active:scale-95 touch-manipulation min-h-[40px] ${
+                            activeChildIndex === idx
+                              ? 'bg-emerald-800 text-white border-emerald-800 shadow-md shadow-emerald-900/20'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate max-w-[180px]">
+                            {c.nama} ({c.nisp})
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Active Santri Profile Card */}
+                <div className="p-4 sm:p-5 md:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-md space-y-3.5 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                      {activeSantri.foto_url ? (
+                        <Image
+                          src={activeSantri.foto_url}
+                          alt={activeSantri.nama}
+                          width={52}
+                          height={52}
+                          unoptimized
+                          className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl object-cover border-2 border-emerald-600 shadow-md shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-black text-lg sm:text-xl flex items-center justify-center shadow-md shadow-emerald-700/20 shrink-0">
+                          {activeSantri.nama.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <h2 className="text-sm sm:text-base md:text-lg font-black text-slate-900 truncate">{activeSantri.nama}</h2>
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] sm:text-[10px] font-extrabold uppercase shrink-0">
+                            {activeSantri.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">
+                          No. Stambuk: <strong className="font-mono text-amber-800">{activeSantri.nisp}</strong> • NIK: {activeSantri.nik || '-'}
+                        </p>
+                        <p className="text-[11px] sm:text-xs text-emerald-800 font-bold truncate">
+                          {activeSantri.kelas} • {activeSantri.kamar || 'Asrama Pondok'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Primary Action Buttons */}
+                    <div className="grid grid-cols-2 sm:flex w-full sm:w-auto gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsQrModalOpen(true)}
+                        className="py-2.5 px-3 sm:px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition border border-slate-300 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
+                      >
+                        <QrCode className="w-4 h-4 text-emerald-800 shrink-0" />
+                        <span>Kartu QR</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsIzinModalOpen(true)}
+                        className="py-2.5 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-extrabold text-xs shadow-md shadow-emerald-700/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
+                      >
+                        <Send className="w-4 h-4 shrink-0" />
+                        <span>+ Ajukan Izin</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Summary Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-3 border-t border-slate-100">
                     <button
-                      key={c.id || idx}
                       type="button"
-                      onClick={() => setActiveChildIndex(idx)}
-                      className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer active:scale-95 touch-manipulation min-h-[40px] ${
+                      onClick={() => setIsHafalanModalOpen(true)}
+                      className="bg-slate-50 hover:bg-emerald-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
+                    >
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-emerald-700 uppercase tracking-wider block">
+                        Hafalan Qur'an
+                      </span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm sm:text-base font-black text-emerald-800">{activeSantri.hafalan_juz} Juz</span>
+                        <span className="text-[10px] text-emerald-700 font-bold">Detail →</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsIzinModalOpen(true)}
+                      className="bg-slate-50 hover:bg-amber-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
+                    >
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider block">
+                        Status Izin
+                      </span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm sm:text-base font-black text-amber-800">{riwayatIzin.length} Izin</span>
+                        <span className="text-[10px] text-amber-700 font-bold">Ajukan →</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => showToast('info', 'Presensi Santri', 'Data kehadiran diambil langsung dari log kegiatan santri di pondok.')}
+                      className="bg-slate-50 hover:bg-teal-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
+                    >
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-teal-700 uppercase tracking-wider block">
+                        Pelanggaran
+                      </span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm sm:text-base font-black text-teal-800">{activeSantri.pelanggaran?.length || 0} Catatan</span>
+                        <span className="text-[10px] text-teal-700 font-bold">Disiplin →</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsRaporModalOpen(true)}
+                      className="bg-slate-50 hover:bg-indigo-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
+                    >
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-indigo-700 uppercase tracking-wider block">
+                        Mata Pelajaran
+                      </span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm sm:text-base font-black text-indigo-900">{activeSantri.nilai?.length || 0} Mapel</span>
+                        <span className="text-[10px] text-indigo-700 font-bold">Rapor →</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Riwayat Permohonan Izin Section */}
+                <div className="p-4 sm:p-5 md:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3 sm:space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xs sm:text-sm md:text-base font-black text-slate-900 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-emerald-700" />
+                        <span>Riwayat Perizinan Santri</span>
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Verifikasi persetujuan Sekretariat</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsIzinModalOpen(true)}
+                      className="text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200 transition cursor-pointer active:scale-95 touch-manipulation"
+                    >
+                      + Tambah
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {riwayatIzin.length > 0 ? (
+                      riwayatIzin.map((iz: any) => (
+                        <div
+                          key={iz.id}
+                          className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-900 text-xs">{iz.jenis}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">• {iz.tanggal_mulai}</span>
+                            </div>
+                            <p className="text-xs text-slate-600 italic">"{iz.alasan}"</p>
+                          </div>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black border self-start sm:self-auto ${
+                              iz.status === 'DISETUJUI'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : 'bg-amber-100 text-amber-800 border-amber-300'
+                            }`}
+                          >
+                            {iz.status}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
+                        Belum ada riwayat perizinan yang diajukan untuk santri ini.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Nilai Akademik Singkat */}
+                <div className="p-4 sm:p-5 md:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3 sm:space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xs sm:text-sm md:text-base font-black text-slate-900 flex items-center gap-1.5">
+                        <Award className="w-4 h-4 text-emerald-700" />
+                        <span>Nilai Akademik Diniyah</span>
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Rekap nilai harian & Tahfidz</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsRaporModalOpen(true)}
+                      className="text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200 transition cursor-pointer active:scale-95 touch-manipulation"
+                    >
+                      Semua
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    {activeSantri.nilai && activeSantri.nilai.length > 0 ? (
+                      activeSantri.nilai.slice(0, 3).map((n: any, idx: number) => (
+                        <div key={idx} className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                          <span className="text-[9.5px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-wider block truncate">
+                            {n.mapel}
+                          </span>
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-xl sm:text-2xl font-black text-slate-900">{n.nilai}</span>
+                            <span className="text-[10px] sm:text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+                              {n.predikat}
+                            </span>
+                          </div>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-200/60 truncate">
+                            Pengampu: {n.ustadz}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
+                        Belum ada data nilai yang diinput oleh Ustadz pengampu.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: DAFTAR ANAK (SANTRI BINAAN) */}
+            {activeTab === 'anak' && (
+              <div className="space-y-3.5 sm:space-y-4">
+                <div>
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-emerald-800" />
+                    <span>Daftar Santri Binaan (Keluarga)</span>
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Santri terdaftar pada No. KK <strong>{user.nik}</strong>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {connectedChildren.map((c, idx) => (
+                    <div
+                      key={c.id || idx}
+                      className={`p-4 sm:p-5 rounded-3xl bg-white border transition-all ${
                         activeChildIndex === idx
-                          ? 'bg-emerald-800 text-white border-emerald-800 shadow-md shadow-emerald-900/20'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          ? 'border-emerald-700 shadow-md ring-2 ring-emerald-700/20'
+                          : 'border-slate-200 shadow-xs hover:border-slate-300'
                       }`}
                     >
-                      <GraduationCap className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate max-w-[180px]">
-                        {c.nama} ({c.nisp})
-                      </span>
-                    </button>
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-800 text-white font-black text-base sm:text-lg flex items-center justify-center shrink-0">
+                            {c.nama.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-black text-slate-900 text-xs sm:text-sm truncate">{c.nama}</h3>
+                            <p className="text-[11px] text-slate-500 font-mono">
+                              No. Stambuk: <strong className="text-amber-800">{c.nisp}</strong> • NIK: {c.nik}
+                            </p>
+                            <p className="text-xs text-emerald-800 font-bold mt-0.5 truncate">
+                              {c.kelas} • {c.kamar || 'Asrama Pondok'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] sm:text-[10px] font-black uppercase shrink-0">
+                          {c.status}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-3.5 pt-3 border-t border-slate-100 text-center text-xs">
+                        <div className="p-2 bg-slate-50 rounded-xl">
+                          <span className="text-[9px] text-slate-400 block font-bold">HAFALAN</span>
+                          <strong className="text-emerald-800 font-black text-xs">{c.hafalan_juz} Juz</strong>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded-xl">
+                          <span className="text-[9px] text-slate-400 block font-bold">DISIPLIN</span>
+                          <strong className="text-teal-800 font-black text-xs">{c.pelanggaran?.length || 0} Kasus</strong>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded-xl">
+                          <span className="text-[9px] text-slate-400 block font-bold">MAPEL</span>
+                          <strong className="text-indigo-900 font-black text-xs">{c.nilai?.length || 0} Mapel</strong>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveChildIndex(idx);
+                            setActiveTab('beranda');
+                            showToast('success', 'Santri Terpilih', `Menampilkan dashboard untuk ${c.nama}`);
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
+                        >
+                          Pilih Santri
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveChildIndex(idx);
+                            setIsQrModalOpen(true);
+                          }}
+                          className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
+                        >
+                          <QrCode className="w-4 h-4" />
+                          <span>QR Card</span>
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Active Santri Profile Card */}
-            <div className="p-4 sm:p-5 md:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-md space-y-3.5 sm:space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4">
-                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                  {activeSantri.foto_url ? (
-                    <Image
-                      src={activeSantri.foto_url}
-                      alt={activeSantri.nama}
-                      width={52}
-                      height={52}
-                      unoptimized
-                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl object-cover border-2 border-emerald-600 shadow-md shrink-0"
-                    />
+            {/* TAB 3: INFORMASI PONDOK */}
+            {activeTab === 'informasi' && (
+              <div className="space-y-3.5 sm:space-y-4">
+                <div>
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">
+                    <Bell className="w-4 h-4 text-emerald-800" />
+                    <span>Pusat Informasi & Pengumuman Pondok</span>
+                  </h2>
+                  <p className="text-xs text-slate-500">Kabar resmi Pengasuh & Sekretariat Pondok Pesantren</p>
+                </div>
+
+                <div className="space-y-2.5 sm:space-y-3">
+                  {pengumumanList.length > 0 ? (
+                    pengumumanList.map((p: any) => (
+                      <div
+                        key={p.id}
+                        className={`p-4 sm:p-5 rounded-3xl border shadow-xs space-y-2 ${
+                          p.penting ? 'bg-amber-50/90 border-amber-300' : 'bg-white border-slate-200'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <h3 className="text-xs sm:text-sm font-black text-slate-900 leading-snug">{p.judul}</h3>
+                          {p.penting && (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black uppercase shrink-0">
+                              Penting
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed">{p.isi}</p>
+                        <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 pt-2 border-t border-slate-100 font-medium">
+                          <span>Oleh: {p.penulis || 'Sekretariat Pondok'}</span>
+                          <span>{p.tanggal}</span>
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-black text-lg sm:text-xl flex items-center justify-center shadow-md shadow-emerald-700/20 shrink-0">
-                      {activeSantri.nama.slice(0, 2).toUpperCase()}
+                    <div className="p-6 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200">
+                      Belum ada pengumuman baru dari Sekretariat Pondok.
                     </div>
                   )}
-
-                  <div className="space-y-0.5 min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <h2 className="text-sm sm:text-base md:text-lg font-black text-slate-900 truncate">{activeSantri.nama}</h2>
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] sm:text-[10px] font-extrabold uppercase shrink-0">
-                        {activeSantri.status}
-                      </span>
-                    </div>
-                    <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">
-                      No. Stambuk: <strong className="font-mono text-amber-800">{activeSantri.nisp}</strong> • NIK: {activeSantri.nik || '-'}
-                    </p>
-                    <p className="text-[11px] sm:text-xs text-emerald-800 font-bold truncate">
-                      {activeSantri.kelas} • {activeSantri.kamar || 'Asrama Pondok'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Primary Action Buttons (Mobile-first Stack) */}
-                <div className="grid grid-cols-2 sm:flex w-full sm:w-auto gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsQrModalOpen(true)}
-                    className="py-2.5 px-3 sm:px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition border border-slate-300 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
-                  >
-                    <QrCode className="w-4 h-4 text-emerald-800 shrink-0" />
-                    <span>Kartu QR</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsIzinModalOpen(true)}
-                    className="py-2.5 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-extrabold text-xs shadow-md shadow-emerald-700/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
-                  >
-                    <Send className="w-4 h-4 shrink-0" />
-                    <span>+ Ajukan Izin</span>
-                  </button>
                 </div>
               </div>
-
-              {/* Quick Summary Grid (Interactive Cards) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsHafalanModalOpen(true)}
-                  className="bg-slate-50 hover:bg-emerald-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
-                >
-                  <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-emerald-700 uppercase tracking-wider block">
-                    Hafalan Qur'an
-                  </span>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm sm:text-base font-black text-emerald-800">{activeSantri.hafalan_juz} Juz</span>
-                    <span className="text-[10px] text-emerald-700 font-bold">Detail →</span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsIzinModalOpen(true)}
-                  className="bg-slate-50 hover:bg-amber-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
-                >
-                  <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider block">
-                    Status Izin
-                  </span>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm sm:text-base font-black text-amber-800">{riwayatIzin.length} Izin</span>
-                    <span className="text-[10px] text-amber-700 font-bold">Ajukan →</span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => showToast('info', 'Presensi Santri', 'Tingkat kehadiran ananda bulan ini adalah 96.5%')}
-                  className="bg-slate-50 hover:bg-teal-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
-                >
-                  <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-teal-700 uppercase tracking-wider block">
-                    Kehadiran
-                  </span>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm sm:text-base font-black text-teal-800">96.5%</span>
-                    <span className="text-[10px] text-teal-700 font-bold">Rekap →</span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsRaporModalOpen(true)}
-                  className="bg-slate-50 hover:bg-indigo-50/60 p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 text-left transition-all cursor-pointer active:scale-95 group touch-manipulation"
-                >
-                  <span className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-indigo-700 uppercase tracking-wider block">
-                    Rata Nilai
-                  </span>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm sm:text-base font-black text-indigo-900">93.3 (A)</span>
-                    <span className="text-[10px] text-indigo-700 font-bold">Rapor →</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Riwayat Permohonan Izin Section */}
-            <div className="p-4 sm:p-5 md:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3 sm:space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xs sm:text-sm md:text-base font-black text-slate-900 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-emerald-700" />
-                    <span>Riwayat Perizinan Santri</span>
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Verifikasi persetujuan Sekretariat</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsIzinModalOpen(true)}
-                  className="text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200 transition cursor-pointer active:scale-95 touch-manipulation"
-                >
-                  + Tambah
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                {riwayatIzin.map((iz: any) => (
-                  <div
-                    key={iz.id}
-                    className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
-                  >
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-900 text-xs">{iz.jenis}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">• {iz.tanggal}</span>
-                      </div>
-                      <p className="text-xs text-slate-600 italic">"{iz.alasan}"</p>
-                    </div>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black border self-start sm:self-auto ${
-                        iz.status === 'DISETUJUI'
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : 'bg-amber-100 text-amber-800 border-amber-300'
-                      }`}
-                    >
-                      {iz.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Nilai Akademik Singkat */}
-            <div className="p-4 sm:p-5 md:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3 sm:space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xs sm:text-sm md:text-base font-black text-slate-900 flex items-center gap-1.5">
-                    <Award className="w-4 h-4 text-emerald-700" />
-                    <span>Nilai Akademik Diniyah</span>
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Rekap nilai harian & Tahfidz</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsRaporModalOpen(true)}
-                  className="text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200 transition cursor-pointer active:scale-95 touch-manipulation"
-                >
-                  Semua
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                {nilaiTerakhir.map((n: any, idx: number) => (
-                  <div key={idx} className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-                    <span className="text-[9.5px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-wider block truncate">
-                      {n.mapel}
-                    </span>
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xl sm:text-2xl font-black text-slate-900">{n.nilai}</span>
-                      <span className="text-[10px] sm:text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
-                        {n.predikat}
-                      </span>
-                    </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-200/60 truncate">
-                      Pengampu: {n.ustadz}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
-
-        {/* TAB 2: DAFTAR ANAK (SANTRI BINAAN) */}
-        {activeTab === 'anak' && (
-          <div className="space-y-3.5 sm:space-y-4">
-            <div>
-              <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-emerald-800" />
-                <span>Daftar Santri Binaan (Keluarga)</span>
-              </h2>
-              <p className="text-xs text-slate-500">
-                Santri terdaftar pada No. KK <strong>{user.nik}</strong>
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              {connectedChildren.map((c, idx) => (
-                <div
-                  key={c.id || idx}
-                  className={`p-4 sm:p-5 rounded-3xl bg-white border transition-all ${
-                    activeChildIndex === idx
-                      ? 'border-emerald-700 shadow-md ring-2 ring-emerald-700/20'
-                      : 'border-slate-200 shadow-xs hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-800 text-white font-black text-base sm:text-lg flex items-center justify-center shrink-0">
-                        {c.nama.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-black text-slate-900 text-xs sm:text-sm truncate">{c.nama}</h3>
-                        <p className="text-[11px] text-slate-500 font-mono">
-                          No. Stambuk: <strong className="text-amber-800">{c.nisp}</strong> • NIK: {c.nik}
-                        </p>
-                        <p className="text-xs text-emerald-800 font-bold mt-0.5 truncate">
-                          {c.kelas} • {c.kamar || 'Asrama Pondok'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] sm:text-[10px] font-black uppercase shrink-0">
-                      {c.status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-3.5 pt-3 border-t border-slate-100 text-center text-xs">
-                    <div className="p-2 bg-slate-50 rounded-xl">
-                      <span className="text-[9px] text-slate-400 block font-bold">HAFALAN</span>
-                      <strong className="text-emerald-800 font-black text-xs">{c.hafalan_juz} Juz</strong>
-                    </div>
-                    <div className="p-2 bg-slate-50 rounded-xl">
-                      <span className="text-[9px] text-slate-400 block font-bold">PRESENSI</span>
-                      <strong className="text-teal-800 font-black text-xs">96.5%</strong>
-                    </div>
-                    <div className="p-2 bg-slate-50 rounded-xl">
-                      <span className="text-[9px] text-slate-400 block font-bold">AKADEMIK</span>
-                      <strong className="text-indigo-900 font-black text-xs">Mumtaz (A)</strong>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveChildIndex(idx);
-                        setActiveTab('beranda');
-                        showToast('success', 'Santri Terpilih', `Menampilkan dashboard untuk ${c.nama}`);
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
-                    >
-                      Pilih Santri
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveChildIndex(idx);
-                        setIsQrModalOpen(true);
-                      }}
-                      className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95 touch-manipulation min-h-[44px]"
-                    >
-                      <QrCode className="w-4 h-4" />
-                      <span>QR Card</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: INFORMASI PONDOK */}
-        {activeTab === 'informasi' && (
-          <div className="space-y-3.5 sm:space-y-4">
-            <div>
-              <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">
-                <Bell className="w-4 h-4 text-emerald-800" />
-                <span>Pusat Informasi & Pengumuman Pondok</span>
-              </h2>
-              <p className="text-xs text-slate-500">Kabar resmi Pengasuh & Sekretariat Pondok Pesantren</p>
-            </div>
-
-            <div className="space-y-2.5 sm:space-y-3">
-              {pengumumanList.map((p: any) => (
-                <div
-                  key={p.id}
-                  className={`p-4 sm:p-5 rounded-3xl border shadow-xs space-y-2 ${
-                    p.penting ? 'bg-amber-50/90 border-amber-300' : 'bg-white border-slate-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-start gap-2">
-                    <h3 className="text-xs sm:text-sm font-black text-slate-900 leading-snug">{p.judul}</h3>
-                    {p.penting && (
-                      <span className="px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black uppercase shrink-0">
-                        Penting
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">{p.isi}</p>
-                  <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 pt-2 border-t border-slate-100 font-medium">
-                    <span>Oleh: {p.penulis || 'Sekretariat Pondok'}</span>
-                    <span>{p.tanggal}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
       </main>
 
       {/* Form Modal Izin Online */}
-      <Modal
-        isOpen={isIzinModalOpen}
-        onClose={() => setIsIzinModalOpen(false)}
-        title={`Form Perizinan Online (${activeSantri.nama})`}
-      >
-        <form onSubmit={handleKirimIzin} className="space-y-3.5 text-xs">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Perizinan</label>
-            <select
-              value={formIzin.jenis}
-              onChange={(e) => setFormIzin({ ...formIzin, jenis: e.target.value as any })}
-              className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
+      {activeSantri && (
+        <Modal
+          isOpen={isIzinModalOpen}
+          onClose={() => setIsIzinModalOpen(false)}
+          title={`Form Perizinan Online (${activeSantri.nama})`}
+        >
+          <form onSubmit={handleKirimIzin} className="space-y-3.5 text-xs">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Jenis Perizinan</label>
+              <select
+                value={formIzin.jenis}
+                onChange={(e) => setFormIzin({ ...formIzin, jenis: e.target.value as any })}
+                className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
+              >
+                <option value="PULANG">Izin Pulang Ke Rumah</option>
+                <option value="SAKIT">Izin Sakit / Berobat</option>
+                <option value="KEPERLUAN_KELUARGA">Izin Keperluan Keluarga Urgent</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Mulai</label>
+                <input
+                  type="date"
+                  required
+                  value={formIzin.tanggalMulai}
+                  onChange={(e) => setFormIzin({ ...formIzin, tanggalMulai: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Selesai / Kembali</label>
+                <input
+                  type="date"
+                  required
+                  value={formIzin.tanggalSelesai}
+                  onChange={(e) => setFormIzin({ ...formIzin, tanggalSelesai: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Alasan Keperluan Izin</label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Tuliskan alasan perizinan secara rinci..."
+                value={formIzin.alasan}
+                onChange={(e) => setFormIzin({ ...formIzin, alasan: e.target.value })}
+                className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 cursor-pointer touch-manipulation min-h-[46px]"
             >
-              <option value="PULANG">Izin Pulang Ke Rumah</option>
-              <option value="SAKIT">Izin Sakit / Berobat</option>
-              <option value="KEPERLUAN_KELUARGA">Izin Keperluan Keluarga Urgent</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Mulai</label>
-              <input
-                type="date"
-                required
-                value={formIzin.tanggalMulai}
-                onChange={(e) => setFormIzin({ ...formIzin, tanggalMulai: e.target.value })}
-                className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Selesai / Kembali</label>
-              <input
-                type="date"
-                required
-                value={formIzin.tanggalSelesai}
-                onChange={(e) => setFormIzin({ ...formIzin, tanggalSelesai: e.target.value })}
-                className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Alasan Keperluan Izin</label>
-            <textarea
-              required
-              rows={3}
-              placeholder="Tuliskan alasan perizinan secara rinci..."
-              value={formIzin.alasan}
-              onChange={(e) => setFormIzin({ ...formIzin, alasan: e.target.value })}
-              className="w-full p-3 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-xs"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 cursor-pointer touch-manipulation min-h-[46px]"
-          >
-            {submitting ? 'Mengirimkan Permohonan...' : 'Kirim Permohonan Izin Ke Sekretariat'}
-          </button>
-        </form>
-      </Modal>
+              {submitting ? 'Mengirimkan Permohonan...' : 'Kirim Permohonan Izin Ke Sekretariat'}
+            </button>
+          </form>
+        </Modal>
+      )}
 
       {/* Kartu Santri & QR Code Digital Modal */}
-      <Modal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} title="Kartu Santri & QR Code Digital">
-        <div className="text-center space-y-3.5 py-1">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-800 text-white space-y-2.5 shadow-lg relative overflow-hidden">
-            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-400 text-emerald-950 text-[9px] font-black uppercase">
-              VERIFIED SANTRI
+      {activeSantri && (
+        <Modal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} title="Kartu Santri & QR Code Digital">
+          <div className="text-center space-y-3.5 py-1">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-800 text-white space-y-2.5 shadow-lg relative overflow-hidden">
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-400 text-emerald-950 text-[9px] font-black uppercase">
+                VERIFIED SANTRI
+              </div>
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-lg sm:text-xl mx-auto shadow-inner">
+                {activeSantri.nama?.[0] || 'S'}
+              </div>
+              <div>
+                <h3 className="font-black text-sm sm:text-base">{activeSantri.nama}</h3>
+                <p className="text-xs text-emerald-200 font-mono">No. Stambuk: {activeSantri.nisp}</p>
+                <span className="inline-block mt-1 px-3 py-0.5 rounded-full bg-white/10 text-[10px] font-bold border border-white/20">
+                  {activeSantri.kelas} • Ma'had Darussa'adah Lirboyo
+                </span>
+              </div>
             </div>
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-lg sm:text-xl mx-auto shadow-inner">
-              {activeSantri.nama?.[0] || 'S'}
-            </div>
-            <div>
-              <h3 className="font-black text-sm sm:text-base">{activeSantri.nama}</h3>
-              <p className="text-xs text-emerald-200 font-mono">No. Stambuk: {activeSantri.nisp}</p>
-              <span className="inline-block mt-1 px-3 py-0.5 rounded-full bg-white/10 text-[10px] font-bold border border-white/20">
-                {activeSantri.kelas} • Ma'had Darussa'adah Lirboyo
-              </span>
-            </div>
-          </div>
 
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 flex flex-col items-center">
-            <div className="w-40 h-40 sm:w-44 sm:h-44 bg-white p-3 rounded-2xl border border-slate-300 shadow-inner flex items-center justify-center">
-              <QrCode className="w-32 h-32 sm:w-36 sm:h-36 text-slate-900" />
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 flex flex-col items-center">
+              <div className="w-40 h-40 sm:w-44 sm:h-44 bg-white p-3 rounded-2xl border border-slate-300 shadow-inner flex items-center justify-center">
+                <QrCode className="w-32 h-32 sm:w-36 sm:h-36 text-slate-900" />
+              </div>
+              <p className="text-[10.5px] sm:text-[11px] text-slate-500 font-semibold max-w-xs leading-tight">
+                Tunjukkan QR Code ini kepada Petugas Keamanan saat Sambang Santri / Verifikasi Izin.
+              </p>
             </div>
-            <p className="text-[10.5px] sm:text-[11px] text-slate-500 font-semibold max-w-xs leading-tight">
-              Tunjukkan QR Code ini kepada Petugas Keamanan saat Sambang Santri / Verifikasi Izin.
-            </p>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Detail Hafalan Modal */}
-      <Modal isOpen={isHafalanModalOpen} onClose={() => setIsHafalanModalOpen(false)} title={`Detail Hafalan Qur'an (${activeSantri.nama})`}>
-        <div className="space-y-3.5 text-xs">
-          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
-            <div>
-              <span className="text-slate-500 font-bold block text-[11px]">Capaian Saat Ini:</span>
-              <strong className="text-lg sm:text-xl font-black text-emerald-900">{activeSantri.hafalan_juz} Juz Mutqin</strong>
-            </div>
-            <span className="px-2.5 py-1 bg-emerald-700 text-white rounded-xl font-bold text-[10px]">
-              Tahfidz
-            </span>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-bold text-slate-800 text-xs">Riwayat Setoran Terakhir:</h4>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-              <div className="flex justify-between font-bold text-slate-900 text-xs">
-                <span>Juz 5 (An-Nisa': 148-176)</span>
-                <span className="text-emerald-700">Mumtaz (A)</span>
+      {activeSantri && (
+        <Modal isOpen={isHafalanModalOpen} onClose={() => setIsHafalanModalOpen(false)} title={`Detail Hafalan Qur'an (${activeSantri.nama})`}>
+          <div className="space-y-3.5 text-xs">
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+              <div>
+                <span className="text-slate-500 font-bold block text-[11px]">Capaian Saat Ini:</span>
+                <strong className="text-lg sm:text-xl font-black text-emerald-900">{activeSantri.hafalan_juz} Juz Mutqin</strong>
               </div>
-              <p className="text-[10.5px] text-slate-500">Disimak oleh: Ustadz M. Ridwan • 16 Agustus 2026</p>
+              <span className="px-2.5 py-1 bg-emerald-700 text-white rounded-xl font-bold text-[10px]">
+                Tahfidz
+              </span>
             </div>
+            <p className="text-xs text-slate-500">
+              Data progres hafalan Al-Qur'an dicatat langsung oleh Ustadz Pembimbing Tahfidz.
+            </p>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Detail Rapor Modal */}
-      <Modal isOpen={isRaporModalOpen} onClose={() => setIsRaporModalOpen(false)} title={`Rapor & Penilaian Akademik (${activeSantri.nama})`}>
-        <div className="space-y-2.5 text-xs">
-          {nilaiTerakhir.map((n: any, idx: number) => (
-            <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-              <div className="min-w-0 pr-2">
-                <strong className="text-slate-900 font-black block text-xs truncate">{n.mapel}</strong>
-                <span className="text-[10.5px] text-slate-500 font-medium">Ustadz: {n.ustadz}</span>
+      {activeSantri && (
+        <Modal isOpen={isRaporModalOpen} onClose={() => setIsRaporModalOpen(false)} title={`Rapor & Penilaian Akademik (${activeSantri.nama})`}>
+          <div className="space-y-2.5 text-xs">
+            {activeSantri.nilai && activeSantri.nilai.length > 0 ? (
+              activeSantri.nilai.map((n: any, idx: number) => (
+                <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div className="min-w-0 pr-2">
+                    <strong className="text-slate-900 font-black block text-xs truncate">{n.mapel}</strong>
+                    <span className="text-[10.5px] text-slate-500 font-medium">Ustadz: {n.ustadz}</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-base sm:text-lg font-black text-emerald-800 block">{n.nilai}</span>
+                    <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">{n.predikat}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
+                Belum ada data nilai akademik dari guru madrasah.
               </div>
-              <div className="text-right shrink-0">
-                <span className="text-base sm:text-lg font-black text-emerald-800 block">{n.nilai}</span>
-                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">{n.predikat}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Modal>
+            )}
+          </div>
+        </Modal>
+      )}
 
       {/* Account Settings Modal */}
       <AccountSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={user} />
