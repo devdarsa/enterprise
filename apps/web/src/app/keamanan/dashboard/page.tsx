@@ -318,7 +318,7 @@ export default function KeamananDashboardPage() {
                   {item.status === 'DISETUJUI' && (
                     <button
                       onClick={() => handleTapOut(item.id)}
-                      className="flex-1 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all active:scale-95 inline-flex items-center justify-center gap-1"
+                      className="flex-1 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 min-h-[46px] touch-manipulation shadow-md"
                     >
                       <ArrowUpRight className="w-4 h-4" /> Tap Out (Keluar)
                     </button>
@@ -326,7 +326,7 @@ export default function KeamananDashboardPage() {
                   {item.status === 'TAP_OUT' && (
                     <button
                       onClick={() => handleTapIn(item.id)}
-                      className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all active:scale-95 inline-flex items-center justify-center gap-1"
+                      className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 min-h-[46px] touch-manipulation shadow-md"
                     >
                       <ArrowDownLeft className="w-4 h-4" /> Tap In (Kembali)
                     </button>

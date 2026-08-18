@@ -73,37 +73,37 @@ export default function Modal({
       {/* Modal Window */}
       <div
         ref={contentRef}
-        className={`relative w-full ${sizeClass} bg-white border border-slate-200/80 rounded-3xl shadow-2xl shadow-slate-900/20 overflow-hidden z-10 animate-scale-up`}
+        className={`relative w-full ${sizeClass} mx-3 sm:mx-auto max-w-[calc(100vw-24px)] sm:max-w-xl bg-white border border-slate-200/80 rounded-3xl shadow-2xl shadow-slate-900/20 overflow-hidden z-10 animate-scale-up`}
       >
         {/* Top Decorative Line */}
         <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-500 w-full" />
 
         {/* Header */}
-        <div className={`p-5 bg-gradient-to-r ${gradientClass} text-white flex items-center justify-between relative overflow-hidden`}>
+        <div className={`p-4 sm:p-5 bg-gradient-to-r ${gradientClass} text-white flex items-center justify-between relative overflow-hidden`}>
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute right-0 top-0 w-32 h-32 rounded-full border-2 border-white translate-x-12 -translate-y-8" />
             <div className="absolute right-4 bottom-0 w-20 h-20 rounded-full border border-white translate-y-8" />
           </div>
 
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="relative w-10 h-10 rounded-full border-2 border-amber-400/80 overflow-hidden shadow-md shadow-black/20 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 min-w-0 pr-2">
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-amber-400/80 overflow-hidden shadow-md shadow-black/20 shrink-0">
               <Image
-                src="/logo-pondok.png"
+                src="/logo-lirboyo.png"
                 alt="Logo Lirboyo"
                 fill
                 className="object-cover"
               />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg leading-none">{icon}</span>
-                <h3 className="text-sm font-black text-white leading-tight tracking-tight uppercase">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base sm:text-lg leading-none">{icon}</span>
+                <h3 className="text-xs sm:text-sm font-black text-white leading-tight tracking-tight uppercase truncate">
                   {title}
                 </h3>
               </div>
               {subtitle && (
-                <p className="text-[10px] text-amber-300 font-semibold mt-0.5 uppercase tracking-wider">
+                <p className="text-[10px] text-amber-300 font-semibold mt-0.5 uppercase tracking-wider truncate">
                   {subtitle}
                 </p>
               )}
@@ -113,7 +113,7 @@ export default function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="relative z-10 w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-white/80 hover:text-white font-bold text-sm flex items-center justify-center transition-all duration-200 border border-white/20 hover:border-white/40"
+            className="relative z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 active:scale-90 text-white/90 hover:text-white font-bold text-sm flex items-center justify-center transition-all duration-200 border border-white/20 hover:border-white/40 shrink-0 touch-manipulation cursor-pointer"
             aria-label="Tutup"
           >
             ✕
@@ -121,7 +121,7 @@ export default function Modal({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 md:p-7 max-h-[75vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 md:p-7 max-h-[78vh] overflow-y-auto">
           {children}
         </div>
       </div>

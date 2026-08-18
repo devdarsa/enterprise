@@ -96,14 +96,15 @@ export default function MobileBottomNav({ role, activeTab, onTabChange }: Mobile
   };
 
   return (
-    <div
-      className={`fixed bottom-0 left-0 right-0 z-50 md:hidden ${
+    <nav
+      aria-label="Mobile Navigation"
+      className={`fixed bottom-0 left-0 right-0 z-50 md:hidden pb-[env(safe-area-inset-bottom,0px)] ${
         isKeamanan
           ? 'bg-slate-950/95 border-t border-slate-800 text-slate-100 shadow-2xl backdrop-blur-lg'
-          : 'bg-white/95 border-t border-slate-200/80 text-slate-800 shadow-2xl backdrop-blur-md'
+          : 'bg-white/95 border-t border-slate-200/90 text-slate-800 shadow-2xl backdrop-blur-md'
       }`}
     >
-      <div className="max-w-md mx-auto flex items-end justify-between px-3 pb-1.5 pt-1 relative">
+      <div className="max-w-md mx-auto flex items-end justify-between px-2 pt-1.5 pb-2 relative">
         {navItems.map((item, idx) => {
           const IconComponent = item.icon;
           const isActive = activeTab
@@ -112,25 +113,25 @@ export default function MobileBottomNav({ role, activeTab, onTabChange }: Mobile
 
           if (item.isCenter) {
             return (
-              <div key={idx} className="relative flex flex-col items-center -mt-6 z-10">
+              <div key={idx} className="relative flex flex-col items-center -mt-7 z-10">
                 <button
                   type="button"
                   onClick={(e) => handleClick(e, item)}
-                  className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 text-white shadow-lg shadow-emerald-700/40 ring-4 ring-white dark:ring-slate-900 transition-all duration-300 active:scale-90 hover:scale-105 cursor-pointer"
+                  className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 text-white shadow-xl shadow-emerald-800/40 ring-4 ring-white dark:ring-slate-950 transition-transform duration-200 active:scale-90 hover:scale-105 cursor-pointer touch-manipulation"
                 >
-                  <IconComponent className="w-6 h-6 stroke-[2.5px] group-hover:rotate-12 transition-transform" />
+                  <IconComponent className="w-6 h-6 stroke-[2.4px] group-hover:rotate-12 transition-transform" />
                   <span className="absolute -top-1 -right-1 flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400 border border-white"></span>
                   </span>
                 </button>
                 <span
-                  className={`text-[10px] font-extrabold mt-1 tracking-tight ${
+                  className={`text-[11px] font-black mt-1 tracking-tight ${
                     isActive
-                      ? 'text-emerald-700 dark:text-amber-400 font-black'
+                      ? 'text-emerald-700 dark:text-amber-400'
                       : isKeamanan
                       ? 'text-slate-400'
-                      : 'text-slate-500'
+                      : 'text-slate-600'
                   }`}
                 >
                   {item.label}
@@ -144,22 +145,22 @@ export default function MobileBottomNav({ role, activeTab, onTabChange }: Mobile
               key={idx}
               type="button"
               onClick={(e) => handleClick(e, item)}
-              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center min-w-[58px] py-1.5 px-1.5 rounded-2xl transition-all cursor-pointer touch-manipulation active:scale-95 ${
                 isActive
                   ? isKeamanan
-                    ? 'text-amber-400 bg-slate-800/80 font-bold scale-105'
-                    : 'text-emerald-800 bg-emerald-50 font-bold scale-105'
+                    ? 'text-amber-400 bg-slate-800/90 font-black'
+                    : 'text-emerald-800 bg-emerald-50/90 font-black'
                   : isKeamanan
-                  ? 'text-slate-400 hover:text-slate-200 font-medium'
-                  : 'text-slate-500 hover:text-slate-800 font-medium'
+                  ? 'text-slate-400 hover:text-slate-200 font-bold'
+                  : 'text-slate-500 hover:text-slate-900 font-bold'
               }`}
             >
-              <IconComponent className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
-              <span className="text-[10px] mt-0.5 leading-tight">{item.label}</span>
+              <IconComponent className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+              <span className="text-[11px] mt-0.5 leading-tight tracking-tight">{item.label}</span>
             </button>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }

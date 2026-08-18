@@ -481,7 +481,7 @@ export default function GuruMadrasahDashboardPage() {
                 showToast('success', 'Presensi Berhasil', 'Presensi kehadiran Guru Diniyah telah berhasil dicatat.');
                 setIsScanModalOpen(false);
               }}
-              className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-black text-xs shadow-md transition-all active:scale-95 min-h-[46px] touch-manipulation cursor-pointer"
             >
               Simulasi Scan QR Presensi
             </button>

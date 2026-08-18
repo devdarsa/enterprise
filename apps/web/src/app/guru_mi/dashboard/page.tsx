@@ -308,7 +308,7 @@ export default function GuruMIDashboardPage() {
           <button
             onClick={handleScanQr}
             disabled={scanning}
-            className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-md active:scale-95"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white text-xs font-black transition-all shadow-md active:scale-95 min-h-[46px] touch-manipulation cursor-pointer"
           >
             {scanning ? 'Memproses Presensi...' : 'Verifikasi Scan QR Absensi'}
           </button>
