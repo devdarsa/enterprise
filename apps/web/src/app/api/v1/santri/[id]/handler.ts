@@ -43,7 +43,16 @@ export const PUT = withAuth(
     const existing = await prisma.santri.findFirst({ where: { id, deleted_at: null } });
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);
 
-    const photoUrl = body.avatar_url || body.foto_url;
+    let photoUrl = body.avatar_url || body.foto_url;
+    if (photoUrl && photoUrl.startsWith('data:image/')) {
+      try {
+        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const uploaded = await uploadToCloudinary(photoUrl, 'darsa_santri');
+        photoUrl = uploaded.url;
+      } catch (err) {
+        console.error('Gagal upload foto santri ke Cloudinary:', err);
+      }
+    }
     let userId = existing.user_id;
 
     // Sinkronisasi foto santri ke User Profile

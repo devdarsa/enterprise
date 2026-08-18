@@ -57,21 +57,32 @@ export const POST = withAuth(
       return apiError('Nama lengkap wajib diisi.');
     }
 
+    let resolvedPhotoUrl = foto_url || null;
+    if (resolvedPhotoUrl && resolvedPhotoUrl.startsWith('data:image/')) {
+      try {
+        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const uploaded = await uploadToCloudinary(resolvedPhotoUrl, 'darsa_guru');
+        resolvedPhotoUrl = uploaded.url;
+      } catch (err) {
+        console.error('Gagal upload foto guru ke Cloudinary:', err);
+      }
+    }
+
     let finalUserId = user_id;
     if (!finalUserId) {
       const newUser = await prisma.user.create({
         data: {
           email: `guru.${(nip || Date.now()).toString().toLowerCase()}@darsa.my.id`,
           nama_lengkap,
-          foto_url: foto_url || null,
+          foto_url: resolvedPhotoUrl,
           email_verified: true,
         },
       });
       finalUserId = newUser.id;
-    } else if (foto_url) {
+    } else if (resolvedPhotoUrl) {
       await prisma.user.update({
         where: { id: finalUserId },
-        data: { foto_url },
+        data: { foto_url: resolvedPhotoUrl },
       }).catch(() => {});
     }
 
@@ -112,17 +123,28 @@ export const PUT = withAuth(
       return apiError('Data guru tidak ditemukan.', 404);
     }
 
-    if (foto_url && existing.user_id) {
+    let resolvedEditPhotoUrl = foto_url;
+    if (resolvedEditPhotoUrl && resolvedEditPhotoUrl.startsWith('data:image/')) {
+      try {
+        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const uploaded = await uploadToCloudinary(resolvedEditPhotoUrl, 'darsa_guru');
+        resolvedEditPhotoUrl = uploaded.url;
+      } catch (err) {
+        console.error('Gagal upload foto guru ke Cloudinary:', err);
+      }
+    }
+
+    if (resolvedEditPhotoUrl && existing.user_id) {
       await prisma.user.update({
         where: { id: existing.user_id },
-        data: { foto_url, nama_lengkap: nama_lengkap || existing.nama_lengkap },
+        data: { foto_url: resolvedEditPhotoUrl, nama_lengkap: nama_lengkap || existing.nama_lengkap },
       }).catch(() => {});
-    } else if (foto_url && !existing.user_id) {
+    } else if (resolvedEditPhotoUrl && !existing.user_id) {
       const newUser = await prisma.user.create({
         data: {
           email: `guru.${(existing.nip || existing.id).toLowerCase()}@darsa.my.id`,
           nama_lengkap: nama_lengkap || existing.nama_lengkap,
-          foto_url,
+          foto_url: resolvedEditPhotoUrl,
           email_verified: true,
         },
       }).catch(() => null);

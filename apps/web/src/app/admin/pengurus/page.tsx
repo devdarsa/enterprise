@@ -210,6 +210,7 @@ export default function DataPengurusPage() {
           jabatan: formData.jabatan.trim() || 'Sekretariat Utama',
           unit: formData.unit,
           telepon: formData.telepon.trim() || '-',
+          avatar_url: formData.avatar_url || undefined,
         }),
       });
       const json = await res.json();
@@ -222,7 +223,7 @@ export default function DataPengurusPage() {
           unit: json.data.unit,
           telepon: json.data.telepon || '-',
           status: 'AKTIF',
-          avatar_url: formData.avatar_url,
+          avatar_url: json.data.avatar_url || formData.avatar_url,
         };
         setList((prev) => [newPengurus, ...prev]);
         setLocalCache('pengurus_list', null);
@@ -253,6 +254,7 @@ export default function DataPengurusPage() {
           jabatan: editPengurus.jabatan,
           unit: editPengurus.unit,
           telepon: editPengurus.telepon,
+          avatar_url: editPengurus.avatar_url,
         }),
       });
       const json = await res.json();
@@ -676,6 +678,46 @@ export default function DataPengurusPage() {
                   placeholder="081234567890"
                   className="input-premium font-mono font-bold"
                 />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1">Pas Foto Pengurus (File Upload)</label>
+                <div className="flex items-center gap-3">
+                  {(showAddModal ? formData.avatar_url : editPengurus?.avatar_url) ? (
+                    <Image
+                      src={(showAddModal ? formData.avatar_url : editPengurus?.avatar_url) || ''}
+                      alt="Preview Foto"
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-white border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-lg shrink-0">
+                      📷
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const res = event.target?.result as string;
+                          if (showAddModal) {
+                            setFormData((prev) => ({ ...prev, avatar_url: res }));
+                          } else if (editPengurus) {
+                            setEditPengurus({ ...editPengurus, avatar_url: res });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
 

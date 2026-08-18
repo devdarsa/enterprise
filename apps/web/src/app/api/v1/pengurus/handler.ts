@@ -47,6 +47,24 @@ export const POST = withAuth(
       if (existing) return apiError(`NIK ${nik} sudah terdaftar.`, 409);
     }
 
+    let resolvedPhotoUrl = body.avatar_url || body.foto_url || null;
+    if (resolvedPhotoUrl && resolvedPhotoUrl.startsWith('data:image/')) {
+      try {
+        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const uploaded = await uploadToCloudinary(resolvedPhotoUrl, 'darsa_pengurus');
+        resolvedPhotoUrl = uploaded.url;
+      } catch (err) {
+        console.error('Gagal upload foto pengurus ke Cloudinary:', err);
+      }
+    }
+
+    if (nik && resolvedPhotoUrl) {
+      await prisma.user.updateMany({
+        where: { OR: [{ email: { startsWith: `pengurus.` } }, { nama_lengkap }] },
+        data: { foto_url: resolvedPhotoUrl },
+      }).catch(() => {});
+    }
+
     const pengurus = await prisma.pengurus.create({
       data: { nik, nama_lengkap, jabatan, unit: unit || 'PONDOK', telepon, alamat },
     });
@@ -59,7 +77,7 @@ export const POST = withAuth(
       metadata: { nama: nama_lengkap, jabatan, unit },
     });
 
-    return apiSuccess(pengurus, 'Data pengurus berhasil disimpan.');
+    return apiSuccess({ ...pengurus, avatar_url: resolvedPhotoUrl }, 'Data pengurus berhasil disimpan.');
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI']
 );
@@ -68,7 +86,7 @@ export const POST = withAuth(
 export const PUT = withAuth(
   async (req: NextRequest, session) => {
     const body = await req.json();
-    const { id, nik, nama_lengkap, jabatan, unit, telepon, alamat, status } = body;
+    const { id, nik, nama_lengkap, jabatan, unit, telepon, alamat, status, avatar_url, foto_url } = body;
 
     if (!id) {
       return apiError('ID pengurus wajib diisi.', 400);
@@ -77,6 +95,24 @@ export const PUT = withAuth(
     const existing = await prisma.pengurus.findUnique({ where: { id } });
     if (!existing) {
       return apiError('Data pengurus tidak ditemukan.', 404);
+    }
+
+    let resolvedEditPhotoUrl = avatar_url || foto_url;
+    if (resolvedEditPhotoUrl && resolvedEditPhotoUrl.startsWith('data:image/')) {
+      try {
+        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const uploaded = await uploadToCloudinary(resolvedEditPhotoUrl, 'darsa_pengurus');
+        resolvedEditPhotoUrl = uploaded.url;
+      } catch (err) {
+        console.error('Gagal upload foto pengurus ke Cloudinary:', err);
+      }
+    }
+
+    if (resolvedEditPhotoUrl && existing.nik) {
+      await prisma.user.updateMany({
+        where: { OR: [{ email: { startsWith: `pengurus.` } }, { nama_lengkap: existing.nama_lengkap }] },
+        data: { foto_url: resolvedEditPhotoUrl },
+      }).catch(() => {});
     }
 
     const updated = await prisma.pengurus.update({

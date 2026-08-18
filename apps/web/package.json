@@ -24,6 +24,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "better-auth": "^1.1.0",
+    "cloudinary": "^2.10.0",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.0.0",
     "lucide-react": "^0.475.0",

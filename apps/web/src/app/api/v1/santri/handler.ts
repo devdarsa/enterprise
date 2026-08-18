@@ -127,21 +127,32 @@ export const POST = withAuth(
     }
 
     // Jika tidak ada user_id, buat user baru dahulu
+    let resolvedPhotoUrl = avatar_url || foto_url || null;
+    if (resolvedPhotoUrl && resolvedPhotoUrl.startsWith('data:image/')) {
+      try {
+        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const uploaded = await uploadToCloudinary(resolvedPhotoUrl, 'darsa_santri');
+        resolvedPhotoUrl = uploaded.url;
+      } catch (err) {
+        console.error('Gagal upload foto santri ke Cloudinary:', err);
+      }
+    }
+
     let finalUserId = user_id;
     if (!finalUserId) {
       const newUser = await prisma.user.create({
         data: {
           email: `${finalNisp.toLowerCase()}@darsa.santri.id`,
           nama_lengkap: nama_lengkap,
-          foto_url: avatar_url || foto_url || null,
+          foto_url: resolvedPhotoUrl,
           email_verified: false,
         },
       });
       finalUserId = newUser.id;
-    } else if (avatar_url || foto_url) {
+    } else if (resolvedPhotoUrl) {
       await prisma.user.update({
         where: { id: finalUserId },
-        data: { foto_url: avatar_url || foto_url },
+        data: { foto_url: resolvedPhotoUrl },
       }).catch(() => {});
     }
 
