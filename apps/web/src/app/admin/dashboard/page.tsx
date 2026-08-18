@@ -69,6 +69,7 @@ export default function AdminDashboardPage() {
       setLoading(false);
     }
     fetchDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboard = async () => {

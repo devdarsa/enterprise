@@ -77,6 +77,22 @@ const handlers: Record<string, ApiHandlerModule> = {
   'wilayah': wilayah as unknown as ApiHandlerModule,
 };
 
+import { authenticateRequest } from '@/lib/api-auth';
+
+// Whitelist of public routes accessible without session
+const PUBLIC_ROUTES: Record<string, string[]> = {
+  'health': ['GET'],
+  'auth/login': ['POST'],
+  'auth/seed-default-accounts': ['POST'],
+  'auth/register-wali/check-nik': ['POST'],
+  'auth/register-wali/send-otp': ['POST'],
+  'auth/register-wali/verify-otp': ['POST'],
+  'wilayah': ['GET'],
+  'pengumuman': ['GET'],
+  'tahun-ajaran': ['GET'],
+  'absensi/scan': ['POST'],
+};
+
 type RouteParamsContext = { params: Promise<{ route: string[] }> };
 
 async function handleDispatch(
@@ -87,6 +103,23 @@ async function handleDispatch(
   const paramsResolved = await context.params;
   const routeParts = paramsResolved?.route || [];
   const path = routeParts.join('/');
+
+  // 1. Enforce strict API authentication check on all private endpoints
+  const allowedMethods = PUBLIC_ROUTES[path];
+  const isPublic = allowedMethods && allowedMethods.includes(method);
+
+  if (!isPublic) {
+    const authResult = await authenticateRequest(req);
+    if (!authResult.authenticated) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized: Akses ditolak. Sesi otentikasi tidak valid atau telah berakhir.',
+        },
+        { status: 401 }
+      );
+    }
+  }
 
   let handlerModule = handlers[path];
   let dynamicContext: unknown = undefined;

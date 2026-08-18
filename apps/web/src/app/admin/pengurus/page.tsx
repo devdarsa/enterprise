@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
@@ -68,6 +69,7 @@ export default function DataPengurusPage() {
     } catch {}
     fetchPengurus();
     fetchMasterJabatan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchMasterJabatan = async () => {
@@ -405,7 +407,14 @@ export default function DataPengurusPage() {
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-white border border-emerald-300 flex items-center justify-center font-black text-emerald-900 text-xl overflow-hidden shrink-0 shadow-sm">
                 {detailPengurus.avatar_url ? (
-                  <img src={detailPengurus.avatar_url} alt={detailPengurus.nama} className="w-full h-full object-cover" />
+                  <Image
+                    src={detailPengurus.avatar_url}
+                    alt={detailPengurus.nama}
+                    width={64}
+                    height={64}
+                    unoptimized
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   '👥'
                 )}

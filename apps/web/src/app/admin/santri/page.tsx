@@ -106,6 +106,7 @@ export default function MasterSantriPage() {
     } catch { }
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchSantri(); }, [instansiFilter]);
 
   const fetchSantri = async () => {

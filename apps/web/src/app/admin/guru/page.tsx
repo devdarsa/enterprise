@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import Modal, { ConfirmDialog } from '@/components/Modal';
@@ -48,6 +49,7 @@ export default function MasterGuruPage() {
       }
     } catch {}
     fetchGuru();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchGuru = async () => {
@@ -279,7 +281,14 @@ export default function MasterGuruPage() {
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-white border border-emerald-300 flex items-center justify-center font-black text-emerald-900 text-xl overflow-hidden shrink-0 shadow-sm">
                 {detailGuru.foto_url ? (
-                  <img src={detailGuru.foto_url} alt={detailGuru.nama} className="w-full h-full object-cover" />
+                  <Image
+                    src={detailGuru.foto_url}
+                    alt={detailGuru.nama}
+                    width={64}
+                    height={64}
+                    unoptimized
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   '👨‍🏫'
                 )}
@@ -409,9 +418,12 @@ export default function MasterGuruPage() {
                 <label className="block font-extrabold text-slate-800 mb-1">Foto Profil Guru (File Upload)</label>
                 <div className="flex items-center gap-3">
                   {editGuru.foto_url ? (
-                    <img
+                    <Image
                       src={editGuru.foto_url}
                       alt="Preview Foto"
+                      width={48}
+                      height={48}
+                      unoptimized
                       className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0"
                     />
                   ) : (
