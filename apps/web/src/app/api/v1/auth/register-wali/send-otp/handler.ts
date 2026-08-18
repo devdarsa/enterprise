@@ -85,8 +85,8 @@ export async function POST(req: NextRequest) {
       data: { status: 'EXPIRED' },
     });
 
-    // 6. Generate 6-Digit Numeric OTP
-    const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 6. Generate 6-Digit Cryptographic Numeric OTP
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = crypto.createHash('sha256').update(rawOtp).digest('hex');
     const expiresAt = new Date(Date.now() + 60 * 1000); // 1 Menit / 60 Detik
 

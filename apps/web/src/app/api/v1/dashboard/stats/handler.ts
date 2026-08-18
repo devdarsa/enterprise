@@ -10,6 +10,16 @@ export const GET = withAuth(
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    const userInstansi = session.user.instansi || 'PONDOK';
+
+    // Buat filter jenjang berdasarkan instansi user — cegah cross-instansi data leak
+    const jenjangFilter =
+      userInstansi === 'MADRASAH' ? { jenjang: 'MADRASAH_DINIYAH' as const } :
+      userInstansi === 'MI' ? { jenjang: 'MI' as const } :
+      {}; // PONDOK — semua santri pondok (tanpa filter jenjang)
+
+    const santriBaseWhere = { deleted_at: null, ...jenjangFilter };
+
     const [
       totalSantri,
       santriAktif,
@@ -20,23 +30,23 @@ export const GET = withAuth(
       pengumumanTerbaru,
       auditLogTerbaru,
     ] = await Promise.all([
-      prisma.santri.count({ where: { deleted_at: null } }),
-      prisma.santri.count({ where: { deleted_at: null, status: 'AKTIF' } }),
+      prisma.santri.count({ where: santriBaseWhere }),
+      prisma.santri.count({ where: { ...santriBaseWhere, status: 'AKTIF' } }),
       prisma.guru.count(),
-      prisma.pengurus.count({ where: { deleted_at: null, status: 'AKTIF' } }),
-      prisma.perizinan.count({
-        where: {
-          deleted_at: null,
-          created_at: { gte: today, lt: tomorrow },
-        },
-      }),
-      prisma.pelanggaran.count({
-        where: {
-          deleted_at: null,
-          tanggal: { gte: today, lt: tomorrow },
-        },
-      }),
+      userInstansi === 'PONDOK'
+        ? prisma.pengurus.count({ where: { deleted_at: null, status: 'AKTIF' } })
+        : Promise.resolve(0),
+      userInstansi === 'PONDOK'
+        ? prisma.perizinan.count({ where: { deleted_at: null, created_at: { gte: today, lt: tomorrow } } })
+        : Promise.resolve(0),
+      userInstansi === 'PONDOK'
+        ? prisma.pelanggaran.count({ where: { deleted_at: null, tanggal: { gte: today, lt: tomorrow } } })
+        : Promise.resolve(0),
       prisma.pengumuman.findMany({
+        where:
+          userInstansi === 'MADRASAH' ? { instansi: { in: ['MADRASAH', 'SEMUA'] } } :
+          userInstansi === 'MI' ? { instansi: { in: ['FORMAL_MI', 'MI', 'SEMUA'] } } :
+          { instansi: { in: ['PONDOK', 'SEMUA'] } },
         orderBy: { created_at: 'desc' },
         take: 3,
         select: { id: true, judul: true, target: true, penting: true, created_at: true },
@@ -48,10 +58,10 @@ export const GET = withAuth(
       }),
     ]);
 
-    // Grafik: statistik kehadiran santri (per jenjang)
+    // Grafik: statistik kehadiran santri (per jenjang — sudah di-scope)
     const santriPerJenjang = await prisma.santri.groupBy({
       by: ['jenjang'],
-      where: { deleted_at: null, status: 'AKTIF' },
+      where: { deleted_at: null, status: 'AKTIF', ...jenjangFilter },
       _count: { id: true },
     });
 

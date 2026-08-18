@@ -13,8 +13,35 @@ export const GET = withAuth(
     const skip = (page - 1) * limit;
 
     const where: Prisma.PengumumanWhereInput = {};
-    if (target) where.target = { in: [target, 'SEMUA'] };
-    if (instansi) where.instansi = { in: [instansi, 'SEMUA'] };
+    const userRole = session.user.role;
+    const userInstansi = session.user.instansi || 'PONDOK';
+
+    if (userRole === 'WALI_SANTRI') {
+      where.target = { in: ['WALI_SANTRI', 'SEMUA'] };
+    } else if (userRole === 'GURU_MI') {
+      where.target = { in: ['GURU_MI', 'GURU', 'SEMUA'] };
+      where.instansi = { in: ['FORMAL_MI', 'MI', 'SEMUA'] };
+    } else if (userRole === 'GURU_MADRASAH' || userRole === 'MUSTAHIQ' || userRole === 'MUNAWWIB') {
+      where.target = { in: ['GURU_MADRASAH', 'GURU', 'SEMUA'] };
+      where.instansi = { in: ['MADRASAH', 'SEMUA'] };
+    } else if (userRole === 'KEAMANAN') {
+      where.target = { in: ['KEAMANAN', 'SEMUA'] };
+      where.instansi = { in: ['PONDOK', 'SEMUA'] };
+    } else if (userRole === 'ADMIN_INSTANSI' || userRole === 'SEKRETARIAT') {
+      // Scoped ke instansi user — tidak bisa melihat pengumuman instansi lain
+      if (userInstansi === 'MADRASAH') {
+        where.instansi = { in: ['MADRASAH', 'SEMUA'] };
+      } else if (userInstansi === 'MI') {
+        where.instansi = { in: ['FORMAL_MI', 'MI', 'SEMUA'] };
+      } else {
+        // PONDOK — bisa lihat pengumuman pondok dan semua
+        where.instansi = { in: ['PONDOK', 'SEMUA'] };
+        if (target) where.target = { in: [target, 'SEMUA'] };
+      }
+    } else {
+      if (target) where.target = { in: [target, 'SEMUA'] };
+      if (instansi) where.instansi = { in: [instansi, 'SEMUA'] };
+    }
 
     const [total, data] = await Promise.all([
       prisma.pengumuman.count({ where }),
@@ -28,17 +55,25 @@ export const GET = withAuth(
 
     return apiSuccess(data, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) });
   },
-  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI', 'WALI_SANTRI']
+  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI', 'WALI_SANTRI', 'KEAMANAN', 'MUNAWWIB', 'MUSTAHIQ']
 );
 
 // POST /api/v1/pengumuman
 export const POST = withAuth(
   async (req: NextRequest, session) => {
     const body = await req.json();
-    const { judul, isi, target, instansi, penting } = body;
+    const { judul, isi, target, instansi: bodyInstansi, penting } = body;
 
-    if (!judul || !isi || !target || !instansi) {
-      return apiError('Field wajib: judul, isi, target, instansi');
+    if (!judul || !isi || !target) {
+      return apiError('Field wajib: judul, isi, target');
+    }
+
+    // Pastikan instansi pengumuman sesuai instansi user — cegah cross-write
+    const userRole = session.user.role;
+    const userInstansi = session.user.instansi || 'PONDOK';
+    let resolvedInstansi = bodyInstansi || userInstansi;
+    if (userRole === 'ADMIN_INSTANSI' || userRole === 'SEKRETARIAT') {
+      resolvedInstansi = userInstansi; // override: selalu pakai instansi session
     }
 
     const pengumuman = await prisma.pengumuman.create({
@@ -46,7 +81,7 @@ export const POST = withAuth(
         judul,
         isi,
         target,
-        instansi,
+        instansi: resolvedInstansi,
         penulis: session.user.name || session.user.email,
         penting: penting || false,
       },
@@ -57,7 +92,7 @@ export const POST = withAuth(
       action: 'CREATE_PENGUMUMAN',
       entityType: 'Pengumuman',
       entityId: pengumuman.id,
-      metadata: { judul, target, instansi },
+      metadata: { judul, target, instansi: resolvedInstansi },
     });
 
     return apiSuccess(pengumuman, 'Pengumuman berhasil dipublikasikan.');

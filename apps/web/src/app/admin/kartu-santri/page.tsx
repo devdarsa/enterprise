@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import QRCode from 'qrcode';
 import { SkeletonTable } from '@/components/Loading';
 import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
@@ -24,11 +26,31 @@ export default function KartuSantriPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [cardTarget, setCardTarget] = useState<Santri | null>(null);
+  const [cardQrUrl, setCardQrUrl] = useState<string>('');
   const printRef = useRef<HTMLDivElement>(null);
 
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, msg?: string) =>
     setToast({ isOpen: true, type, title, message: msg });
+
+  useEffect(() => {
+    if (cardTarget) {
+      const qrPayload = JSON.stringify({
+        id: cardTarget.id,
+        nisn: cardTarget.nisn,
+        nisp: cardTarget.nisp || '',
+        nama: cardTarget.nama,
+        instansi: 'DARSA',
+      });
+      QRCode.toDataURL(qrPayload, {
+        width: 180,
+        margin: 1,
+        color: { dark: '#022c22', light: '#ffffff' },
+      }).then(setCardQrUrl).catch(() => setCardQrUrl(''));
+    } else {
+      setCardQrUrl('');
+    }
+  }, [cardTarget]);
 
   useEffect(() => {
     const fetchSantri = async () => {
@@ -238,9 +260,20 @@ export default function KartuSantriPage() {
 
                 {/* QR Section */}
                 <div className="relative p-4 bg-white rounded-2xl flex items-center justify-between gap-3 text-slate-900">
-                  <div className="w-20 h-20 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-inner shrink-0">
-                    QR
-                  </div>
+                  {cardQrUrl ? (
+                    <Image
+                      src={cardQrUrl}
+                      alt={`QR Code ${cardTarget.nama}`}
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="w-20 h-20 rounded-xl object-contain shrink-0 border border-slate-200"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-inner shrink-0">
+                      QR
+                    </div>
+                  )}
                   <div className="text-right text-[10px] font-mono text-slate-600 space-y-0.5">
                     <span className="block font-black text-emerald-800 text-xs">TOTP DYNAMIC QR</span>
                     <span className="block">Geolocation Radius: 200m</span>

@@ -52,23 +52,34 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Deteksi instansi dari cookie atau email
-    let instansi = request.cookies.get('darsa_instansi')?.value || 'PONDOK';
-    const cleanEmail = email.toLowerCase();
-    if (cleanEmail.includes('madrasah')) {
-      instansi = 'MADRASAH';
-    } else if (cleanEmail.includes('.mi') || cleanEmail.includes('mi@')) {
-      instansi = 'MI';
-    }
-
     // Ambil role dari DB
+    const cleanEmail = (email || '').toLowerCase();
     const userRoleRecord = await prisma.userRole.findFirst({
-      where: { user_id: userId },
+      where: { user_id: userId! },
       include: { role: true },
       orderBy: { created_at: 'asc' },
     });
 
     const role = userRoleRecord?.role?.name || (cleanEmail.includes('sekretariat') ? 'SEKRETARIAT' : 'WALI_SANTRI');
+
+    // Deteksi instansi berdasarkan role (konsisten dengan api-auth.ts) — tidak bergantung pada nama email
+    let instansi = 'PONDOK';
+    if (role === 'GURU_MADRASAH' || role === 'MUSTAHIQ' || role === 'MUNAWWIB') {
+      instansi = 'MADRASAH';
+    } else if (role === 'GURU_MI') {
+      instansi = 'MI';
+    } else if (role === 'SEKRETARIAT' || role === 'ADMIN_INSTANSI') {
+      // Untuk admin: coba baca dari cookie darsa_instansi yang di-set saat login
+      const cookieInstansi = request.cookies.get('darsa_instansi')?.value;
+      if (cookieInstansi && ['PONDOK', 'MADRASAH', 'MI'].includes(cookieInstansi.toUpperCase())) {
+        instansi = cookieInstansi.toUpperCase();
+      } else if (cleanEmail.includes('madrasah')) {
+        instansi = 'MADRASAH';
+      } else if (cleanEmail.includes('.mi') || cleanEmail.includes('mi@')) {
+        instansi = 'MI';
+      }
+      // else tetap PONDOK
+    }
 
     return NextResponse.json({
       success: true,

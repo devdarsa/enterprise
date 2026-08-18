@@ -16,6 +16,22 @@ export const GET = withAuth(
     if (santri_id) where.santri_id = santri_id;
     if (status) where.status = status as Prisma.EnumStatusAbsensiFilter['equals'];
 
+    const userRole = session.user.role;
+    const userInstansi = session.user.instansi || 'PONDOK';
+
+    if (userRole === 'GURU_MI') {
+      where.santri = { jenjang: 'MI' };
+    } else if (userRole === 'GURU_MADRASAH' || userRole === 'MUSTAHIQ' || userRole === 'MUNAWWIB') {
+      where.santri = { jenjang: 'MADRASAH_DINIYAH' };
+    } else if (userRole === 'ADMIN_INSTANSI' || userRole === 'SEKRETARIAT') {
+      if (userInstansi === 'MI') {
+        where.santri = { jenjang: 'MI' };
+      } else if (userInstansi === 'MADRASAH') {
+        where.santri = { jenjang: 'MADRASAH_DINIYAH' };
+      }
+      // PONDOK — lihat semua (tidak difilter lebih lanjut)
+    }
+
     const [total, logs] = await Promise.all([
       prisma.absensiLog.count({ where }),
       prisma.absensiLog.findMany({

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 
 export default function GeneratorSuratPage() {
-  const [nomor, setNomor] = useState(() => `SRT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(100 + Math.random() * 900)}`);
+  const [nomor, setNomor] = useState(() => `SRT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Date.now().toString().slice(-4)}`);
   const [santri, setSantri] = useState('');
   const [keperluan, setKeperluan] = useState('');
   const [instansi, setInstansi] = useState<'PONDOK' | 'MADRASAH' | 'MI'>('PONDOK');

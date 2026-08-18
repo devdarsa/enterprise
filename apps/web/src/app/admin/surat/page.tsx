@@ -32,12 +32,12 @@ export default function PersuratanDigitalPage() {
   const [detailSurat, setDetailSurat] = useState<Surat | null>(null);
   const [editSurat, setEditSurat] = useState<Surat | null>(null);
 
-  // Form State inside Modal (Identical to Manual Generator Form)
+  // Form State inside Modal
   const [nomor, setNomor] = useState(
-    () => `SRT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(100 + Math.random() * 900)}`
+    () => `SRT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Date.now().toString().slice(-4)}`
   );
-  const [santri, setSantri] = useState('Muhammad Raihan');
-  const [keperluan, setKeperluan] = useState('Izin Pulang Keperluan Keluarga');
+  const [santri, setSantri] = useState('');
+  const [keperluan, setKeperluan] = useState('');
   const [instansi, setInstansi] = useState<'PONDOK' | 'MADRASAH' | 'MI'>('PONDOK');
   const [submitting, setSubmitting] = useState(false);
 

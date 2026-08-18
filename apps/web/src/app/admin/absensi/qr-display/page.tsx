@@ -5,12 +5,34 @@ import Image from 'next/image';
 import QRCode from 'qrcode';
 
 export default function QRDisplayPage() {
-  const [token, setToken] = useState(() => 'DARSA-QR-' + Math.random().toString(36).substring(2, 10).toUpperCase());
+  const [token, setToken] = useState<string>('MEMUAT...');
   const [countdown, setCountdown] = useState(10);
   const [qrSrc, setQrSrc] = useState<string>('');
 
+  const fetchSession = async () => {
+    try {
+      const res = await fetch('/api/v1/absensi/qr-session', { method: 'POST' });
+      if (res.ok) {
+        const json = await res.json();
+        const newToken = json?.data?.qr_token || json?.data?.token;
+        if (newToken) {
+          setToken(newToken);
+          setCountdown(10);
+        }
+      }
+    } catch (err) {
+      console.error('Gagal mengambil sesi QR presensi dari database:', err);
+    }
+  };
+
   useEffect(() => {
-    generateQRCode(token);
+    fetchSession();
+  }, []);
+
+  useEffect(() => {
+    if (token && token !== 'MEMUAT...') {
+      generateQRCode(token);
+    }
   }, [token]);
 
   const generateQRCode = async (text: string) => {
@@ -33,9 +55,7 @@ export default function QRDisplayPage() {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          const newHex = Math.random().toString(36).substring(2, 10).toUpperCase();
-          const newToken = `DARSA-QR-${newHex}`;
-          setToken(newToken);
+          fetchSession();
           return 10;
         }
         return prev - 1;

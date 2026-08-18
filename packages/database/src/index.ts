@@ -10,6 +10,14 @@ function getDatabaseUrl(): string | undefined {
       .replace('aws-0-ap-southeast-1.pooler.supabase.com', 'aws-0-ap-northeast-1.pooler.supabase.com')
       .replace('aws-0-me-central-1.pooler.supabase.com', 'aws-0-ap-northeast-1.pooler.supabase.com');
   }
+
+  // Ensure connection pooling params are set for optimal serverless performance
+  if (!url.includes('connection_limit') && url.includes('?')) {
+    url += '&connection_limit=10&pool_timeout=15&connect_timeout=10';
+  } else if (!url.includes('connection_limit') && !url.includes('?')) {
+    url += '?connection_limit=10&pool_timeout=15&connect_timeout=10';
+  }
+
   return url;
 }
 
@@ -37,3 +45,4 @@ export function getPrisma(): PrismaClient {
 }
 
 export * from '@prisma/client';
+

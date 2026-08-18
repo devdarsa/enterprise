@@ -20,6 +20,23 @@ export const GET = withAuth(
       ];
     }
 
+    const userRole = session.user.role;
+    const userInstansi = session.user.instansi || 'PONDOK';
+
+    // Scope berdasarkan instansi user — cegah cross-instansi data leak
+    if (userRole === 'GURU_MI') {
+      where.jadwal = { some: { mata_pelajaran: { jenjang: 'MI' } } };
+    } else if (userRole === 'GURU_MADRASAH' || userRole === 'MUSTAHIQ' || userRole === 'MUNAWWIB') {
+      where.jadwal = { some: { mata_pelajaran: { jenjang: 'MADRASAH_DINIYAH' } } };
+    } else if (userRole === 'ADMIN_INSTANSI' || userRole === 'SEKRETARIAT') {
+      if (userInstansi === 'MI') {
+        where.jadwal = { some: { mata_pelajaran: { jenjang: 'MI' } } };
+      } else if (userInstansi === 'MADRASAH') {
+        where.jadwal = { some: { mata_pelajaran: { jenjang: 'MADRASAH_DINIYAH' } } };
+      }
+      // PONDOK — tampilkan semua guru pondok (tanpa filter jenjang)
+    }
+
     const [total, guru] = await Promise.all([
       prisma.guru.count({ where }),
       prisma.guru.findMany({
@@ -44,7 +61,7 @@ export const GET = withAuth(
 
     return apiSuccess(mapped, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) }, 5);
   },
-  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI']
+  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI', 'MUSTAHIQ', 'MUNAWWIB']
 );
 
 // POST /api/v1/guru — Tambah guru baru

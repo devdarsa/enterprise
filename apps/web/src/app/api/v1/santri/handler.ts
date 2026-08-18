@@ -30,6 +30,43 @@ export const GET = withAuth(
     if (status) where.status = status as Prisma.EnumStatusSantriFilter['equals'];
     if (jenjang) where.jenjang = jenjang as Prisma.EnumJenjangSantriFilter['equals'];
 
+    // Strict Multi-Instansi & Role Scoping
+    const userRole = session.user.role;
+    const userInstansi = session.user.instansi || 'PONDOK';
+
+    if (userRole === 'GURU_MI') {
+      where.jenjang = 'MI';
+    } else if (userRole === 'GURU_MADRASAH' || userRole === 'MUSTAHIQ' || userRole === 'MUNAWWIB') {
+      where.jenjang = 'MADRASAH_DINIYAH';
+    } else if (userRole === 'KEAMANAN') {
+      where.jenjang = 'PONDOK';
+    } else if (userRole === 'ADMIN_INSTANSI') {
+      // Admin instansi hanya bisa melihat data santri instansinya sendiri
+      if (userInstansi === 'MADRASAH') {
+        where.jenjang = 'MADRASAH_DINIYAH';
+      } else if (userInstansi === 'MI') {
+        where.jenjang = 'MI';
+      } else {
+        where.jenjang = 'PONDOK';
+      }
+    } else if (userRole === 'SEKRETARIAT') {
+      // Sekretariat scoped ke instansinya — SEKRETARIAT Pondok hanya melihat Pondok, dst
+      if (userInstansi === 'MADRASAH') {
+        where.jenjang = 'MADRASAH_DINIYAH';
+      } else if (userInstansi === 'MI') {
+        where.jenjang = 'MI';
+      }
+      // Jika instansi = PONDOK, Sekretariat Pondok melihat SEMUA santri pondok (tidak difilter lebih lanjut)
+    } else if (instansi) {
+      if (instansi === 'FORMAL_MI' || instansi === 'MI') {
+        where.jenjang = 'MI';
+      } else if (instansi === 'MADRASAH' || instansi === 'DINIYAH') {
+        where.jenjang = 'MADRASAH_DINIYAH';
+      } else if (instansi === 'PONDOK') {
+        where.jenjang = 'PONDOK';
+      }
+    }
+
     const [total, santri] = await Promise.all([
       prisma.santri.count({ where }),
       prisma.santri.findMany({

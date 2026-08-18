@@ -86,26 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Live Interactive Notifications State
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'notif-1',
-      type: 'PERIZINAN',
-      title: 'Permohonan Izin Santri Baru',
-      desc: 'Santri Ahmad Muzakki mengajukan izin pulang',
-      time: '5 mnt lalu',
-      unread: true,
-      link: '/admin/surat',
-    },
-    {
-      id: 'notif-2',
-      type: 'PRESENSI',
-      title: 'Scan QR Presensi Guru',
-      desc: 'Presensi lokasi pengajar aktif tercatat',
-      time: '35 mnt lalu',
-      unread: true,
-      link: '/admin/santri',
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const showToast = (type: ToastProps['type'], title: string, message?: string) => {
     setToast({ isOpen: true, type, title, message });
@@ -256,15 +237,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const currentInstansi = instansiConfig[activeInstansi] || instansiConfig.pondok;
 
+
+  const userRole = user?.role || 'SEKRETARIAT';
+  const userInstansi = user?.instansi || 'PONDOK';
+
+  // === Navigasi berbasis instansi: mencegah kebocoran menu antar instansi ===
   const navigationGroups = [
     {
       groupTitle: 'DASHBOARD',
+      instansiAllowed: ['PONDOK', 'MADRASAH', 'MI'],
       items: [
         { label: 'Overview Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
       ],
     },
     {
       groupTitle: 'DATABASE PONDOK',
+      instansiAllowed: ['PONDOK'],
       items: [
         { label: 'Data Santri & Wali', path: '/admin/santri', icon: GraduationCap },
         { label: 'Data Asrama & Kamar', path: '/admin/asrama', icon: Building2 },
@@ -274,7 +262,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ],
     },
     {
+      groupTitle: 'DATABASE MADRASAH',
+      instansiAllowed: ['MADRASAH'],
+      items: [
+        { label: 'Data Santri Madrasah', path: '/admin/santri', icon: GraduationCap },
+        { label: 'Data Pengajar Madrasah', path: '/admin/guru', icon: UserCheck },
+        { label: 'Akademik & Jadwal', path: '/admin/jadwal', icon: Calendar },
+      ],
+    },
+    {
+      groupTitle: 'DATABASE MI',
+      instansiAllowed: ['MI'],
+      items: [
+        { label: 'Data Siswa MI', path: '/admin/santri', icon: GraduationCap },
+        { label: 'Data Guru MI', path: '/admin/guru', icon: UserCheck },
+        { label: 'Jadwal MI', path: '/admin/jadwal', icon: Calendar },
+      ],
+    },
+    {
       groupTitle: 'KEAMANAN & DISIPLIN',
+      instansiAllowed: ['PONDOK'],
       items: [
         { label: 'Perizinan & Surat', path: '/admin/surat', icon: Mail },
         { label: 'Pelanggaran & Takzir', path: '/admin/pelanggaran', icon: ShieldAlert },
@@ -282,9 +289,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ],
     },
     {
-      groupTitle: 'SISTEM & UTILITAS',
+      groupTitle: 'KOMUNIKASI',
+      instansiAllowed: ['PONDOK', 'MADRASAH', 'MI'],
       items: [
+        { label: 'Pengumuman', path: '/admin/pengumuman', icon: Bell },
         { label: 'Arsip Dokumen', path: '/admin/arsip', icon: Archive },
+      ],
+    },
+    {
+      groupTitle: 'SISTEM & UTILITAS',
+      instansiAllowed: ['PONDOK', 'MADRASAH', 'MI'],
+      items: [
         { label: 'Tahun Ajaran', path: '/admin/tahun-ajaran', icon: Calendar },
         { label: 'Manajemen Akun', path: '/admin/akun', icon: UserCog },
         { label: 'Hak Akses & Roles', path: '/admin/roles', icon: KeyRound },
@@ -295,22 +310,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     },
   ];
 
-  const userRole = user?.role || 'SEKRETARIAT';
-
   const visibleGroups = navigationGroups
+    .filter((group) => group.instansiAllowed.includes(userInstansi))
     .map((group) => {
+      // KEAMANAN hanya bisa akses SOP
       if (userRole === 'KEAMANAN') {
-        if (group.groupTitle === 'DATABASE PONDOK') return null;
         if (group.groupTitle === 'SISTEM & UTILITAS') {
-          return {
-            ...group,
-            items: group.items.filter((item) => item.path === '/admin/sop'),
-          };
+          return { ...group, items: group.items.filter((item) => item.path === '/admin/sop') };
         }
+        if (['DATABASE PONDOK', 'DATABASE MADRASAH', 'DATABASE MI'].includes(group.groupTitle)) {
+          return null;
+        }
+      }
+      // ADMIN_INSTANSI: sembunyikan Hak Akses & Roles dari SISTEM
+      if (userRole === 'ADMIN_INSTANSI' && group.groupTitle === 'SISTEM & UTILITAS') {
+        return {
+          ...group,
+          items: group.items.filter((item) => item.path !== '/admin/roles' && item.path !== '/admin/konfigurasi'),
+        };
       }
       return group;
     })
-    .filter(Boolean) as typeof navigationGroups;
+    .filter(Boolean) as (typeof navigationGroups);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 

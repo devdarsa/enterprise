@@ -19,6 +19,33 @@ export const GET = withAuth(
       ];
     }
 
+    const userRole = session.user.role;
+    const userInstansi = session.user.instansi || 'PONDOK';
+
+    // Filter users by instansi-relevant roles to prevent cross-instansi data leakage
+    const instansiRoles: Record<string, string[]> = {
+      PONDOK: ['SEKRETARIAT', 'ADMIN_INSTANSI', 'KEAMANAN', 'WALI_SANTRI', 'PEGAWAI'],
+      MADRASAH: ['ADMIN_INSTANSI', 'GURU_MADRASAH', 'MUSTAHIQ', 'MUNAWWIB'],
+      MI: ['ADMIN_INSTANSI', 'GURU_MI'],
+    };
+
+    // ADMIN_INSTANSI dibatasi hanya lihat user instansinya, SEKRETARIAT melihat semua (jika PONDOK)
+    if (userRole === 'ADMIN_INSTANSI') {
+      where.user_roles = {
+        some: {
+          role: { name: { in: instansiRoles[userInstansi] || instansiRoles.PONDOK } },
+        },
+      };
+    }
+    // SEKRETARIAT non-Pondok (Madrasah/MI) juga dibatasi
+    if (userRole === 'SEKRETARIAT' && userInstansi !== 'PONDOK') {
+      where.user_roles = {
+        some: {
+          role: { name: { in: instansiRoles[userInstansi] || [] } },
+        },
+      };
+    }
+
     const [total, users] = await Promise.all([
       prisma.user.count({ where }),
       prisma.user.findMany({

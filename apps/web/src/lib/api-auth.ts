@@ -7,12 +7,22 @@ export interface AuthSession {
     email: string;
     name: string;
     role?: string;
+    instansi?: string; // 'PONDOK' | 'MADRASAH' | 'MI'
   };
 }
 
-// In-Memory Fast Cache for Auth Sessions (TTL: 30s)
-// Drastically cuts down PostgreSQL roundtrips from 3-4 per request down to 0 for warm requests!
+// In-Memory Fast Cache for Auth Sessions (TTL: 120s)
+// Drastically cuts DB round-trips — warm requests never hit PostgreSQL!
+const SESSION_TTL_MS = 120_000; // 2 minutes — safe for short-lived admin sessions
 const sessionCache = new Map<string, { session: AuthSession; expiresAt: number }>();
+
+// Periodic cleanup every 5 minutes to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of sessionCache.entries()) {
+    if (val.expiresAt < now) sessionCache.delete(key);
+  }
+}, 5 * 60_000);
 
 export async function authenticateRequest(request: NextRequest): Promise<{ authenticated: boolean; user?: AuthSession['user'] }> {
   const session = await getApiSession(request);
@@ -50,7 +60,7 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
     });
     if (session?.user) {
       const authSession = session as AuthSession;
-      if (!authSession.user.role) {
+      if (!authSession.user.role || !authSession.user.instansi) {
         const { prisma } = await import('@darsa/database');
         const userRole = await prisma.userRole.findFirst({
           where: { user_id: authSession.user.id },
@@ -59,10 +69,20 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
         if (userRole) {
           authSession.user.role = userRole.role.name;
         }
+        // Resolve instansi
+        const role = authSession.user.role || '';
+        const email = authSession.user.email.toLowerCase();
+        if (role === 'GURU_MADRASAH' || role === 'MUSTAHIQ' || role === 'MUNAWWIB' || email.includes('madrasah')) {
+          authSession.user.instansi = 'MADRASAH';
+        } else if (role === 'GURU_MI' || email.includes('.mi') || email.includes('mi@')) {
+          authSession.user.instansi = 'MI';
+        } else {
+          authSession.user.instansi = 'PONDOK';
+        }
       }
 
       if (sessionToken) {
-        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + 30_000 });
+        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + SESSION_TTL_MS });
       }
       return authSession;
     }
@@ -85,16 +105,25 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
 
       if (dbSession?.user && !dbSession.user.deleted_at) {
         const userRole = dbSession.user.user_roles?.[0]?.role?.name || 'SEKRETARIAT';
+        // Resolve instansi from guru record or email
+        let instansi = 'PONDOK';
+        const email = dbSession.user.email.toLowerCase();
+        if (email.includes('madrasah') || userRole === 'GURU_MADRASAH' || userRole === 'MUSTAHIQ' || userRole === 'MUNAWWIB') {
+          instansi = 'MADRASAH';
+        } else if (email.includes('.mi') || email.includes('mi@') || userRole === 'GURU_MI') {
+          instansi = 'MI';
+        }
         const authSession: AuthSession = {
           user: {
             id: dbSession.user.id,
             email: dbSession.user.email,
             name: dbSession.user.nama_lengkap || dbSession.user.email,
             role: userRole,
+            instansi,
           },
         };
 
-        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + 30_000 });
+        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + SESSION_TTL_MS });
         return authSession;
       }
     }
@@ -179,7 +208,11 @@ export function apiError(message: string, status = 400, details?: unknown) {
   return NextResponse.json({ success: false, error: message, details }, { status });
 }
 
-export async function logAudit(params: {
+/**
+ * Fire-and-forget audit log — never blocks API response latency.
+ * Errors are silently swallowed to avoid cascading failures.
+ */
+export function logAudit(params: {
   userId?: string;
   action: string;
   entityType: string;
@@ -188,20 +221,23 @@ export async function logAudit(params: {
   ip?: string;
   userAgent?: string;
 }) {
-  try {
-    const { prisma } = await import('@darsa/database');
-    await prisma.auditLog.create({
-      data: {
-        user_id: params.userId || null,
-        action: params.action,
-        entity_type: params.entityType,
-        entity_id: params.entityId || null,
-        metadata: params.metadata ? JSON.parse(JSON.stringify(params.metadata)) : undefined,
-        ip_address: params.ip || null,
-        user_agent: params.userAgent || null,
-      },
-    });
-  } catch {
-    console.error('[AuditLog] Failed to write audit entry');
-  }
+  // Intentionally NOT awaited — runs in background, response returns immediately
+  (async () => {
+    try {
+      const { prisma } = await import('@darsa/database');
+      await prisma.auditLog.create({
+        data: {
+          user_id: params.userId || null,
+          action: params.action,
+          entity_type: params.entityType,
+          entity_id: params.entityId || null,
+          metadata: params.metadata ? JSON.parse(JSON.stringify(params.metadata)) : undefined,
+          ip_address: params.ip || null,
+          user_agent: params.userAgent || null,
+        },
+      });
+    } catch {
+      // Silent fail — audit log failure must never crash the main request
+    }
+  })();
 }

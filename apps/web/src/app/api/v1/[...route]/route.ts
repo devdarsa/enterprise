@@ -38,6 +38,7 @@ import * as asrama from '../asrama/handler';
 import * as instansi from '../instansi/handler';
 import * as roles from '../roles/handler';
 import * as arsip from '../arsip/handler';
+import * as nilai from '../nilai/handler';
 
 type ApiHandlerModule = Record<string, (...args: any[]) => Promise<Response>>;
 
@@ -74,6 +75,7 @@ const handlers: Record<string, ApiHandlerModule> = {
   'tahun-ajaran': tahunAjaran as unknown as ApiHandlerModule,
   'wali/anak': waliAnak as unknown as ApiHandlerModule,
   'wali/verifikasi-nik': waliVerifikasiNik as unknown as ApiHandlerModule,
+  'nilai': nilai as unknown as ApiHandlerModule,
   'wilayah': wilayah as unknown as ApiHandlerModule,
 };
 
