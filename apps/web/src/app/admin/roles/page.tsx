@@ -43,83 +43,9 @@ const PERMISSION_TYPES = [
   { key: 'approval', label: 'Persetujuan (Approval)' },
 ];
 
-const INITIAL_ROLES: RoleItem[] = [
-  {
-    id: 'role-1',
-    kodeRole: 'SEKRETARIAT',
-    namaRole: 'Sekretariat Utama Pondok',
-    deskripsi: 'Administrator Super Pondok Pesantren — Akses Penuh Master Database',
-    isBuiltIn: true,
-    icon: '🏛️',
-    warnaHex: '#157340',
-    status: 'AKTIF',
-    jumlahPengguna: 4,
-    permissions: MODUL_LIST.reduce((acc, m) => ({ ...acc, [m.key]: PERMISSION_TYPES.map(p => p.key) }), {}),
-  },
-  {
-    id: 'role-2',
-    kodeRole: 'ADMIN_INSTANSI',
-    namaRole: 'Administrator Instansi Diniyah / MI',
-    deskripsi: 'Sekretariat Pengelola Unit Pendidikan Madrasah & MI Formal',
-    isBuiltIn: true,
-    icon: '📖',
-    warnaHex: '#0f4928',
-    status: 'AKTIF',
-    jumlahPengguna: 6,
-    permissions: MODUL_LIST.reduce((acc, m) => ({ ...acc, [m.key]: ['view', 'create', 'update', 'print', 'export', 'import', 'approval'] }), {}),
-  },
-  {
-    id: 'role-3',
-    kodeRole: 'KEAMANAN',
-    namaRole: 'Tim Keamanan & Perizinan',
-    deskripsi: 'Petugas Pos Keamanan — Verifikasi Perizinan Pulang & Catat Takzir',
-    isBuiltIn: true,
-    icon: '🛡️',
-    warnaHex: '#b91c1c',
-    status: 'AKTIF',
-    jumlahPengguna: 8,
-    permissions: {
-      santri: ['view'],
-      pelanggaran: ['view', 'create', 'update', 'delete'],
-      surat: ['view', 'create', 'update', 'approval', 'print'],
-    },
-  },
-  {
-    id: 'role-4',
-    kodeRole: 'GURU_MADRASAH',
-    namaRole: 'Ustadz Mustahiq / Munawwib Diniyah',
-    deskripsi: 'Dewan Guru Pengajar & Wali Kelas Madrasah Diniyah',
-    isBuiltIn: true,
-    icon: '👨‍🏫',
-    warnaHex: '#d97706',
-    status: 'AKTIF',
-    jumlahPengguna: 24,
-    permissions: {
-      santri: ['view'],
-      guru: ['view'],
-      rapor: ['view', 'create', 'update', 'print'],
-    },
-  },
-  {
-    id: 'role-5',
-    kodeRole: 'ROLE_MUROQOBAH',
-    namaRole: 'Lajnah Muroqobah Ibadah (Kustom)',
-    deskripsi: 'Role Kustom Instansi — Pengawas Kedisiplinan Sholat & Kegiatan Santri',
-    isBuiltIn: false,
-    icon: '🕌',
-    warnaHex: '#0284c7',
-    status: 'AKTIF',
-    jumlahPengguna: 0,
-    permissions: {
-      santri: ['view'],
-      pelanggaran: ['view', 'create'],
-    },
-  },
-];
-
 export default function ManajemenRolePage() {
-  const [roleList, setRoleList] = useState<RoleItem[]>(INITIAL_ROLES);
-  const [loading, setLoading] = useState(false);
+  const [roleList, setRoleList] = useState<RoleItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {

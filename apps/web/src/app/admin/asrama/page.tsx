@@ -43,12 +43,12 @@ export default function ManajemenAsramaPage() {
           if (json.success && Array.isArray(json.data)) {
             const mapped = json.data.map((k: any) => ({
               id: k.id,
-              gedung: k.gedung?.nama_gedung || 'Gedung A (Al-Farabi)',
+              gedung: k.nama_gedung || k.gedung?.nama_gedung || '-',
               nomorKamar: k.nama_kamar,
-              kapasitas: k.kapasitas || 15,
-              terisi: k.santri?.length || 0,
-              waliKamar: 'Ustadz Pembina',
-              status: (k.santri?.length || 0) >= (k.kapasitas || 15) ? 'PENUH' : 'TERSEDIA',
+              kapasitas: Number(k.kapasitas) || 0,
+              terisi: Number(k.terisi) || 0,
+              waliKamar: k.wali_kamar || '-',
+              status: k.status || 'TERSEDIA',
             }));
             setKamarList(mapped);
           }
