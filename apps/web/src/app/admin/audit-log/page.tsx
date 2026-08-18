@@ -90,7 +90,7 @@ export default function AuditLogRecycleBinPage() {
         setLoading(false);
       }
     }
-  }, [activeTab]);
+  }, [activeTab, auditList.length]);
 
   useEffect(() => {
     fetchData();

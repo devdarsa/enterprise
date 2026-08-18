@@ -50,6 +50,7 @@ export default function TahunAjaranPage() {
 
   useEffect(() => {
     fetchTahunAjaran();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTahunAjaran = async () => {
