@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { LoadingSpinner } from '@/components/Loading';
 import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
@@ -172,9 +173,12 @@ export default function DetailSantriPage() {
         <div className="relative flex items-start gap-6">
           {/* Avatar */}
           {santri.avatar_url ? (
-            <img
+            <Image
               src={santri.avatar_url}
               alt={santri.nama_lengkap}
+              width={80}
+              height={80}
+              unoptimized
               className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400/90 shadow-lg shrink-0 bg-white/10"
             />
           ) : (
@@ -429,9 +433,12 @@ export default function DetailSantriPage() {
                 <label className="block font-bold text-slate-700 mb-1">Upload Pas Foto Santri (File)</label>
                 <div className="flex items-center gap-3">
                   {editForm.avatar_url ? (
-                    <img
+                    <Image
                       src={editForm.avatar_url}
                       alt="Preview Foto"
+                      width={48}
+                      height={48}
+                      unoptimized
                       className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0"
                     />
                   ) : (

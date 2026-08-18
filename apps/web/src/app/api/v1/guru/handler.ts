@@ -28,12 +28,21 @@ export const GET = withAuth(
         take: limit,
         orderBy: { nama_lengkap: 'asc' },
         include: {
-          user: { select: { email: true } },
+          user: { select: { email: true, foto_url: true } },
+          jadwal: {
+            take: 1,
+            include: { mata_pelajaran: true },
+          },
         },
       }),
     ]);
 
-    return apiSuccess(guru, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) }, 5);
+    const mapped = guru.map((g) => ({
+      ...g,
+      foto_url: g.user?.foto_url || undefined,
+    }));
+
+    return apiSuccess(mapped, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) }, 5);
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI']
 );
@@ -42,17 +51,37 @@ export const GET = withAuth(
 export const POST = withAuth(
   async (req: NextRequest, session) => {
     const body = await req.json();
-    const { nama_lengkap, nip, telepon, user_id } = body;
+    const { nama_lengkap, nip, telepon, user_id, foto_url } = body;
 
-    if (!nama_lengkap || !user_id) {
-      return apiError('nama_lengkap dan user_id wajib diisi.');
+    if (!nama_lengkap) {
+      return apiError('Nama lengkap wajib diisi.');
     }
 
-    const existing = await prisma.guru.findFirst({ where: { user_id } });
-    if (existing) return apiError('User ini sudah memiliki profil guru.', 409);
+    let finalUserId = user_id;
+    if (!finalUserId) {
+      const newUser = await prisma.user.create({
+        data: {
+          email: `guru.${(nip || Date.now()).toString().toLowerCase()}@darsa.my.id`,
+          nama_lengkap,
+          foto_url: foto_url || null,
+          email_verified: true,
+        },
+      });
+      finalUserId = newUser.id;
+    } else if (foto_url) {
+      await prisma.user.update({
+        where: { id: finalUserId },
+        data: { foto_url },
+      }).catch(() => {});
+    }
 
     const guru = await prisma.guru.create({
-      data: { user_id, nama_lengkap, nip, telepon },
+      data: {
+        user_id: finalUserId,
+        nama_lengkap,
+        nip: nip || `NIP-${Date.now().toString().slice(-8)}`,
+        telepon,
+      },
     });
 
     await logAudit({
@@ -64,6 +93,72 @@ export const POST = withAuth(
     });
 
     return apiSuccess(guru, `Data guru ${nama_lengkap} berhasil disimpan.`);
+  },
+  ['SEKRETARIAT', 'ADMIN_INSTANSI']
+);
+
+// PUT /api/v1/guru — Update profil guru & foto
+export const PUT = withAuth(
+  async (req: NextRequest, session) => {
+    const body = await req.json();
+    const { id, nama_lengkap, nip, telepon, status_pegawai, foto_url } = body;
+
+    if (!id) {
+      return apiError('ID guru wajib disertakan.', 400);
+    }
+
+    const existing = await prisma.guru.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError('Data guru tidak ditemukan.', 404);
+    }
+
+    if (foto_url && existing.user_id) {
+      await prisma.user.update({
+        where: { id: existing.user_id },
+        data: { foto_url, nama_lengkap: nama_lengkap || existing.nama_lengkap },
+      }).catch(() => {});
+    } else if (foto_url && !existing.user_id) {
+      const newUser = await prisma.user.create({
+        data: {
+          email: `guru.${(existing.nip || existing.id).toLowerCase()}@darsa.my.id`,
+          nama_lengkap: nama_lengkap || existing.nama_lengkap,
+          foto_url,
+          email_verified: true,
+        },
+      }).catch(() => null);
+      if (newUser) {
+        await prisma.guru.update({
+          where: { id },
+          data: { user_id: newUser.id },
+        });
+      }
+    }
+
+    const updated = await prisma.guru.update({
+      where: { id },
+      data: {
+        nama_lengkap: nama_lengkap !== undefined ? nama_lengkap : existing.nama_lengkap,
+        nip: nip !== undefined ? nip : existing.nip,
+        telepon: telepon !== undefined ? telepon : existing.telepon,
+        status_pegawai: status_pegawai !== undefined ? status_pegawai : existing.status_pegawai,
+      },
+      include: {
+        user: { select: { email: true, foto_url: true } },
+      },
+    });
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE_GURU',
+      entityType: 'Guru',
+      entityId: id,
+      metadata: { perubahan: body },
+    });
+
+    return apiSuccess({
+      ...updated,
+      foto_url: foto_url || updated.user?.foto_url,
+    }, 'Profil guru berhasil diperbarui.');
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI']
 );

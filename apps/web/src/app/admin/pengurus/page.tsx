@@ -340,7 +340,25 @@ export default function DataPengurusPage() {
                 ).map((item) => (
                   <tr key={item.id}>
                     <td className="font-mono text-xs font-bold text-[#135e35]">{item.nik}</td>
-                    <td className="font-bold text-slate-900">{item.nama}</td>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        {item.avatar_url ? (
+                          <Image
+                            src={item.avatar_url}
+                            alt={item.nama}
+                            width={32}
+                            height={32}
+                            unoptimized
+                            className="w-8 h-8 rounded-lg object-cover border border-emerald-600/40 shadow-sm shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px] shrink-0">
+                            {item.nama.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="font-bold text-slate-900 leading-snug">{item.nama}</span>
+                      </div>
+                    </td>
                     <td className="font-semibold text-slate-700">{item.jabatan}</td>
                     <td>
                       <span className="badge-aktif">{item.unit}</span>

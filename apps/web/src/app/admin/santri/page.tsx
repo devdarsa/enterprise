@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import { Pagination } from '@/components/Pagination';
@@ -466,9 +467,12 @@ export default function MasterSantriPage() {
                     <td>
                       <div className="flex items-center gap-2.5">
                         {santri.avatar_url ? (
-                          <img
+                          <Image
                             src={santri.avatar_url}
                             alt={santri.nama}
+                            width={32}
+                            height={32}
+                            unoptimized
                             className="w-8 h-8 rounded-lg object-cover border border-emerald-600/40 shadow-sm shrink-0"
                           />
                         ) : (

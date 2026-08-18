@@ -218,7 +218,25 @@ export default function MasterGuruPage() {
                 ).map((g) => (
                   <tr key={g.id}>
                     <td className="font-mono text-xs font-bold text-[#135e35]">{g.nip}</td>
-                    <td className="font-bold text-slate-900">{g.nama}</td>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        {g.foto_url ? (
+                          <Image
+                            src={g.foto_url}
+                            alt={g.nama}
+                            width={32}
+                            height={32}
+                            unoptimized
+                            className="w-8 h-8 rounded-lg object-cover border border-emerald-600/40 shadow-sm shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px] shrink-0">
+                            {g.nama.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="font-bold text-slate-900 leading-snug">{g.nama}</span>
+                      </div>
+                    </td>
                     <td className="text-xs text-slate-700 font-semibold">{g.tugas}</td>
                     <td className="font-mono text-xs text-slate-600">{g.telepon}</td>
                     <td>
