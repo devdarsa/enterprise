@@ -75,7 +75,7 @@ export default function QRDisplayPage() {
           {/* Real Scannable QR Code Canvas Box */}
           <div className="w-72 h-72 mx-auto bg-white border-4 border-emerald-500 rounded-3xl p-4 flex items-center justify-center relative shadow-2xl my-4">
             {qrSrc ? (
-              <img src={qrSrc} alt="QR Presensi" className="w-full h-full object-contain rounded-xl" />
+              <Image src={qrSrc} alt="QR Presensi" width={300} height={300} unoptimized className="w-full h-full object-contain rounded-xl" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium">
                 Generating QR...

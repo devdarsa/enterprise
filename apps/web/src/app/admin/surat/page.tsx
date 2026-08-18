@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Modal from '@/components/Modal';
 import Toast, { ToastProps } from '@/components/Toast';
 import { LoadingSpinner, SkeletonTable, EmptyState } from '@/components/Loading';
@@ -67,11 +67,7 @@ export default function PersuratanDigitalPage() {
     } catch {}
   }, []);
 
-  useEffect(() => {
-    fetchSurat();
-  }, [instansiFilter]);
-
-  const fetchSurat = async () => {
+  const fetchSurat = useCallback(async () => {
     const cacheKey = `list_${instansiFilter}`;
     const cached = await getIndexedDBCache<Surat[]>('surat', cacheKey);
     if (cached && cached.length > 0) {
@@ -88,12 +84,16 @@ export default function PersuratanDigitalPage() {
         setSuratList(json.data);
         setIndexedDBCache('surat', cacheKey, json.data);
       }
-    } catch {
-      if (!cached) showToast('error', 'Gagal Memuat Surat', 'Terjadi kesalahan koneksi database.');
+    } catch (e) {
+      console.error('Gagal memuat surat:', e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [instansiFilter]);
+
+  useEffect(() => {
+    fetchSurat();
+  }, [fetchSurat]);
 
   const handleAddSurat = async (e: React.FormEvent) => {
     e.preventDefault();

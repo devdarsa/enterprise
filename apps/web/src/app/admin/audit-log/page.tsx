@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import { PageHeader } from '@/components/PageHeader';
@@ -33,13 +33,7 @@ export default function AuditLogRecycleBinPage() {
   const showToast = (type: ToastProps['type'], title: string, message?: string) =>
     setToast({ isOpen: true, type, title, message });
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, [activeTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (activeTab === 'audit') {
       const cached = await getIndexedDBCache<AuditItem[]>('audit_log', 'list');
       if (cached && cached.length > 0) {
@@ -95,7 +89,13 @@ export default function AuditLogRecycleBinPage() {
         setLoading(false);
       }
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   const handleRestore = async (id: string, detail: string) => {
     try {

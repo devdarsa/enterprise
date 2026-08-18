@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import RegionSelector from '@/components/RegionSelector';
 import Toast, { ToastProps } from '@/components/Toast';
 import { PageHeader } from '@/components/PageHeader';
@@ -309,7 +310,7 @@ export default function RegistrasiSantriBaruPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1">Upload Pas Foto Santri (File) *</label>
               <div className="flex items-center gap-3">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="Preview Foto" className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0" />
+                  <Image src={avatarUrl} alt="Preview Foto" width={48} height={48} unoptimized className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600 shadow-sm shrink-0" />
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-lg shrink-0">📷</div>
                 )}
