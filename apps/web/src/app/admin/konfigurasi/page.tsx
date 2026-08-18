@@ -20,8 +20,8 @@ export default function KonfigurasiSistemPage() {
   const [activeTab, setActiveTab] = useState<'jabatan' | 'identitas' | 'parameter'>('jabatan');
 
   // Identitas & Parameter state
-  const [namaPondok, setNamaPondok] = useState("Pondok Pesantren Ma'had Darussa'adah");
-  const [alamatPondok, setAlamatPondok] = useState('Kediri, Jawa Timur');
+  const [namaPondok, setNamaPondok] = useState("Pondok Pesantren Darussaadah Lirboyo (DARSA)");
+  const [alamatPondok, setAlamatPondok] = useState('Jl. KH. Abdul Karim, Lirboyo, Mojoroto, Kota Kediri, Jawa Timur');
   const [radiusQr, setRadiusQr] = useState(200);
   const [notifWa, setNotifWa] = useState(true);
 

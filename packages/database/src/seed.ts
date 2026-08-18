@@ -72,33 +72,40 @@ async function main() {
   // 3. Pondok Pesantren SSOT & Instansi Unit
   const pondok = await prisma.pondok.upsert({
     where: { id: 'pondok-lirboyo' },
-    update: {},
+    update: {
+      nama: "Pondok Pesantren Darussaadah Lirboyo (DARSA)",
+      alamat: "Jl. KH. Abdul Karim, Lirboyo, Mojoroto, Kota Kediri, Jawa Timur",
+    },
     create: {
       id: 'pondok-lirboyo',
-      nama: "Pondok Pesantren Ma'had Darussa'adah",
-      alamat: "Jl. Lirboyo No. 45, Kota Kediri, Jawa Timur",
+      nama: "Pondok Pesantren Darussaadah Lirboyo (DARSA)",
+      alamat: "Jl. KH. Abdul Karim, Lirboyo, Mojoroto, Kota Kediri, Jawa Timur",
       telepon: "0354-771234",
     },
   });
 
   const madrasahDiniyah = await prisma.madrasah.upsert({
     where: { npsn: 'MADRASAH-DINIYAH-LIRBOYO' },
-    update: {},
+    update: {
+      nama: "Madrasah Diniyah Darussaadah Lirboyo",
+    },
     create: {
       id: 'madrasah-diniyah',
       pondok_id: pondok.id,
-      nama: "Madrasah Diniyah Darussa'adah",
+      nama: "Madrasah Diniyah Darussaadah Lirboyo",
       npsn: 'MADRASAH-DINIYAH-LIRBOYO',
     },
   });
 
   const madrasahMI = await prisma.madrasah.upsert({
     where: { npsn: 'MI-FORMAL-LIRBOYO' },
-    update: {},
+    update: {
+      nama: "MI Plus Darussaadah Lirboyo",
+    },
     create: {
       id: 'madrasah-mi',
       pondok_id: pondok.id,
-      nama: "Madrasah Ibtida'iyyah (MI) Darussa'adah",
+      nama: "MI Plus Darussaadah Lirboyo",
       npsn: 'MI-FORMAL-LIRBOYO',
     },
   });
