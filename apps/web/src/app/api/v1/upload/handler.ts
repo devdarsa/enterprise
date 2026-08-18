@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,6 +44,35 @@ export async function POST(req: NextRequest) {
     console.error('Upload handler error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Gagal memproses unggah foto.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const url = searchParams.get('url');
+    const publicId = searchParams.get('public_id');
+
+    const target = url || publicId;
+    if (!target) {
+      return NextResponse.json(
+        { success: false, error: 'Parameter url atau public_id wajib disertakan.' },
+        { status: 400 }
+      );
+    }
+
+    const ok = await deleteFromCloudinary(target);
+
+    return NextResponse.json({
+      success: ok,
+      message: ok ? 'Foto berhasil dihapus dari Cloudinary.' : 'Foto tidak ditemukan atau sudah dihapus.',
+    });
+  } catch (error: any) {
+    console.error('Delete handler error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Gagal menghapus foto.' },
       { status: 500 }
     );
   }

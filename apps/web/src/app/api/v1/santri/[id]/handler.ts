@@ -44,16 +44,29 @@ export const PUT = withAuth(
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);
 
     let photoUrl = body.avatar_url || body.foto_url;
+    let userId = existing.user_id;
+
+    // Ambil foto lama untuk pembersihan Cloudinary jika diganti
+    let oldPhotoUrl: string | null = null;
+    if (userId) {
+      const existingUser = await prisma.user.findUnique({ where: { id: userId }, select: { foto_url: true } });
+      oldPhotoUrl = existingUser?.foto_url || null;
+    }
+
     if (photoUrl && photoUrl.startsWith('data:image/')) {
       try {
-        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const { uploadToCloudinary, deleteFromCloudinary } = await import('@/lib/cloudinary');
         const uploaded = await uploadToCloudinary(photoUrl, 'darsa_santri');
         photoUrl = uploaded.url;
+
+        // Hapus foto lama dari Cloudinary jika foto baru berhasil diunggah
+        if (oldPhotoUrl && oldPhotoUrl !== photoUrl && oldPhotoUrl.includes('cloudinary.com')) {
+          deleteFromCloudinary(oldPhotoUrl).catch((e) => console.error('Gagal hapus foto lama Cloudinary:', e));
+        }
       } catch (err) {
         console.error('Gagal upload foto santri ke Cloudinary:', err);
       }
     }
-    let userId = existing.user_id;
 
     // Sinkronisasi foto santri ke User Profile
     if (photoUrl) {

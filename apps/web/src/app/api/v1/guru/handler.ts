@@ -123,12 +123,22 @@ export const PUT = withAuth(
       return apiError('Data guru tidak ditemukan.', 404);
     }
 
+    let oldGuruPhotoUrl: string | null = null;
+    if (existing.user_id) {
+      const existingUser = await prisma.user.findUnique({ where: { id: existing.user_id }, select: { foto_url: true } });
+      oldGuruPhotoUrl = existingUser?.foto_url || null;
+    }
+
     let resolvedEditPhotoUrl = foto_url;
     if (resolvedEditPhotoUrl && resolvedEditPhotoUrl.startsWith('data:image/')) {
       try {
-        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const { uploadToCloudinary, deleteFromCloudinary } = await import('@/lib/cloudinary');
         const uploaded = await uploadToCloudinary(resolvedEditPhotoUrl, 'darsa_guru');
         resolvedEditPhotoUrl = uploaded.url;
+
+        if (oldGuruPhotoUrl && oldGuruPhotoUrl !== resolvedEditPhotoUrl && oldGuruPhotoUrl.includes('cloudinary.com')) {
+          deleteFromCloudinary(oldGuruPhotoUrl).catch((e) => console.error('Gagal hapus foto lama guru di Cloudinary:', e));
+        }
       } catch (err) {
         console.error('Gagal upload foto guru ke Cloudinary:', err);
       }

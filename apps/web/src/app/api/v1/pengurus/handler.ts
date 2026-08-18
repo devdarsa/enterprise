@@ -97,12 +97,25 @@ export const PUT = withAuth(
       return apiError('Data pengurus tidak ditemukan.', 404);
     }
 
+    let oldPengurusPhotoUrl: string | null = null;
+    if (existing.nik) {
+      const existingUser = await prisma.user.findFirst({
+        where: { OR: [{ email: { startsWith: `pengurus.` } }, { nama_lengkap: existing.nama_lengkap }] },
+        select: { foto_url: true },
+      });
+      oldPengurusPhotoUrl = existingUser?.foto_url || null;
+    }
+
     let resolvedEditPhotoUrl = avatar_url || foto_url;
     if (resolvedEditPhotoUrl && resolvedEditPhotoUrl.startsWith('data:image/')) {
       try {
-        const { uploadToCloudinary } = await import('@/lib/cloudinary');
+        const { uploadToCloudinary, deleteFromCloudinary } = await import('@/lib/cloudinary');
         const uploaded = await uploadToCloudinary(resolvedEditPhotoUrl, 'darsa_pengurus');
         resolvedEditPhotoUrl = uploaded.url;
+
+        if (oldPengurusPhotoUrl && oldPengurusPhotoUrl !== resolvedEditPhotoUrl && oldPengurusPhotoUrl.includes('cloudinary.com')) {
+          deleteFromCloudinary(oldPengurusPhotoUrl).catch((e) => console.error('Gagal hapus foto lama pengurus di Cloudinary:', e));
+        }
       } catch (err) {
         console.error('Gagal upload foto pengurus ke Cloudinary:', err);
       }

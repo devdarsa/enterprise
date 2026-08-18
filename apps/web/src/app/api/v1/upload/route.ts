@@ -1,1 +1,1 @@
-export { POST } from './handler';
+export { POST, DELETE } from './handler';
