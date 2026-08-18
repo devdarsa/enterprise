@@ -120,7 +120,7 @@ export default function PersuratanDigitalPage() {
         fetchSurat();
         showToast('success', 'Surat Izin Berhasil Dibuat', `Nomor ${nomor} berhasil diterbitkan di database.`);
       } else {
-        showToast('error', 'Gagal Membuat Surat', json.error || 'Respons API gagal.');
+        showToast('error', 'Gagal Membuat Surat', json.error || 'Gagal memproses data.');
       }
     } catch {
       setSubmitting(false);

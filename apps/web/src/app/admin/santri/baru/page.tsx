@@ -204,7 +204,7 @@ export default function RegistrasiSantriBaruPage() {
       <PageHeader
         icon="🎓"
         title="Registrasi Santri Baru"
-        subtitle="Pendaftaran Biodata Lengkap, Wilayah Indonesia API, dan Penyambungan NIK Wali"
+        subtitle="Pendaftaran Biodata Lengkap, Data Wilayah Nasional, dan Penyambungan NIK Wali"
         badge="FORMULIR REGISTRASI TERPADU MPHM / DARSA"
         primaryAction={instansi !== 'PONDOK' ? { label: '📥 Tarik Data Santri Pondok', onClick: () => setShowPondokPullModal(true) } : undefined}
         secondaryAction={{ label: '← Kembali ke Data Santri', onClick: () => window.location.href = '/admin/santri', icon: '🔙' }}

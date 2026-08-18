@@ -67,7 +67,7 @@ export default function AuditLogRecycleBinPage() {
           showToast('error', 'Gagal', json.error || 'Gagal mengambil audit log.');
         }
       } catch {
-        if (!cached) showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data dari database API.');
+        if (!cached) showToast('error', 'Gagal Memuat Data', 'Tidak dapat mengambil data dari Server Database.');
       } finally {
         setLoading(false);
       }

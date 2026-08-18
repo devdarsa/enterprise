@@ -98,7 +98,7 @@ export default function QRDisplayPage() {
       </div>
 
       <p className="text-xs text-slate-500 max-w-md font-medium">
-        *Menggunakan enkripsi TOTP dinamis terhubung ke database Neon PostgreSQL & Upstash Redis untuk menjamin validitas presensi dewan pengajar & pengurus ma'had.
+        *Menggunakan enkripsi TOTP dinamis terhubung ke Server Keamanan Terpadu untuk menjamin validitas presensi dewan pengajar & pengurus ma'had.
       </p>
     </div>
   );

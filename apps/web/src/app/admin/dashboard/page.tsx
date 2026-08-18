@@ -347,7 +347,7 @@ export default function AdminDashboardPage() {
               <p className="text-xs text-slate-500 mt-0.5">Komposisi jumlah santri aktif per jenjang</p>
             </div>
             <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-              PostgreSQL Live
+              Live Terpusat
             </span>
           </div>
 

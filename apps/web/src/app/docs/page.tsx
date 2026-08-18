@@ -38,9 +38,9 @@ export default function DocsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div className="text-2xl">🔐</div>
-            <h3 className="font-bold text-lg text-slate-900">Autentikasi & Keamanan (Better Auth)</h3>
+            <h3 className="font-bold text-lg text-slate-900">Autentikasi & Keamanan Terpadu</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Menggunakan Better Auth dengan basis data PostgreSQL (Neon.tech). Mendukung Passkeys / WebAuthn Biometrik, Google OAuth 2.1 PKCE, dan Single Sign-On (SSO) terpadu di 7 Portal Role.
+              Menggunakan sistem proteksi akun modern dengan basis data terenkripsi. Mendukung Passkeys / WebAuthn Biometrik, Google OAuth 2.1 PKCE, dan Single Sign-On (SSO) terpadu di seluruh Portal Role.
             </p>
           </div>
 
@@ -56,15 +56,15 @@ export default function DocsPage() {
             <div className="text-2xl">📱</div>
             <h3 className="font-bold text-lg text-slate-900">Pendaftaran Self-Registration Wali Santri</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Verifikasi NIK Wali Santri langsung terhadap Single Source of Truth (SSOT) database santri, dilengkapi pengiriman kode OTP 6-digit WhatsApp via Fonnte Gateway.
+              Verifikasi NIK Wali Santri langsung terhadap Pusat Data Terpadu (Single Source of Truth), dilengkapi pengiriman kode OTP 6-digit WhatsApp resmi.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div className="text-2xl">🗺️</div>
-            <h3 className="font-bold text-lg text-slate-900">API Master Wilayah Indonesia (EMSIFA)</h3>
+            <h3 className="font-bold text-lg text-slate-900">Master Data Wilayah Nasional</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Standarisasi data alamat kependudukan Kemendagri (Provinsi, Kabupaten, Kecamatan, Desa) yang tersinkronisasi dan tersimpan di cache PostgreSQL.
+              Standarisasi data alamat kependudukan Kemendagri (Provinsi, Kabupaten, Kecamatan, Desa) yang tersinkronisasi dan tersimpan di database lokal sistem.
             </p>
           </div>
         </div>

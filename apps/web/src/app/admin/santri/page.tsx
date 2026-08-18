@@ -383,7 +383,7 @@ export default function MasterSantriPage() {
     showToast(
       successCount > 0 ? 'success' : 'error',
       'Impor Data Selesai',
-      `${successCount} santri berhasil dimasukkan ke database PostgreSQL.` + (errorCount > 0 ? ` (${errorCount} dilewati/duplikat)` : '')
+      `${successCount} santri berhasil dimasukkan ke Database Terpadu.` + (errorCount > 0 ? ` (${errorCount} dilewati/duplikat)` : '')
     );
 
     fetchSantri();
@@ -760,7 +760,7 @@ export default function MasterSantriPage() {
       {/* REALTIME IMPORT PROGRESS MODAL */}
       <ImportProgressModal
         isOpen={importProgress.isOpen}
-        title="Proses Impor Data Santri Ke Database PostgreSQL"
+        title="Proses Impor Data Santri Ke Database Terpadu"
         totalRows={importProgress.totalRows}
         currentRow={importProgress.currentRow}
         currentName={importProgress.currentName}
