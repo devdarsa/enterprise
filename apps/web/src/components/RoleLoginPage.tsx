@@ -517,6 +517,17 @@ export default function RoleLoginPage({
                       <Globe className="w-4 h-4 text-blue-600" />
                       <span>Masuk dengan Akun Google</span>
                     </button>
+
+                    {/* Banner Aktivasi Akun Wali Santri via KK */}
+                    <div className="pt-3 border-t border-slate-100 text-center">
+                      <Link
+                        href="/wali_santri/aktivasi"
+                        className="w-full py-3 px-3 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 border border-amber-300 text-amber-950 text-xs font-black transition-all flex items-center justify-center gap-2 shadow-xs active:scale-98"
+                      >
+                        <span className="text-sm">👨‍👩‍👧</span>
+                        <span>Wali Santri Baru? Aktivasi Akun dengan No. KK</span>
+                      </Link>
+                    </div>
                   </form>
                 )}
 

@@ -130,6 +130,86 @@ export const PUT = withAuth(
       },
     });
 
+    // Auto-update / link WaliSantri & siblings based on KK & NIK Wali
+    const effectiveKK = updated.no_kk || existing.no_kk;
+    const effectiveNikWali = updated.nik_wali || existing.nik_wali;
+    const effectiveNamaWali = updated.nama_wali || existing.nama_wali;
+    const effectiveTeleponWali = updated.telepon_wali || existing.telepon_wali;
+
+    if (effectiveKK || effectiveNikWali) {
+      try {
+        let wali = await prisma.waliSantri.findFirst({
+          where: {
+            OR: [
+              ...(effectiveNikWali ? [{ nik: effectiveNikWali }] : []),
+              ...(effectiveKK ? [{ nik: effectiveKK }] : []),
+            ],
+          },
+        });
+
+        if (!wali) {
+          wali = await prisma.waliSantri.create({
+            data: {
+              nik: effectiveNikWali || effectiveKK || `KK-${Date.now()}`,
+              nama_lengkap: effectiveNamaWali || 'Wali Santri',
+              telepon: effectiveTeleponWali || '',
+              no_hp: effectiveTeleponWali || '',
+            },
+          });
+        } else if (effectiveNamaWali) {
+          await prisma.waliSantri.update({
+            where: { id: wali.id },
+            data: {
+              nama_lengkap: effectiveNamaWali,
+              telepon: effectiveTeleponWali || wali.telepon,
+            },
+          }).catch(() => {});
+        }
+
+        await prisma.hubunganWali.upsert({
+          where: {
+            wali_santri_id_santri_id: {
+              wali_santri_id: wali.id,
+              santri_id: updated.id,
+            },
+          },
+          update: { hubungan: updated.hubungan_wali || 'AYAH' },
+          create: {
+            wali_santri_id: wali.id,
+            santri_id: updated.id,
+            hubungan: updated.hubungan_wali || 'AYAH',
+            is_primary: true,
+          },
+        });
+
+        // Link all other siblings with same KK
+        if (effectiveKK) {
+          const siblings = await prisma.santri.findMany({
+            where: { no_kk: effectiveKK, id: { not: updated.id }, deleted_at: null },
+          });
+          for (const sib of siblings) {
+            await prisma.hubunganWali.upsert({
+              where: {
+                wali_santri_id_santri_id: {
+                  wali_santri_id: wali.id,
+                  santri_id: sib.id,
+                },
+              },
+              update: {},
+              create: {
+                wali_santri_id: wali.id,
+                santri_id: sib.id,
+                hubungan: sib.hubungan_wali || 'AYAH',
+                is_primary: false,
+              },
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error('Auto-link WaliSantri on PUT error:', e);
+      }
+    }
+
     await logAudit({
       userId: session.user.id,
       action: 'UPDATE_SANTRI',

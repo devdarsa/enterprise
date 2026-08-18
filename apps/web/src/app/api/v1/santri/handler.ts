@@ -187,6 +187,74 @@ export const POST = withAuth(
       },
     });
 
+    // Auto-create / link WaliSantri based on KK & NIK Wali
+    if (no_kk || nik_wali) {
+      try {
+        let wali = await prisma.waliSantri.findFirst({
+          where: {
+            OR: [
+              ...(nik_wali ? [{ nik: nik_wali }] : []),
+              ...(no_kk ? [{ nik: no_kk }] : []),
+            ],
+          },
+        });
+
+        if (!wali) {
+          wali = await prisma.waliSantri.create({
+            data: {
+              nik: nik_wali || no_kk || `KK-${Date.now()}`,
+              nama_lengkap: nama_wali || 'Wali Santri',
+              telepon: telepon_wali || '',
+              no_hp: telepon_wali || '',
+            },
+          });
+        }
+
+        // Link hubungan wali
+        await prisma.hubunganWali.upsert({
+          where: {
+            wali_santri_id_santri_id: {
+              wali_santri_id: wali.id,
+              santri_id: santri.id,
+            },
+          },
+          update: { hubungan: hubungan_wali || 'AYAH' },
+          create: {
+            wali_santri_id: wali.id,
+            santri_id: santri.id,
+            hubungan: hubungan_wali || 'AYAH',
+            is_primary: true,
+          },
+        });
+
+        // Link any siblings with the same no_kk to this wali
+        if (no_kk) {
+          const siblings = await prisma.santri.findMany({
+            where: { no_kk, id: { not: santri.id }, deleted_at: null },
+          });
+          for (const sib of siblings) {
+            await prisma.hubunganWali.upsert({
+              where: {
+                wali_santri_id_santri_id: {
+                  wali_santri_id: wali.id,
+                  santri_id: sib.id,
+                },
+              },
+              update: {},
+              create: {
+                wali_santri_id: wali.id,
+                santri_id: sib.id,
+                hubungan: sib.hubungan_wali || 'AYAH',
+                is_primary: false,
+              },
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error('Auto-link WaliSantri error:', e);
+      }
+    }
+
     await logAudit({
       userId: session.user.id,
       action: 'CREATE_SANTRI',
