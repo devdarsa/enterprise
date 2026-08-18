@@ -154,7 +154,7 @@ export default function TarikDataSantriPage() {
                       <div>
                         <span className="text-xs font-bold text-slate-900 block">{santri.nama}</span>
                         <span className="text-[11px] text-slate-500">
-                          NISP: {santri.nisp} | NISN: {santri.nisn} | {santri.kelas_pondok}
+                          No. Stambuk: {santri.nisp} | NISN: {santri.nisn} | {santri.kelas_pondok}
                         </span>
                       </div>
                     </div>

@@ -171,7 +171,7 @@ export default function DataAlumniPage() {
   const handleExport = async () => {
     const { exportToExcel } = await import('@/lib/excel-helper');
     const dataToExport = filtered.map((a) => ({
-      'NISP Stambuk': a.nisp,
+      'No. Stambuk': a.nisp,
       'Nama Alumni': a.nama,
       'Tahun Lulus': a.tahunLulus,
       'Jenjang Terakhir': a.jenjangTerakhir,
@@ -257,7 +257,7 @@ export default function DataAlumniPage() {
         }}
         search={search}
         onSearch={setSearch}
-        searchPlaceholder="Cari nama alumni atau NISP..."
+        searchPlaceholder="Cari nama alumni atau No. Stambuk..."
         count={loading ? undefined : filtered.length}
         countLabel="alumni"
         onExportExcel={handleExport}
@@ -288,7 +288,7 @@ export default function DataAlumniPage() {
               <thead>
                 <tr>
                   <th>Nama Alumni</th>
-                  <th>NISP Stambuk</th>
+                  <th>No. Stambuk</th>
                   <th>Tahun Lulus</th>
                   <th>Jenjang Terakhir</th>
                   <th>Status Alumni</th>
@@ -414,7 +414,7 @@ export default function DataAlumniPage() {
             )}
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">NISP Stambuk Alumni</label>
+              <label className="block font-bold text-slate-700 mb-1">No. Stambuk Alumni</label>
               <input
                 type="text"
                 value={form.nisp}

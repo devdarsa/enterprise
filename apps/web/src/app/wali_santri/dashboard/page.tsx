@@ -320,7 +320,7 @@ export default function WaliSantriDashboardPage() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium">
-                  Stambuk: <strong className="font-mono text-amber-800">{activeSantri.nisp}</strong> • NISN: {activeSantri.nisn}
+                  No. Stambuk: <strong className="font-mono text-amber-800">{activeSantri.nisp}</strong> • NISN: {activeSantri.nisn}
                 </p>
                 <p className="text-xs text-emerald-700 font-bold">
                   Kelas: {activeSantri.kelas} • Ma'had Darussa'adah Lirboyo

@@ -72,7 +72,7 @@ export default function RaporDigitalPage() {
                     izin: s.perizinan?.length || 0,
                     pelanggaran: s.pelanggaran?.length || 0,
                   },
-                  catatan_wali: `Santri ${s.nama_lengkap} (NISP: ${s.nisp}) terdaftar aktif pada ${s.kelas?.nama_kelas || 'Pesantren'}.`,
+                  catatan_wali: `Santri ${s.nama_lengkap} (No. Stambuk: ${s.nisp}) terdaftar aktif pada ${s.kelas?.nama_kelas || 'Pesantren'}.`,
                 });
               }
             }

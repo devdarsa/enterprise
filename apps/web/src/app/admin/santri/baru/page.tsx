@@ -348,7 +348,7 @@ export default function RegistrasiSantriBaruPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Stambuk / NISP</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">No. Stambuk</label>
               <input
                 type="text"
                 placeholder="PNDK-0012345678"

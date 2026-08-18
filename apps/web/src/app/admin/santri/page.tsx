@@ -234,7 +234,7 @@ export default function MasterSantriPage() {
   const handleExportExcel = async () => {
     const { exportToExcel } = await import('@/lib/excel-helper');
     const dataToExport = filtered.map((s) => ({
-      'NISP Stambuk': s.nisp || '',
+      'No. Stambuk': s.nisp || '',
       NISN: s.nisn || '',
       'NIS Lokal': s.nis || '',
       'NIK Santri (16 Digit)': s.nik || '',
@@ -420,7 +420,7 @@ export default function MasterSantriPage() {
         }
         search={search}
         onSearch={setSearch}
-        searchPlaceholder="Cari nama, NISN, NISP stambuk, NIK Wali, atau kelas..."
+        searchPlaceholder="Cari nama, NISN, No. Stambuk, NIK Wali, atau kelas..."
         count={loading ? undefined : filtered.length}
         countLabel="santri"
         onExportExcel={handleExportExcel}
@@ -451,7 +451,7 @@ export default function MasterSantriPage() {
             <table className="table-premium">
               <thead>
                 <tr>
-                  <th>NISP Stambuk</th>
+                  <th>No. Stambuk</th>
                   <th>NISN & Nama Santri</th>
                   <th>L/P</th>
                   <th>Penempatan Pendidikan (Dual)</th>
@@ -567,7 +567,7 @@ export default function MasterSantriPage() {
               </div>
               <div>
                 <p className="font-black text-slate-900">{mutasiTarget.nama}</p>
-                <p className="text-slate-500 font-mono">NISP: {mutasiTarget.nisp} • Status: <strong className="text-emerald-700">{mutasiTarget.status}</strong></p>
+                <p className="text-slate-500 font-mono">No. Stambuk: {mutasiTarget.nisp} • Status: <strong className="text-emerald-700">{mutasiTarget.status}</strong></p>
               </div>
             </div>
 

@@ -22,7 +22,7 @@ interface SantriPickerProps {
 export default function SantriPicker({
   onSelect,
   selectedSantriObj,
-  placeholder = 'Cari nama santri, NISP stambuk, atau NISN...',
+  placeholder = 'Cari nama santri, No. Stambuk, atau NISN...',
   required = false,
 }: SantriPickerProps) {
   const [query, setQuery] = useState('');
@@ -107,7 +107,7 @@ export default function SantriPicker({
           <div className="min-w-0">
             <div className="font-extrabold text-slate-900 truncate">{selected.nama_lengkap}</div>
             <div className="text-[10px] text-emerald-800 font-mono font-bold truncate">
-              {selected.nisp ? `NISP: ${selected.nisp}` : ''} {selected.nisn ? `• NISN: ${selected.nisn}` : ''} {selected.kelas ? `• ${selected.kelas}` : ''}
+              {selected.nisp ? `No. Stambuk: ${selected.nisp}` : ''} {selected.nisn ? `• NISN: ${selected.nisn}` : ''} {selected.kelas ? `• ${selected.kelas}` : ''}
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function SantriPicker({
               <div>
                 <span className="font-black text-slate-900 block">{s.nama_lengkap}</span>
                 <span className="text-[10px] text-slate-500 font-mono">
-                  {s.nisp ? `Stambuk: ${s.nisp}` : ''} {s.nisn ? `| NISN: ${s.nisn}` : ''} {s.kelas ? `| ${s.kelas}` : ''}
+                  {s.nisp ? `No. Stambuk: ${s.nisp}` : ''} {s.nisn ? `| NISN: ${s.nisn}` : ''} {s.kelas ? `| ${s.kelas}` : ''}
                 </span>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">

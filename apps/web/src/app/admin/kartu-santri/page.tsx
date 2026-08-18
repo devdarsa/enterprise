@@ -103,7 +103,7 @@ export default function KartuSantriPage() {
           <h4 style="margin: 2px 0 0 0; color: white; font-size: 13px;">MA'HAD DARUSSA'ADAH LIRBOYO</h4>
         </div>
         <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 900;">${santri.nama}</h3>
-        <p style="margin: 2px 0; font-size: 11px; font-family: monospace; color: #a7f3d0;">NISN: ${santri.nisn} | NISP: ${santri.nisp || '-'}</p>
+        <p style="margin: 2px 0; font-size: 11px; font-family: monospace; color: #a7f3d0;">NISN: ${santri.nisn} | No. Stambuk: ${santri.nisp || '-'}</p>
         <p style="margin: 2px 0; font-size: 11px; color: #fde047;">${santri.kelas} • ${santri.kamar || 'Asrama Utama'}</p>
       </div>
     `
@@ -132,7 +132,7 @@ export default function KartuSantriPage() {
         badge="MODUL KEAMANAN"
         search={search}
         onSearch={setSearch}
-        searchPlaceholder="Cari nama, NISN, atau NISP stambuk..."
+        searchPlaceholder="Cari nama, NISN, atau No. Stambuk..."
         count={loading ? undefined : filtered.length}
         countLabel="santri"
         onExportPDF={handlePrintMassal}
@@ -169,7 +169,7 @@ export default function KartuSantriPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-black text-white leading-tight truncate">{santri.nama}</p>
-                    <p className="text-[9px] text-emerald-300 font-mono">NISP: {santri.nisp || '-'}</p>
+                    <p className="text-[9px] text-emerald-300 font-mono">No. Stambuk: {santri.nisp || '-'}</p>
                   </div>
                 </div>
 
@@ -230,7 +230,7 @@ export default function KartuSantriPage() {
                   <div className="space-y-0.5 min-w-0">
                     <h3 className="text-base font-black text-white leading-tight">{cardTarget.nama}</h3>
                     <p className="text-xs text-emerald-200 font-mono">NISN: {cardTarget.nisn}</p>
-                    <p className="text-xs text-emerald-200 font-mono">Stambuk: {cardTarget.nisp || '-'}</p>
+                    <p className="text-xs text-emerald-200 font-mono">No. Stambuk: {cardTarget.nisp || '-'}</p>
                     <p className="text-[11px] text-amber-300 font-semibold">{cardTarget.kelas}</p>
                     <p className="text-[11px] text-emerald-300">{cardTarget.kamar || 'Asrama Utama'}</p>
                   </div>

@@ -166,7 +166,7 @@ export default function PelanggaranPage() {
     const dataToExport = list.map((p) => ({
       'Tanggal Pelanggaran': new Date(p.tanggal).toLocaleDateString('id-ID'),
       'Nama Santri': p.santri?.nama_lengkap || '',
-      'Stambuk / NISP': p.santri?.nisp || '',
+      'No. Stambuk': p.santri?.nisp || '',
       'Jenis Pelanggaran': p.jenis,
       'Tingkat Pelanggaran': p.tingkat,
       'Tindakan / Takzir': p.tindakan || '',

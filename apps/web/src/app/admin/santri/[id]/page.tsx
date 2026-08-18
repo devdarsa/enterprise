@@ -221,7 +221,7 @@ export default function DetailSantriPage() {
 
             <div className="mt-3 flex flex-wrap gap-3 text-xs">
               <div className="px-3 py-1.5 bg-white/10 rounded-xl">
-                <span className="text-emerald-300 block text-[9px] font-bold uppercase">Stambuk / NISP</span>
+                <span className="text-emerald-300 block text-[9px] font-bold uppercase">No. Stambuk</span>
                 <span className="font-mono font-black">{santri.nisp || '-'}</span>
               </div>
               <div className="px-3 py-1.5 bg-white/10 rounded-xl">
@@ -283,7 +283,7 @@ export default function DetailSantriPage() {
           </h2>
           <div className="grid grid-cols-2 gap-y-3 text-xs">
             <div>
-              <span className="text-slate-400 block font-medium">Stambuk / NISP</span>
+              <span className="text-slate-400 block font-medium">No. Stambuk</span>
               <span className="font-mono font-bold text-emerald-900">{santri.nisp || '-'}</span>
             </div>
             <div>
@@ -473,7 +473,7 @@ export default function DetailSantriPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Stambuk / NISP</label>
+                <label className="block font-bold text-slate-700 mb-1">No. Stambuk</label>
                 <input
                   type="text"
                   value={editForm.nisp || ''}

@@ -15,9 +15,9 @@ export interface ExcelHeaderConfig {
 export const SANTRI_TEMPLATE_HEADERS: ExcelHeaderConfig[] = [
   {
     key: 'nisp',
-    header: 'NISP Stambuk',
+    header: 'No. Stambuk',
     width: 22,
-    comment: 'Fungsi: Identitas Stambuk resmi santri\nFormat: Teks (Contoh: PNDK-00123456)\nStatus: Opsional (Otomatis dibuat sistem jika kosong)\nDuplikat: Tidak boleh duplikat',
+    comment: 'Fungsi: Identitas No. Stambuk resmi santri\nFormat: Teks (Contoh: PNDK-00123456)\nStatus: Opsional (Otomatis dibuat sistem jika kosong)\nDuplikat: Tidak boleh duplikat',
     type: 'text',
   },
   {
@@ -413,7 +413,13 @@ export async function parseAndValidateExcelFile(file: File): Promise<PreImportVa
   });
 
   // Map header text to key
-  const headerToKeyMap: Record<string, string> = {};
+  const headerToKeyMap: Record<string, string> = {
+    'No. Stambuk': 'nisp',
+    'NISP Stambuk': 'nisp',
+    'Nomor Stambuk': 'nisp',
+    'NISP': 'nisp',
+    'Stambuk': 'nisp',
+  };
   SANTRI_TEMPLATE_HEADERS.forEach((h) => {
     headerToKeyMap[h.header] = h.key;
   });
