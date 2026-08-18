@@ -28,17 +28,39 @@ export default function KeamananDashboardPage() {
   const [user, setUser] = useState({ nama: 'Tim Keamanan & Perizinan', role: 'KEAMANAN', email: 'keamanan@darsa.id' });
   const [qrInput, setQrInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('beranda');
 
   // Settings modal state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [selectedIzin, setSelectedIzin] = useState<PerizinanItem | null>(null);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'scan') {
+      setIsScanModalOpen(true);
+    } else if (tab === 'profil') {
+      setIsSettingsOpen(true);
+    } else if (tab === 'perizinan') {
+      const el = document.getElementById('perizinan');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else if (tab === 'status') {
+      const el = document.getElementById('status');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const handleHash = () => {
       const h = window.location.hash;
       if (h === '#profil') {
         setIsSettingsOpen(true);
+        setActiveTab('profil');
       } else if (h === '#scan' || h === '#qr') {
         setIsScanModalOpen(true);
+        setActiveTab('scan');
       } else if (h) {
         const target = document.querySelector(h);
         if (target) {
@@ -52,8 +74,6 @@ export default function KeamananDashboardPage() {
   }, []);
   const [perizinanList, setPerizinanList] = useState<PerizinanItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
-  const [selectedIzin, setSelectedIzin] = useState<PerizinanItem | null>(null);
 
   useEffect(() => {
     async function fetchPerizinanLive() {
@@ -430,7 +450,7 @@ export default function KeamananDashboardPage() {
 
       <AccountSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={user} />
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
-      <MobileBottomNav role="KEAMANAN" />
+      <MobileBottomNav role="KEAMANAN" activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }

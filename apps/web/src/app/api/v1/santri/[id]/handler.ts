@@ -25,7 +25,7 @@ export const GET = withAuth(
 
     const formatted = {
       ...santri,
-      avatar_url: santri.foto_url || santri.user?.foto_url || undefined,
+      avatar_url: (santri as any).foto_url || santri.user?.foto_url || undefined,
     };
 
     return apiSuccess(formatted);
@@ -44,7 +44,7 @@ export const PUT = withAuth(
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);
 
     let photoUrl = body.avatar_url || body.foto_url;
-    let oldPhotoUrl: string | null = existing.foto_url || null;
+    let oldPhotoUrl: string | null = (existing as any).foto_url || null;
 
     if (photoUrl && photoUrl.startsWith('data:image/')) {
       try {
@@ -64,7 +64,7 @@ export const PUT = withAuth(
     const updated = await prisma.santri.update({
       where: { id },
       data: {
-        foto_url: photoUrl !== undefined ? photoUrl : existing.foto_url,
+        foto_url: photoUrl !== undefined ? photoUrl : (existing as any).foto_url,
         nama_lengkap: body.nama_lengkap !== undefined ? body.nama_lengkap : existing.nama_lengkap,
         nama_panggilan: body.nama_panggilan !== undefined ? body.nama_panggilan : existing.nama_panggilan,
         nisp: body.nisp !== undefined ? body.nisp : existing.nisp,
@@ -190,7 +190,7 @@ export const PUT = withAuth(
 
     const responseData = {
       ...updated,
-      avatar_url: photoUrl || updated.foto_url || undefined,
+      avatar_url: photoUrl || (updated as any).foto_url || undefined,
     };
 
     return apiSuccess(responseData, 'Data santri berhasil diperbarui.');

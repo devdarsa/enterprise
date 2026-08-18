@@ -27,17 +27,37 @@ export default function GuruMIDashboardPage() {
   const [scanning, setScanning] = useState(false);
   const [riwayat, setRiwayat] = useState<PresensiLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('beranda');
 
   // Settings modal state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'qr' || tab === 'scan') {
+      setIsScanModalOpen(true);
+    } else if (tab === 'profil') {
+      setIsSettingsOpen(true);
+    } else if (tab === 'jadwal') {
+      const el = document.getElementById('jadwal-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else if (tab === 'absensi') {
+      const el = document.getElementById('riwayat-absensi');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const handleHash = () => {
       const h = window.location.hash;
       if (h === '#profil') {
         setIsSettingsOpen(true);
+        setActiveTab('profil');
       } else if (h === '#qr' || h === '#scan') {
         setIsScanModalOpen(true);
+        setActiveTab('qr');
       } else if (h) {
         const target = document.querySelector(h);
         if (target) {
@@ -297,7 +317,7 @@ export default function GuruMIDashboardPage() {
 
       <AccountSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={user} />
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
-      <MobileBottomNav role="GURU_MI" />
+      <MobileBottomNav role="GURU_MI" activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }

@@ -166,7 +166,7 @@ export const POST = withAuth(
         hubungan_wali,
         no_kk,
         status: 'AKTIF',
-      },
+      } as any,
     });
 
     // Auto-create / link WaliSantri based on KK & NIK Wali

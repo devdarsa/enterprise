@@ -41,8 +41,24 @@ export default function GuruMadrasahDashboardPage() {
 
   // Settings modal state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+
+  const handleTabChange = (tab: string) => {
+    if (tab === 'qr' || tab === 'scan') {
+      setIsScanModalOpen(true);
+    } else if (tab === 'profil') {
+      setIsSettingsOpen(true);
+    } else if (tab === 'kelas') {
+      setActiveTab('mustahiq');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === 'mapel' || tab === 'jadwal') {
+      setActiveTab('munawwib');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setActiveTab('mustahiq');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const handleHash = () => {
@@ -474,7 +490,11 @@ export default function GuruMadrasahDashboardPage() {
 
       <AccountSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={user} />
       <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
-      <MobileBottomNav role="GURU_MADRASAH" />
+      <MobileBottomNav
+        role={user.role === 'MUNAWWIB' ? 'MUNAWWIB' : 'GURU_MADRASAH'}
+        activeTab={activeTab === 'mustahiq' ? 'kelas' : 'mapel'}
+        onTabChange={handleTabChange}
+      />
     </div>
   );
 }
