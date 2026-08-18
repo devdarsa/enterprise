@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
+import { getKopSuratHTML, formatTanggalFormal } from '@/lib/formal-document-print';
 
 interface SOPItem {
   id: string;
@@ -69,32 +70,123 @@ export default function SOPGuidePage() {
   };
 
   const handlePrintSop = (sop: SOPItem) => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank', 'width=900,height=1100');
     if (printWindow) {
+      const kopHtml = getKopSuratHTML('PONDOK');
+      const { masehi } = formatTanggalFormal(new Date());
+
       printWindow.document.write(`
-        <html>
+        <!DOCTYPE html>
+        <html lang="id">
           <head>
-            <title>${sop.title}</title>
+            <meta charset="utf-8" />
+            <title>Dokumen SOP - ${sop.title}</title>
             <style>
-              body { font-family: sans-serif; padding: 40px; line-height: 1.6; }
-              h1 { color: #0f4928; border-bottom: 2px solid #f5c518; padding-bottom: 10px; }
-              .badge { background: #f0faf4; color: #0f4928; padding: 4px 12px; border-radius: 8px; font-weight: bold; }
-              pre { background: #f8fafc; padding: 20px; border-radius: 12px; font-size: 14px; }
+              @page { size: A4 portrait; margin: 18mm 20mm 18mm 20mm; }
+              body { font-family: 'Times New Roman', Times, serif; color: #000; padding: 10px 20px; line-height: 1.5; font-size: 11pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .sop-title { text-align: center; font-size: 13pt; font-weight: 900; text-transform: uppercase; margin: 0 0 4px 0; text-decoration: underline; }
+              .meta-box { border: 1px solid #000; padding: 10px 14px; margin: 16px 0; background: #f8fafc; font-size: 10.5pt; }
+              .content-box { border: 1px solid #cbd5e1; padding: 16px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10pt; line-height: 1.6; white-space: pre-wrap; background: #fafafa; }
+              @media print { body { padding: 0; } }
             </style>
           </head>
           <body>
-            <span class="badge">${sop.category}</span>
-            <h1>${sop.title}</h1>
-            <p><strong>Deskripsi:</strong> ${sop.desc}</p>
-            <hr />
-            <h3>Petunjuk Prosedur:</h3>
-            <pre>${sop.content}</pre>
+            ${kopHtml}
+            <div class="sop-title">STANDAR OPERASIONAL PROSEDUR (SOP) RESMI</div>
+            <div style="text-align: center; font-size: 10.5pt; font-weight: bold; margin-bottom: 14px; color: #064e3b;">
+              KODE: ${sop.id} • BIDANG: ${sop.category}
+            </div>
+
+            <div class="meta-box">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="width: 140px; font-weight: bold;">Judul Prosedur</td>
+                  <td style="width: 10px;">:</td>
+                  <td style="font-weight: bold; font-size: 11.5pt;">${sop.title}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: bold;">Tujuan & Deskripsi</td>
+                  <td>:</td>
+                  <td>${sop.desc}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: bold;">Tanggal Ditetapkan</td>
+                  <td>:</td>
+                  <td>Kediri, ${masehi}</td>
+                </tr>
+              </table>
+            </div>
+
+            <h4 style="margin: 16px 0 8px 0; font-size: 11.5pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 4px;">
+              INSTRUKSI & TATA CARA PELAKSANAAN:
+            </h4>
+            <div class="content-box">${sop.content}</div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 35px; page-break-inside: avoid;">
+              <div style="text-align: center; width: 250px;">
+                <p style="margin: 0; font-size: 10.5pt;">Kediri, ${masehi}</p>
+                <p style="margin: 2px 0 0 0; font-weight: bold;">Sekretariat Utama Pesantren</p>
+                <div style="height: 60px;"></div>
+                <p style="margin: 0; font-weight: 900; text-decoration: underline;">KH. Agus Abdullah Kafabihi, M.Pd.I.</p>
+                <p style="margin: 2px 0 0 0; font-size: 8.5pt; font-family: Arial, sans-serif;">NIY: 19820415.200501.1.001</p>
+              </div>
+            </div>
           </body>
         </html>
       `);
       printWindow.document.close();
       printWindow.focus();
-      printWindow.print();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    }
+  };
+
+  const handlePrintAllSop = () => {
+    const printWindow = window.open('', '_blank', 'width=900,height=1100');
+    if (printWindow) {
+      const kopHtml = getKopSuratHTML('PONDOK');
+      const { masehi } = formatTanggalFormal(new Date());
+
+      const itemsHtml = sopItems
+        .map(
+          (sop) => `
+          <div style="page-break-after: always; margin-bottom: 30px;">
+            ${kopHtml}
+            <div style="text-align: center; font-size: 13pt; font-weight: 900; text-decoration: underline; margin-bottom: 4px;">
+              STANDAR OPERASIONAL PROSEDUR (${sop.id})
+            </div>
+            <h3 style="text-align: center; font-size: 12pt; margin: 0 0 14px 0; color: #064e3b;">${sop.title}</h3>
+            <div style="border: 1px solid #000; padding: 10px; margin-bottom: 12px; font-size: 10pt; background: #f8fafc;">
+              <strong>Kategori:</strong> ${sop.category} | <strong>Deskripsi:</strong> ${sop.desc}
+            </div>
+            <div style="border: 1px solid #cbd5e1; padding: 14px; border-radius: 6px; font-family: sans-serif; font-size: 9.5pt; line-height: 1.5; white-space: pre-wrap;">${sop.content}</div>
+          </div>
+        `
+        )
+        .join('');
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Buku Panduan SOP Resmi Darsa Enterprise</title>
+            <style>
+              @page { size: A4 portrait; margin: 15mm; }
+              body { font-family: 'Times New Roman', Times, serif; color: #000; margin: 0; padding: 10px; }
+              @media print { body { padding: 0; } }
+            </style>
+          </head>
+          <body>
+            ${itemsHtml}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
     }
   };
 
@@ -112,7 +204,7 @@ export default function SOPGuidePage() {
         title="Panduan & Standar Operasional Prosedur (SOP)"
         subtitle="Dokumentasi Resmi Penggunaan Sistem Darsa Enterprise, Petunjuk Operasional, & FAQ"
         badge="SISTEM & UTILITAS"
-        primaryAction={{ label: '🖨️ Cetak Seluruh SOP', onClick: () => window.print() }}
+        primaryAction={{ label: '🖨️ Cetak Seluruh SOP Resmi (A4)', onClick: handlePrintAllSop }}
         search={search}
         onSearch={setSearch}
         searchPlaceholder="Cari judul SOP atau kata kunci..."

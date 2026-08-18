@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/PageHeader';
+import { printFormalRapor } from '@/lib/formal-document-print';
 
 interface RaporData {
   santri: {
@@ -11,6 +12,8 @@ interface RaporData {
     tahun_ajaran: string;
     semester: string;
     wali_kelas: string;
+    nisp?: string;
+    jenjang?: string;
   };
   tahfidz: {
     hafalan_juz: number;
@@ -61,6 +64,8 @@ export default function RaporDigitalPage() {
                     tahun_ajaran: '2025/2026',
                     semester: 'Ganjil',
                     wali_kelas: s.nama_wali || 'Mustahiq Diniyah',
+                    nisp: s.nisp,
+                    jenjang: s.jenjang || 'PONDOK',
                   },
                   tahfidz: {
                     hafalan_juz: s.hafalan_juz || 0,
@@ -88,7 +93,30 @@ export default function RaporDigitalPage() {
   }, []);
 
   const handlePrint = () => {
-    window.print();
+    if (!raporData) return;
+    printFormalRapor({
+      santri: {
+        nama_lengkap: raporData.santri.nama_lengkap,
+        nisn: raporData.santri.nisn,
+        nisp: raporData.santri.nisp,
+        kelas: raporData.santri.kelas,
+        tahun_ajaran: raporData.santri.tahun_ajaran,
+        semester: raporData.santri.semester,
+        wali_kelas: raporData.santri.wali_kelas,
+        jenjang: raporData.santri.jenjang || 'PONDOK',
+      },
+      tahfidz: {
+        hafalan_juz: raporData.tahfidz.hafalan_juz,
+        surah_terakhir: raporData.tahfidz.surah_terakhir,
+        predikat: raporData.tahfidz.predikat,
+      },
+      akademik: raporData.akademik,
+      kehadiran: {
+        izin: raporData.kehadiran.izin,
+        pelanggaran: raporData.kehadiran.pelanggaran,
+      },
+      catatan_wali: raporData.catatan_wali,
+    });
   };
 
   return (

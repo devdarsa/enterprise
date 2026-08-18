@@ -7,6 +7,7 @@ import { LoadingSpinner, SkeletonTable, EmptyState } from '@/components/Loading'
 import { PageHeader } from '@/components/PageHeader';
 import SantriPicker from '@/components/SantriPicker';
 import { getIndexedDBCache, setIndexedDBCache, getLocalCache, setLocalCache } from '@/lib/cache-storage';
+import { printFormalLetter } from '@/lib/formal-document-print';
 
 interface Surat {
   id: string;
@@ -331,14 +332,25 @@ export default function PersuratanDigitalPage() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-700 text-white font-bold cursor-pointer"
+                onClick={() =>
+                  printFormalLetter({
+                    nomor_surat: detailSurat.nomor,
+                    perihal: detailSurat.perihal,
+                    pengirim: detailSurat.pengirim,
+                    penerima: detailSurat.penerima,
+                    santri_nama: detailSurat.santri_nama || detailSurat.pengirim,
+                    keperluan: detailSurat.perihal,
+                    tanggal: detailSurat.tanggal,
+                    instansi: detailSurat.instansi || 'PONDOK',
+                  })
+                }
+                className="flex-1 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold cursor-pointer shadow-md transition-all flex items-center justify-center gap-2"
               >
-                🖨️ Cetak Surat Izin
+                <span>🖨️ Cetak Dokumen Surat Resmi (A4)</span>
               </button>
               <button
                 onClick={() => setDetailSurat(null)}
-                className="py-2.5 px-4 rounded-xl bg-slate-100 font-bold text-slate-700 cursor-pointer"
+                className="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 cursor-pointer transition-all"
               >
                 Tutup
               </button>
