@@ -69,7 +69,7 @@ export default function ManajemenAsramaPage() {
     waliKamar: '',
   });
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nomorKamar.trim() || !form.waliKamar.trim()) {
       showToast('warning', 'Form Belum Lengkap', 'Nomor kamar dan wali kamar wajib diisi.');
@@ -77,39 +77,77 @@ export default function ManajemenAsramaPage() {
     }
 
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/v1/asrama', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nama_kamar: form.nomorKamar.trim(),
+          nama_gedung: form.gedung,
+          kapasitas: Number(form.kapasitas),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsModalOpen(false);
+        setForm({ gedung: 'Gedung A (Al-Farabi)', nomorKamar: '', kapasitas: 8, waliKamar: '' });
+        showToast('success', 'Kamar Berhasil Ditambahkan', json.message || `Kamar berhasil disimpan.`);
+        // Reload list
+        const reloadRes = await fetch('/api/v1/asrama');
+        const reloadJson = await reloadRes.json();
+        if (reloadJson.success) setKamarList(reloadJson.data);
+      } else {
+        showToast('error', 'Gagal Menambah Kamar', json.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal Menambah Kamar', err.message);
+    } finally {
       setSubmitting(false);
-      setIsModalOpen(false);
-      const newKamar: KamarAsrama = {
-        id: Date.now().toString(),
-        gedung: form.gedung,
-        nomorKamar: form.nomorKamar.trim(),
-        kapasitas: Number(form.kapasitas),
-        terisi: 0,
-        waliKamar: form.waliKamar.trim(),
-        status: 'TERSEDIA',
-      };
-      setKamarList([newKamar, ...kamarList]);
-      setForm({ gedung: 'Gedung A (Al-Farabi)', nomorKamar: '', kapasitas: 8, waliKamar: '' });
-      showToast('success', 'Kamar Berhasil Ditambahkan', `Kamar ${newKamar.nomorKamar} (${newKamar.gedung}) tersimpan di Master Asrama.`);
-    }, 400);
+    }
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editKamar) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setKamarList((prev) => prev.map((k) => (k.id === editKamar.id ? editKamar : k)));
+    try {
+      const res = await fetch('/api/v1/asrama', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editKamar.id,
+          nama_kamar: editKamar.nomorKamar,
+          kapasitas: Number(editKamar.kapasitas),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setKamarList((prev) => prev.map((k) => (k.id === editKamar.id ? editKamar : k)));
+        setEditKamar(null);
+        showToast('success', 'Kamar Diperbarui', `Data kamar ${editKamar.nomorKamar} berhasil disimpan.`);
+      } else {
+        showToast('error', 'Gagal Memperbarui Kamar', json.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal Memperbarui Kamar', err.message);
+    } finally {
       setSubmitting(false);
-      setEditKamar(null);
-      showToast('success', 'Kamar Diperbarui', `Data kamar ${editKamar.nomorKamar} berhasil disimpan.`);
-    }, 400);
+    }
   };
 
-  const handleDelete = (id: string, nama: string) => {
-    setKamarList((prev) => prev.filter((k) => k.id !== id));
-    showToast('success', 'Kamar Dihapus', `Kamar ${nama} dipindahkan ke Recycle Bin.`);
+  const handleDelete = async (id: string, nama: string) => {
+    try {
+      const res = await fetch(`/api/v1/asrama?id=${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setKamarList((prev) => prev.filter((k) => k.id !== id));
+        showToast('success', 'Kamar Dihapus', `Kamar ${nama} berhasil dihapus.`);
+      } else {
+        showToast('error', 'Gagal Menghapus Kamar', json.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal Menghapus Kamar', err.message);
+    }
   };
 
   const handleExportExcel = async () => {

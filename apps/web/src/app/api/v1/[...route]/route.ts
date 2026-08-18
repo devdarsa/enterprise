@@ -34,6 +34,10 @@ import * as waliVerifikasiNik from '../wali/verifikasi-nik/handler';
 import * as wilayah from '../wilayah/handler';
 import * as authLogin from '../auth/login/handler';
 import * as authMe from '../auth/me/handler';
+import * as asrama from '../asrama/handler';
+import * as instansi from '../instansi/handler';
+import * as roles from '../roles/handler';
+import * as arsip from '../arsip/handler';
 
 type ApiHandlerModule = Record<string, (...args: any[]) => Promise<Response>>;
 
@@ -51,15 +55,19 @@ const handlers: Record<string, ApiHandlerModule> = {
   'absensi/scan': absensiScan as unknown as ApiHandlerModule,
   'akademik/rapor': akademikRapor as unknown as ApiHandlerModule,
   'akun': akun as unknown as ApiHandlerModule,
+  'arsip': arsip as unknown as ApiHandlerModule,
+  'asrama': asrama as unknown as ApiHandlerModule,
   'audit-log': auditLog as unknown as ApiHandlerModule,
   'dashboard/stats': dashboardStats as unknown as ApiHandlerModule,
   'guru': guru as unknown as ApiHandlerModule,
+  'instansi': instansi as unknown as ApiHandlerModule,
   'jadwal': jadwal as unknown as ApiHandlerModule,
   'konfigurasi/jabatan': konfigurasiJabatan as unknown as ApiHandlerModule,
   'pelanggaran': pelanggaran as unknown as ApiHandlerModule,
   'pengumuman': pengumuman as unknown as ApiHandlerModule,
   'pengurus': pengurus as unknown as ApiHandlerModule,
   'perizinan': perizinan as unknown as ApiHandlerModule,
+  'roles': roles as unknown as ApiHandlerModule,
   'santri': santri as unknown as ApiHandlerModule,
   'santri/pull-sync': santriPull as unknown as ApiHandlerModule,
   'surat': surat as unknown as ApiHandlerModule,

@@ -139,9 +139,27 @@ export default function KonfigurasiSistemPage() {
     }
   };
 
-  const handleSaveConfig = (e?: React.FormEvent) => {
+  const handleSaveConfig = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    showToast('success', 'Konfigurasi Tersimpan', 'Pengaturan utama Darsa Enterprise berhasil diperbarui & dicatat pada Audit Log.');
+    try {
+      const res = await fetch('/api/v1/instansi', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nama: namaPondok,
+          alamat: alamatPondok,
+          radius_meter: Number(radiusQr),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('success', 'Konfigurasi Tersimpan', 'Pengaturan identitas lembaga & parameter berhasil diperbarui.');
+      } else {
+        showToast('error', 'Gagal Menyimpan', json.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal Menyimpan', err.message);
+    }
   };
 
   const handleResetConfig = () => {

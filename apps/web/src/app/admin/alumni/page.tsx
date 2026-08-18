@@ -85,55 +85,87 @@ export default function DataAlumniPage() {
     }
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nama) {
       showToast('error', 'Validasi Error', 'Nama alumni wajib diisi.');
       return;
     }
-    const newAlumni: Alumni = {
-      id: 'alm-' + Date.now(),
-      nisp: form.nisp || 'ALM-' + Date.now().toString().slice(-6),
-      nama: form.nama,
-      tahunLulus: Number(form.tahunLulus),
-      jenjangTerakhir: form.jenjangTerakhir,
-      statusAlumni: form.statusAlumni,
-      lokasiKhidmah: form.lokasiKhidmah,
-      telepon: form.telepon,
-    };
-    setAlumniList([newAlumni, ...alumniList]);
-    setIsAddOpen(false);
-    showToast('success', 'Alumni Ditambahkan', `Data alumni ${newAlumni.nama} berhasil dicatat.`);
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/v1/santri', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nama_lengkap: form.nama,
+          nisp: form.nisp || 'ALM-' + Date.now().toString().slice(-6),
+          status: 'LULUS',
+          alamat: form.lokasiKhidmah,
+          telepon: form.telepon,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsAddOpen(false);
+        showToast('success', 'Alumni Ditambahkan', `Data alumni ${form.nama} berhasil dicatat di database.`);
+        fetchAlumniLive();
+      } else {
+        showToast('error', 'Gagal Menambah Alumni', json.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal Menambah Alumni', err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleUpdate = (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editItem) return;
-    setAlumniList((prev) =>
-      prev.map((a) =>
-        a.id === editItem.id
-          ? {
-              ...editItem,
-              nama: form.nama,
-              nisp: form.nisp,
-              tahunLulus: Number(form.tahunLulus),
-              jenjangTerakhir: form.jenjangTerakhir,
-              statusAlumni: form.statusAlumni,
-              lokasiKhidmah: form.lokasiKhidmah,
-              telepon: form.telepon,
-            }
-          : a
-      )
-    );
-    setEditItem(null);
-    showToast('success', 'Berhasil Disimpan', `Data alumni ${form.nama} diperbarui.`);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/v1/santri/${editItem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nama_lengkap: form.nama,
+          nisp: form.nisp,
+          alamat: form.lokasiKhidmah,
+          telepon: form.telepon,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setEditItem(null);
+        showToast('success', 'Berhasil Disimpan', `Data alumni ${form.nama} diperbarui.`);
+        fetchAlumniLive();
+      } else {
+        showToast('error', 'Gagal Memperbarui', json.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal Memperbarui', err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteItem) return;
-    setAlumniList((prev) => prev.filter((a) => a.id !== deleteItem.id));
-    setDeleteItem(null);
-    showToast('success', 'Dihapus', `Data alumni ${deleteItem.nama} dipindahkan ke Recycle Bin.`);
+    try {
+      const res = await fetch(`/api/v1/santri/${deleteItem.id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAlumniList((prev) => prev.filter((a) => a.id !== deleteItem.id));
+        setDeleteItem(null);
+        showToast('success', 'Dihapus', `Data alumni ${deleteItem.nama} berhasil dihapus.`);
+      } else {
+        showToast('error', 'Gagal Menghapus', json.error);
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal Menghapus', err.message);
+    }
   };
 
   const handleExport = async () => {

@@ -10,6 +10,14 @@ export interface AuthSession {
   };
 }
 
+export async function authenticateRequest(request: NextRequest): Promise<{ authenticated: boolean; user?: AuthSession['user'] }> {
+  const session = await getApiSession(request);
+  if (!session?.user) {
+    return { authenticated: false };
+  }
+  return { authenticated: true, user: session.user };
+}
+
 /**
  * Get session from a Next.js API route request.
  * Returns null if not authenticated.

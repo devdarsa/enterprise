@@ -121,6 +121,26 @@ export default function ManajemenRolePage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
 
+  useEffect(() => {
+    async function fetchRolesLive() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/v1/roles');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            setRoleList(json.data);
+          }
+        }
+      } catch (e) {
+        console.error('Gagal memuat roles:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRolesLive();
+  }, []);
+
   // Modal State (Form Dynamic Role & Permission Matrix)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
@@ -173,7 +193,7 @@ export default function ManajemenRolePage() {
     });
   };
 
-  const handleSubmitRole = (e: React.FormEvent) => {
+  const handleSubmitRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!namaRole.trim() || !kodeRole.trim()) {
       showToast('error', 'Validasi Gagal', 'Nama role dan Kode role unik wajib diisi.');
@@ -181,48 +201,44 @@ export default function ManajemenRolePage() {
     }
 
     setSubmitting(true);
-
-    setTimeout(() => {
-      setSubmitting(false);
-      setIsModalOpen(false);
-
-      if (editingRole) {
-        // Update
-        setRoleList((prev) =>
-          prev.map((r) =>
-            r.id === editingRole.id
-              ? {
-                  ...r,
-                  namaRole: namaRole.trim(),
-                  deskripsi: deskripsi.trim(),
-                  icon,
-                  warnaHex,
-                  status,
-                  permissions: formPermissions,
-                }
-              : r
-          )
-        );
-        showToast('success', 'Role Berhasil Diperbarui', `Perubahan hak akses untuk role ${namaRole} tersimpan dan langsung berlaku.`);
-      } else {
-        // Create new custom role
-        const cleanKode = kodeRole.trim().toUpperCase().replace(/\s+/g, '_');
-        const newRole: RoleItem = {
-          id: `role-${Date.now()}`,
-          kodeRole: cleanKode,
-          namaRole: namaRole.trim(),
-          deskripsi: deskripsi.trim(),
-          isBuiltIn: false,
-          icon,
-          warnaHex,
-          status,
-          jumlahPengguna: 0,
+    try {
+      const res = await fetch('/api/v1/roles', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kodeRole: editingRole ? editingRole.kodeRole : kodeRole.trim().toUpperCase().replace(/\s+/g, '_'),
           permissions: formPermissions,
-        };
-        setRoleList((prev) => [newRole, ...prev]);
-        showToast('success', 'Role Kustom Terdaftar', `Role baru "${newRole.namaRole}" (${newRole.kodeRole}) berhasil dibuat & dicatat pada Audit Log.`);
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsModalOpen(false);
+        if (editingRole) {
+          setRoleList((prev) =>
+            prev.map((r) =>
+              r.id === editingRole.id
+                ? {
+                    ...r,
+                    namaRole: namaRole.trim(),
+                    deskripsi: deskripsi.trim(),
+                    icon,
+                    warnaHex,
+                    status,
+                    permissions: formPermissions,
+                  }
+                : r
+            )
+          );
+          showToast('success', 'Role Berhasil Diperbarui', `Hak akses role ${namaRole} tersimpan ke database.`);
+        }
+      } else {
+        showToast('error', 'Gagal Menyimpan Role', json.error || 'Terjadi kesalahan');
       }
-    }, 400);
+    } catch (err: any) {
+      showToast('error', 'Gagal Menyimpan Role', err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDeleteRole = (role: RoleItem) => {
