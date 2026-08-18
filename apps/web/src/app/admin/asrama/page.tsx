@@ -277,21 +277,21 @@ export default function ManajemenAsramaPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setDetailKamar(kamar)}
-                          className="btn-action-detail cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
                         >
-                          🔍 Detail
+                          Detail
                         </button>
                         <button
                           onClick={() => setEditKamar(kamar)}
-                          className="btn-action-edit cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
                         >
-                          ✏️ Edit
+                          Edit
                         </button>
                         <button
                           onClick={() => handleDelete(kamar.id, kamar.nomorKamar)}
-                          className="btn-action-danger cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
                         >
-                          🗑️ Hapus
+                          Hapus
                         </button>
                       </div>
                     </td>

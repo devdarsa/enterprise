@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { FormActions } from '@/components/TableActions';
 import Modal, { ConfirmDialog } from '@/components/Modal';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
+import { Tag, Building2, SlidersHorizontal, Plus, Save } from 'lucide-react';
 
 interface MasterJabatan {
   id: string;
@@ -186,30 +187,39 @@ export default function KonfigurasiSistemPage() {
             : { label: '💾 Simpan Konfigurasi', onClick: () => handleSaveConfig() }
         }
         toolbarExtra={
-          <div className="flex gap-1.5 shrink-0">
+          <div className="flex gap-1.5 shrink-0 overflow-x-auto">
             <button
               onClick={() => setActiveTab('jabatan')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'jabatan' ? 'bg-[#0f4928] text-white shadow' : 'bg-slate-100 text-slate-700'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'jabatan'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              🏷️ Master Jabatan ({jabatanList.length})
+              <Tag className="w-3.5 h-3.5" />
+              Master Jabatan ({jabatanList.length})
             </button>
             <button
               onClick={() => setActiveTab('identitas')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'identitas' ? 'bg-[#0f4928] text-white shadow' : 'bg-slate-100 text-slate-700'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'identitas'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              🏢 Identitas Lembaga
+              <Building2 className="w-3.5 h-3.5" />
+              Identitas Lembaga
             </button>
             <button
               onClick={() => setActiveTab('parameter')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'parameter' ? 'bg-[#0f4928] text-white shadow' : 'bg-slate-100 text-slate-700'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'parameter'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              ⚙️ Parameter Presensi & WA
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Parameter Presensi
             </button>
           </div>
         }

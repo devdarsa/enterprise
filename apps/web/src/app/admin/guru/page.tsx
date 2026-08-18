@@ -231,23 +231,27 @@ export default function MasterGuruPage() {
                         <button
                           type="button"
                           onClick={() => setDetailGuru(g)}
-                          className="btn-action-detail cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
                         >
-                          🔍 Detail
+                          Detail
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditGuru(g)}
-                          className="btn-action-edit cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
                         >
-                          ✏️ Edit
+                          Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(g.id, g.nama)}
-                          className="btn-action-secondary cursor-pointer"
+                          className={
+                            g.status === 'NON_AKTIF'
+                              ? 'px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition'
+                              : 'px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition'
+                          }
                         >
-                          {g.status === 'NON_AKTIF' ? '⚡ Aktifkan' : '⏸ Nonaktif'}
+                          {g.status === 'NON_AKTIF' ? 'Aktifkan' : 'Nonaktif'}
                         </button>
                       </div>
                     </td>

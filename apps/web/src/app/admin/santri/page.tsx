@@ -494,10 +494,10 @@ export default function MasterSantriPage() {
                         {/* Detail → halaman detail */}
                         <Link
                           href={`/admin/santri/${santri.id}`}
-                          className="btn-action-detail"
+                          className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
                           title="Lihat detail profil santri"
                         >
-                          🔍 Detail
+                          Detail
                         </Link>
 
                         {/* Mutasi */}
@@ -505,10 +505,10 @@ export default function MasterSantriPage() {
                           <button
                             type="button"
                             onClick={() => openMutasi(santri)}
-                            className="btn-action-mutasi"
+                            className="px-2.5 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
                             title="Mutasi santri (Boyong/Cuti/Pindah/Lulus)"
                           >
-                            🔄 Mutasi
+                            Mutasi
                           </button>
                         )}
                       </div>

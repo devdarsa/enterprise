@@ -9,18 +9,34 @@ import DesktopOnlyGuard from '@/components/DesktopOnlyGuard';
 import AccountSettingsModal from '@/components/AccountSettingsModal';
 import { clearAllLocalCache } from '@/lib/cache-storage';
 import {
-  Bell,
+  LayoutDashboard,
+  Users,
+  Building2,
+  UserCheck,
+  GraduationCap,
+  Award,
+  Mail,
+  ShieldAlert,
+  CreditCard,
+  Archive,
   Calendar,
+  UserCog,
+  KeyRound,
+  History,
+  BookOpen,
+  Settings,
+  Bell,
   CheckCheck,
   Trash2,
-  ShieldAlert,
-  FileText,
-  QrCode,
   LogOut,
   ChevronDown,
-  Settings,
   User,
-  Info
+  Sparkles,
+  Menu,
+  X,
+  Building,
+  FileText,
+  QrCode,
 } from 'lucide-react';
 
 interface SessionUser {
@@ -75,28 +91,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       id: 'notif-1',
       type: 'PERIZINAN',
       title: 'Permohonan Izin Santri Baru',
-      desc: 'Santri Ahmad Muzakki mengajukan izin pulang (28 Jul - 30 Jul)',
-      time: '5 menit lalu',
+      desc: 'Santri Ahmad Muzakki mengajukan izin pulang',
+      time: '5 mnt lalu',
       unread: true,
       link: '/admin/surat',
     },
     {
       id: 'notif-2',
       type: 'PRESENSI',
-      title: 'Scan QR Presensi Guru MI',
-      desc: '12 Ustadz/Ustadzah telah melakukan presensi lokasi',
-      time: '35 menit lalu',
+      title: 'Scan QR Presensi Guru',
+      desc: 'Presensi lokasi pengajar aktif tercatat',
+      time: '35 mnt lalu',
       unread: true,
       link: '/admin/santri',
-    },
-    {
-      id: 'notif-3',
-      type: 'PELANGGARAN',
-      title: 'Pencatatan Takzir Keamanan',
-      desc: 'Terlibat pelanggaran terlambat kembali komplek',
-      time: '2 jam lalu',
-      unread: false,
-      link: '/admin/pelanggaran',
     },
   ]);
 
@@ -104,7 +111,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setToast({ isOpen: true, type, title, message });
   };
 
-  // Fetch session, active Tahun Ajaran, and REALTIME Notifications from API
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -186,11 +192,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     fetchActiveTahunAjaran();
     fetchLiveNotifications();
 
-    const notifInterval = setInterval(fetchLiveNotifications, 10000);
+    const notifInterval = setInterval(fetchLiveNotifications, 15000);
     return () => clearInterval(notifInterval);
   }, [router]);
 
-  // Close popovers on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
@@ -228,32 +233,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     showToast('info', 'Notifikasi Bersih', 'Daftar notifikasi telah dibersihkan.');
   };
 
-  const handleNotificationClick = (item: NotificationItem) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
-    );
-    setNotifOpen(false);
-    router.push(item.link);
-  };
-
   const instansiConfig = {
     pondok: {
-      nama: "Ma'had Darussa'adah Lirboyo",
-      sub: 'PONDOK PESANTREN LIRBOYO KOTA KEDIRI',
+      nama: "Ma'had Darussa'adah",
+      sub: 'Pondok Pesantren Lirboyo',
       logo: '/logo-pondok.png',
-      badge: 'Sekretariat Utama Pondok',
+      badge: 'Sekretariat Pondok',
     },
     madrasah: {
-      nama: "Madrasah Diniyah Darussa'adah",
-      sub: 'MADRASAH DINIYAH LIRBOYO KOTA KEDIRI',
+      nama: "Madrasah Diniyah",
+      sub: "Ma'had Darussa'adah",
       logo: '/logo-madrasah.png',
-      badge: 'Sekretariat Madrasah Diniyah',
+      badge: 'Madrasah Diniyah',
     },
     mi: {
-      nama: "MI Formal Darussa'adah",
-      sub: 'MADRASAH IBTIDAIYAH FORMAL KEDIRI',
+      nama: "Madrasah Ibtidaiyah",
+      sub: "Ma'had Darussa'adah",
       logo: '/logo-mi.png',
-      badge: 'Sekretariat Formal MI',
+      badge: 'MI Darussa\'adah',
     },
   };
 
@@ -263,37 +260,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     {
       groupTitle: 'DASHBOARD',
       items: [
-        { label: 'Overview Dashboard', path: '/admin/dashboard', icon: '📊' },
+        { label: 'Overview Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
       ],
     },
     {
       groupTitle: 'DATABASE PONDOK',
       items: [
-        { label: 'Data Santri & Wali', path: '/admin/santri', icon: '🎓' },
-        { label: 'Data Asrama & Pembina', path: '/admin/asrama', icon: '🏠' },
-        { label: 'Data Pengurus', path: '/admin/pengurus', icon: '👥' },
-        { label: 'Data Pengajar', path: '/admin/guru', icon: '👨‍🏫' },
-        { label: 'Alumni & Kelulusan', path: '/admin/alumni', icon: '📜' },
+        { label: 'Data Santri & Wali', path: '/admin/santri', icon: GraduationCap },
+        { label: 'Data Asrama & Kamar', path: '/admin/asrama', icon: Building2 },
+        { label: 'Data Pengurus', path: '/admin/pengurus', icon: Users },
+        { label: 'Data Pengajar / Guru', path: '/admin/guru', icon: UserCheck },
+        { label: 'Alumni & Kelulusan', path: '/admin/alumni', icon: Award },
       ],
     },
     {
-      groupTitle: 'KEAMANAN',
+      groupTitle: 'KEAMANAN & DISIPLIN',
       items: [
-        { label: 'Perizinan Santri', path: '/admin/surat', icon: '✉️' },
-        { label: 'Pelanggaran & Takzir', path: '/admin/pelanggaran', icon: '⚠️' },
-        { label: 'Kartu Santri Digital', path: '/admin/kartu-santri', icon: '🪪' },
+        { label: 'Perizinan & Surat', path: '/admin/surat', icon: Mail },
+        { label: 'Pelanggaran & Takzir', path: '/admin/pelanggaran', icon: ShieldAlert },
+        { label: 'Kartu Santri Digital', path: '/admin/kartu-santri', icon: CreditCard },
       ],
     },
     {
       groupTitle: 'SISTEM & UTILITAS',
       items: [
-        { label: 'Arsip Historis', path: '/admin/arsip', icon: '📦' },
-        { label: 'Tahun Ajaran', path: '/admin/tahun-ajaran', icon: '📅' },
-        { label: 'Manajemen Akun', path: '/admin/akun', icon: '🔐' },
-        { label: 'Manajemen Role & RBAC', path: '/admin/roles', icon: '🔑' },
-        { label: 'Audit Log & Recycle Bin', path: '/admin/audit-log', icon: '📋' },
-        { label: 'Panduan & SOP', path: '/admin/sop', icon: '📖' },
-        { label: 'Konfigurasi Sistem', path: '/admin/konfigurasi', icon: '⚙️' },
+        { label: 'Arsip Dokumen', path: '/admin/arsip', icon: Archive },
+        { label: 'Tahun Ajaran', path: '/admin/tahun-ajaran', icon: Calendar },
+        { label: 'Manajemen Akun', path: '/admin/akun', icon: UserCog },
+        { label: 'Hak Akses & Roles', path: '/admin/roles', icon: KeyRound },
+        { label: 'Audit Log & Recycle', path: '/admin/audit-log', icon: History },
+        { label: 'Panduan & SOP', path: '/admin/sop', icon: BookOpen },
+        { label: 'Konfigurasi Sistem', path: '/admin/konfigurasi', icon: Settings },
       ],
     },
   ];
@@ -311,17 +308,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           };
         }
       }
-
-      if (['MUSTAHIQ', 'MUNAWWIB', 'GURU_MADRASAH', 'GURU_MI', 'GURU'].includes(userRole)) {
-        if (group.groupTitle === 'DATABASE PONDOK') return null;
-        if (group.groupTitle === 'SISTEM & UTILITAS') {
-          return {
-            ...group,
-            items: group.items.filter((item) => item.path === '/admin/sop'),
-          };
-        }
-      }
-
       return group;
     })
     .filter(Boolean) as typeof navigationGroups;
@@ -336,99 +322,110 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }));
   })();
 
-  const getNotifIcon = (type: NotificationItem['type']) => {
-    switch (type) {
-      case 'PERIZINAN':
-        return <FileText className="w-4 h-4 text-amber-600 shrink-0" />;
-      case 'PRESENSI':
-        return <QrCode className="w-4 h-4 text-emerald-600 shrink-0" />;
-      case 'PELANGGARAN':
-        return <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />;
-      default:
-        return <Info className="w-4 h-4 text-blue-600 shrink-0" />;
-    }
-  };
-
   if (pathname === '/admin/login') {
     return <>{children}</>;
   }
 
   return (
     <DesktopOnlyGuard>
-      <div className="h-screen w-full bg-slate-50 text-slate-900 flex flex-col md:flex-row overflow-hidden relative font-sans">
-        {/* Mobile Overlay */}
+      <div className="flex h-screen bg-[#f8faf9] text-slate-800 font-sans overflow-hidden">
+        <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
+
+        {/* Backdrop on mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden animate-fade-in"
+            className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* SIDEBAR */}
+        {/* PREMIUM EXECUTIVE SIDEBAR */}
         <aside
           className={`
-            fixed md:sticky top-0 h-screen z-40 md:z-30
-            w-72 md:w-64 bg-white border-r border-slate-200/80
-            flex flex-col shadow-xl md:shadow-none
-            transform transition-transform duration-300 ease-out
+            fixed md:static inset-y-0 left-0 z-50
+            w-68 bg-[#0a2a18] text-slate-100 flex flex-col
+            border-r border-emerald-950/60 shadow-xl
+            transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-            shrink-0 overflow-y-auto
           `}
         >
-          {/* Header Card */}
-          <div className="p-4 border-b border-slate-100">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="relative w-9 h-9 rounded-full border-2 border-amber-400 overflow-hidden shadow-sm shrink-0">
-                <Image src={currentInstansi.logo} alt={`Logo ${currentInstansi.nama}`} fill className="object-cover" />
+          {/* Header Brand */}
+          <div className="p-4 border-b border-emerald-900/40">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-[#135e35] p-0.5 shadow-md flex items-center justify-center shrink-0">
+                <Image
+                  src={currentInstansi.logo}
+                  alt="Logo"
+                  width={36}
+                  height={36}
+                  className="rounded-lg object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
               </div>
-              <div className="min-w-0">
-                <span className="font-black text-xs tracking-tight text-emerald-900 block truncate">DARSA ENTERPRISE</span>
-                <span className="text-[9px] text-amber-700 font-bold tracking-wider block truncate">{currentInstansi.sub}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-sm font-black text-white tracking-tight truncate">DARSA ENTERPRISE</h1>
+                  <span className="px-1.5 py-0.2 rounded-md text-[9px] font-extrabold bg-amber-400/20 text-amber-300 border border-amber-400/30">PRO</span>
+                </div>
+                <p className="text-[11px] text-emerald-300/80 font-medium truncate">{currentInstansi.nama}</p>
               </div>
               <button
                 type="button"
-                className="ml-auto md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="ml-auto md:hidden p-1.5 rounded-lg text-emerald-400 hover:text-white hover:bg-emerald-900/50 transition"
                 onClick={() => setSidebarOpen(false)}
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
-              <span className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wider block mb-0.5">
-                PORTAL {currentInstansi.badge.toUpperCase()}
-              </span>
-              <p className="text-xs font-black text-emerald-950">{currentInstansi.nama}</p>
+            <div className="mt-3 px-3 py-1.5 rounded-xl bg-emerald-900/40 border border-emerald-700/30 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Building className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="text-[10px] font-bold text-emerald-200 uppercase tracking-wider truncate">
+                  {currentInstansi.badge}
+                </span>
+              </div>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             </div>
           </div>
 
-          {/* Navigation Menu */}
-          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
+          {/* Navigation Items */}
+          <div className="flex-1 overflow-y-auto py-3 px-2.5 space-y-4 scrollbar-thin scrollbar-thumb-emerald-900">
             {visibleGroups.map((group) => (
               <div key={group.groupTitle} className="space-y-1">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 mb-1">
-                  # {group.groupTitle}
+                <p className="text-[10px] font-extrabold text-emerald-400/60 uppercase tracking-wider px-2.5 mb-1.5">
+                  {group.groupTitle}
                 </p>
                 <nav className="space-y-0.5">
                   {group.items.map((item) => {
-                    const isActive = pathname === item.path || (item.path !== '/admin/dashboard' && pathname.startsWith(item.path));
+                    const Icon = item.icon;
+                    const isActive =
+                      pathname === item.path ||
+                      (item.path !== '/admin/dashboard' && pathname.startsWith(item.path));
                     return (
                       <Link
                         key={item.path}
                         href={item.path}
                         onClick={() => setSidebarOpen(false)}
                         className={`
-                          flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150
-                          ${isActive
-                            ? 'bg-emerald-800 text-white shadow-md shadow-emerald-900/20 font-bold'
-                            : 'text-slate-600 hover:text-emerald-800 hover:bg-emerald-50'
+                          group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150
+                          ${
+                            isActive
+                              ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-950/30 font-bold'
+                              : 'text-emerald-100/70 hover:text-white hover:bg-emerald-900/40'
                           }
                         `}
                       >
-                        <span className="text-sm shrink-0">{item.icon}</span>
+                        <Icon
+                          className={`w-4 h-4 shrink-0 transition-colors ${
+                            isActive ? 'text-amber-300' : 'text-emerald-400 group-hover:text-emerald-200'
+                          }`}
+                        />
                         <span className="truncate">{item.label}</span>
                         {isActive && (
-                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0" />
+                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-300 shadow-xs shadow-amber-300 shrink-0" />
                         )}
                       </Link>
                     );
@@ -437,32 +434,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             ))}
           </div>
+
+          {/* Bottom User Pill */}
+          <div className="p-3 border-t border-emerald-900/40 bg-[#082012]">
+            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-emerald-950/50 border border-emerald-800/30">
+              <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                {user?.nama ? getInitials(user.nama) : 'AD'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-white truncate">{user?.nama || 'Administrator'}</p>
+                <span className="text-[10px] text-emerald-400 font-medium block truncate">
+                  {user?.role || 'SEKRETARIAT'}
+                </span>
+              </div>
+            </div>
+          </div>
         </aside>
 
-        {/* MAIN CONTENT WRAPPER */}
+        {/* MAIN CONTENT AREA */}
         <div className="flex-1 h-screen overflow-y-auto flex flex-col min-w-0">
-          {/* Top Header Bar */}
-          <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-6 py-2.5 flex items-center justify-between shadow-xs">
+          {/* Top Navbar */}
+          <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-6 py-2.5 flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="md:hidden p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                className="md:hidden p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
                 onClick={() => setSidebarOpen(true)}
               >
-                ☰
+                <Menu className="w-5 h-5" />
               </button>
 
-              {/* Breadcrumb */}
-              <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium overflow-x-auto no-scrollbar">
-                <Link href="/admin/dashboard" className="hover:text-emerald-700 font-semibold">
+              {/* Breadcrumbs */}
+              <nav className="flex items-center gap-2 text-xs text-slate-500 font-medium overflow-x-auto no-scrollbar">
+                <Link href="/admin/dashboard" className="hover:text-emerald-700 font-semibold text-slate-600">
                   Dashboard
                 </Link>
                 {breadcrumb.slice(1).map((b, idx) => (
-                  <div key={b.href} className="flex items-center gap-1.5 shrink-0">
-                    <span>/</span>
+                  <div key={b.href} className="flex items-center gap-2 shrink-0">
+                    <span className="text-slate-300">/</span>
                     <Link
                       href={b.href}
-                      className={idx === breadcrumb.length - 2 ? 'text-slate-900 font-bold' : 'hover:text-emerald-700'}
+                      className={
+                        idx === breadcrumb.length - 2
+                          ? 'text-emerald-900 font-bold'
+                          : 'hover:text-emerald-700 text-slate-600'
+                      }
                     >
                       {b.label}
                     </Link>
@@ -471,172 +487,131 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </nav>
             </div>
 
-            {/* Right Top Actions Row: [Instansi Selector] -> [Tahun Ajaran] -> [Lonceng Notifikasi] -> [Profile & Logout Dropdown] */}
-            <div className="flex items-center gap-2 md:gap-3">
-              {/* 0. Realtime Instansi Badge (Strictly based on User Account Session) */}
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs shadow-xs">
-                <span className="text-xs">🏛️</span>
-                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider hidden sm:inline">
-                  INSTANSI:
-                </span>
-                <span className="text-xs font-black text-emerald-950 uppercase tracking-tight">
-                  {currentInstansi.nama}
-                </span>
-              </div>
-
-              {/* 1. Realtime System Active Tahun Ajaran Badge */}
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/90 text-xs shadow-xs">
+            {/* Right Navbar Actions */}
+            <div className="flex items-center gap-2.5">
+              {/* Active Semester Badge */}
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200 text-xs">
                 <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider hidden sm:inline">
-                  TAHUN AJARAN:
-                </span>
-                <span className="text-xs font-black text-slate-900">
-                  {tahunAjaran}
-                </span>
-                <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-100 text-emerald-800 rounded-md border border-emerald-300 shrink-0">
-                  AKTIF
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TA:</span>
+                <span className="text-xs font-bold text-slate-800">{tahunAjaran}</span>
+                <span className="px-1.5 py-0.2 text-[9px] font-black bg-emerald-100 text-emerald-800 rounded-md border border-emerald-200">
+                  LIVE
                 </span>
               </div>
 
-              {/* 2. Functional Notification Bell */}
+              {/* Notification Bell */}
               <div className="relative" ref={notifRef}>
                 <button
                   type="button"
                   onClick={() => setNotifOpen(!notifOpen)}
-                  className="p-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200/90 transition-all relative active:scale-95"
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200/80 transition relative active:scale-95"
                   title="Notifikasi Sistem"
                 >
                   <Bell className="w-4 h-4 text-emerald-800" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-md animate-pulse px-1">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-xs animate-pulse">
                       {unreadCount}
                     </span>
                   )}
                 </button>
 
-                {/* Dropdown Panel Notifikasi */}
+                {/* Notifications Dropdown */}
                 {notifOpen && (
-                  <div className="absolute right-0 mt-2.5 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 z-50 animate-scale-up space-y-3">
+                  <div className="absolute right-0 mt-2.5 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 z-50 space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                       <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-emerald-700" />
-                        <h4 className="text-xs font-black text-slate-900">Notifikasi Sistem Enterprise</h4>
+                        <span className="text-sm font-bold text-slate-900">Notifikasi</span>
+                        {unreadCount > 0 && (
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-700 rounded-full">
+                            {unreadCount} baru
+                          </span>
+                        )}
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black">
-                        {unreadCount} Baru
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-[11px] font-semibold text-emerald-700 hover:underline"
+                        >
+                          Tandai Dibaca
+                        </button>
+                        <button
+                          onClick={handleClearNotifications}
+                          className="text-[11px] font-semibold text-slate-400 hover:text-rose-600"
+                        >
+                          Bersihkan
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
-                      {notifications.length > 0 ? (
+                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 space-y-1">
+                      {notifications.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-6">Tidak ada notifikasi baru.</p>
+                      ) : (
                         notifications.map((n) => (
                           <div
                             key={n.id}
-                            onClick={() => handleNotificationClick(n)}
-                            className={`p-3 rounded-2xl text-xs transition-all cursor-pointer border flex items-start gap-3 hover:shadow-sm ${
-                              n.unread
-                                ? 'bg-emerald-50/70 border-emerald-200/80'
-                                : 'bg-slate-50 border-slate-200/60 opacity-80'
+                            onClick={() => {
+                              setNotifOpen(false);
+                              router.push(n.link);
+                            }}
+                            className={`p-2.5 rounded-xl cursor-pointer transition ${
+                              n.unread ? 'bg-emerald-50/50 hover:bg-emerald-50' : 'hover:bg-slate-50'
                             }`}
                           >
-                            <div className="p-2 rounded-xl bg-white shadow-xs shrink-0 mt-0.5">
-                              {getNotifIcon(n.type)}
-                            </div>
-                            <div className="flex-1 min-w-0 space-y-0.5">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="font-bold text-slate-900 text-xs truncate">{n.title}</span>
-                                {n.unread && <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />}
-                              </div>
-                              <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">{n.desc}</p>
-                              <span className="text-[9px] font-mono text-slate-400 block pt-0.5">{n.time}</span>
-                            </div>
+                            <p className="text-xs font-bold text-slate-900">{n.title}</p>
+                            <p className="text-[11px] text-slate-600 line-clamp-1">{n.desc}</p>
+                            <span className="text-[10px] text-slate-400">{n.time}</span>
                           </div>
                         ))
-                      ) : (
-                        <div className="p-6 text-center text-xs text-slate-400 font-medium">
-                          Tidak ada notifikasi baru.
-                        </div>
                       )}
                     </div>
-
-                    {/* Bottom Action Controls */}
-                    {notifications.length > 0 && (
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
-                        <button
-                          type="button"
-                          onClick={handleMarkAllRead}
-                          className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 transition-colors"
-                        >
-                          <CheckCheck className="w-3.5 h-3.5" />
-                          <span>Tandai Semua Dibaca</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleClearNotifications}
-                          className="text-slate-400 hover:text-rose-600 font-bold flex items-center gap-1 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Bersihkan</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
 
-              {/* 3. Far Right User Profile & Account Settings / Logout Dropdown */}
+              {/* Profile & Settings Dropdown */}
               <div className="relative" ref={userMenuRef}>
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-2xl bg-slate-100 hover:bg-emerald-50 border border-slate-200/90 transition-all cursor-pointer active:scale-95"
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 transition active:scale-95"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-700 to-teal-800 flex items-center justify-center font-black text-white text-xs shrink-0 shadow-sm">
-                    {user ? getInitials(user.nama) : 'SP'}
+                  <div className="w-7 h-7 rounded-lg bg-emerald-800 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    {user?.nama ? getInitials(user.nama) : 'AD'}
                   </div>
-                  <div className="text-left hidden sm:block">
-                    <span className="block text-xs font-extrabold text-slate-900 leading-tight truncate max-w-[120px]">
-                      {user?.nama ?? 'Sekretariat Utama'}
-                    </span>
-                    <span className="block text-[9px] font-bold text-emerald-700 uppercase tracking-wider">
-                      {user?.role?.replace('_', ' ') ?? 'SEKRETARIAT'}
-                    </span>
-                  </div>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 ml-0.5" />
+                  <span className="text-xs font-bold text-slate-800 hidden sm:inline max-w-28 truncate">
+                    {user?.nama || 'Akun'}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
                 </button>
 
-                {/* Dropdown User Menu */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2.5 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2.5 z-50 animate-scale-up space-y-1">
-                    <div className="p-3 bg-gradient-to-br from-emerald-50 to-teal-50/60 rounded-xl border border-emerald-200/80 mb-2">
-                      <p className="text-xs font-black text-slate-900 truncate">{user?.nama ?? 'Sekretariat Utama'}</p>
-                      <p className="text-[10px] text-emerald-800 font-mono font-medium truncate">{user?.email ?? 'sekretariat@darsa.id'}</p>
-                      <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-emerald-700 text-white text-[9px] font-black uppercase">
-                        {user?.role ?? 'SEKRETARIAT'}
+                  <div className="absolute right-0 mt-2.5 w-56 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-50 space-y-1">
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <p className="text-xs font-bold text-slate-900 truncate">{user?.nama || 'Administrator'}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
+                      <span className="mt-1 inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-md bg-emerald-100 text-emerald-800">
+                        {user?.role || 'SEKRETARIAT'}
                       </span>
                     </div>
 
                     <button
-                      type="button"
                       onClick={() => {
                         setUserMenuOpen(false);
                         setIsSettingsOpen(true);
                       }}
-                      className="w-full px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all flex items-center gap-2.5 text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
                     >
-                      <Settings className="w-4 h-4 text-emerald-700" />
-                      <span>Pengaturan Akun & Keamanan</span>
+                      <Settings className="w-4 h-4 text-slate-500" />
+                      Pengaturan Akun
                     </button>
 
-                    <div className="border-t border-slate-100 my-1" />
-
                     <button
-                      type="button"
                       onClick={handleLogout}
-                      className="w-full px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center gap-2.5 text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition"
                     >
-                      <LogOut className="w-4 h-4 text-rose-600" />
-                      <span>Keluar Sistem</span>
+                      <LogOut className="w-4 h-4 text-rose-500" />
+                      Keluar (Sign Out)
                     </button>
                   </div>
                 )}
@@ -644,25 +619,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </header>
 
-          {/* Toast */}
-          <Toast {...toast} onClose={() => setToast((t) => ({ ...t, isOpen: false }))} />
-
-          {/* Account Settings Modal */}
-          <AccountSettingsModal
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-            user={{
-              nama: user?.nama || 'Sekretariat Utama',
-              role: user?.role || 'SEKRETARIAT',
-              email: user?.email || 'sekretariat@darsa.id',
-            }}
-          />
-
-          {/* Page Body */}
-          <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
-            {children}
-          </main>
+          {/* PAGE CONTENT BODY */}
+          <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">{children}</main>
         </div>
+
+        {/* Modal Pengaturan Akun */}
+        <AccountSettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          user={
+            user
+              ? {
+                  nama: user.nama,
+                  email: user.email,
+                  role: user.role,
+                }
+              : {
+                  nama: 'Administrator',
+                  email: 'admin@darsa.internal',
+                  role: 'SEKRETARIAT',
+                }
+          }
+          onUpdateProfile={(updated: any) => {
+            setUser((prev) => (prev ? { ...prev, nama: updated.nama, email: updated.email } : null));
+          }}
+        />
       </div>
     </DesktopOnlyGuard>
   );

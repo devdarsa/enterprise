@@ -5,6 +5,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import { SkeletonTable, EmptyState } from '@/components/Loading';
 import Modal from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
+import { Lock, KeyRound, Users } from 'lucide-react';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -311,8 +312,8 @@ export default function ManajemenRolePage() {
       {/* Grid Quick Stats RBAC */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-xl shrink-0">
-            🔒
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+            <Lock className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Role Bawaan Sistem</span>
@@ -323,8 +324,8 @@ export default function ManajemenRolePage() {
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-xl shrink-0">
-            📜
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
+            <KeyRound className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Role Kustom Instansi</span>
@@ -335,8 +336,8 @@ export default function ManajemenRolePage() {
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
-            👥
+          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
+            <Users className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Pengguna Terikat</span>
