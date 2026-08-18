@@ -24,33 +24,25 @@ export async function GET(request: NextRequest) {
       }
     } catch {}
 
-    // 2. Fallback: Cek cookie `better-auth.session_token` atau `__Secure-better-auth.session_token` di DB Session
+    // 2. Fallback: Cek Bearer token atau cookie `better-auth.session_token` di DB Session
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
+
     const sessionToken =
+      bearerToken ||
       request.cookies.get('better-auth.session_token')?.value ||
       request.cookies.get('__Secure-better-auth.session_token')?.value;
+
     if (!userId && sessionToken) {
       const dbSession = await prisma.session.findFirst({
         where: { token: sessionToken, expires_at: { gt: new Date() } },
         include: { user: true },
       });
-      if (dbSession?.user) {
+      if (dbSession?.user && !dbSession.user.deleted_at) {
         userId = dbSession.user.id;
         email = dbSession.user.email;
         userName = dbSession.user.nama_lengkap;
       }
-    }
-
-    // 3. Fallback: Cek cookie `darsa_session`
-    const darsaSessionRaw = request.cookies.get('darsa_session')?.value;
-    if (!userId && darsaSessionRaw) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(darsaSessionRaw));
-        if (parsed?.id) {
-          userId = parsed.id;
-          email = parsed.email;
-          userName = parsed.name;
-        }
-      } catch {}
     }
 
     if (!userId || !email) {

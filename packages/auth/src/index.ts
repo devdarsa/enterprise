@@ -3,8 +3,16 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { toNextJsHandler } from 'better-auth/next-js';
 import { prisma } from '@darsa/database';
 
+const getAuthSecret = () => {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️ BETTER_AUTH_SECRET environment variable is not explicitly defined.');
+  }
+  return secret || 'darsa-enterprise-secret-prod-2026-lirboyo-neon-ok';
+};
+
 export const auth = betterAuth({
-  secret: process.env.BETTER_AUTH_SECRET || 'darsa-enterprise-secret-prod-2026-lirboyo-neon-ok',
+  secret: getAuthSecret(),
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://darsa.develzy.my.id',
   trustedOrigins: [
     'https://darsa.develzy.my.id',

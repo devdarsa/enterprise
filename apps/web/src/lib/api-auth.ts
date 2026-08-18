@@ -36,9 +36,13 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
     }
   } catch {}
 
-  // 2. Direct fallback to Prisma database session lookup
+  // 2. Direct database session lookup (via Cookie or Bearer Header)
   try {
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
+
     const sessionToken =
+      bearerToken ||
       request.cookies.get('better-auth.session_token')?.value ||
       request.cookies.get('__Secure-better-auth.session_token')?.value;
 
@@ -55,7 +59,7 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
         },
       });
 
-      if (dbSession?.user) {
+      if (dbSession?.user && !dbSession.user.deleted_at) {
         const userRole = dbSession.user.user_roles?.[0]?.role?.name || 'SEKRETARIAT';
         return {
           user: {
@@ -63,24 +67,6 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
             email: dbSession.user.email,
             name: dbSession.user.nama_lengkap || dbSession.user.email,
             role: userRole,
-          },
-        };
-      }
-    }
-  } catch {}
-
-  // 3. Fallback to darsa_session cookie if present
-  try {
-    const darsaSessionRaw = request.cookies.get('darsa_session')?.value;
-    if (darsaSessionRaw) {
-      const parsed = JSON.parse(decodeURIComponent(darsaSessionRaw));
-      if (parsed?.id && parsed?.email) {
-        return {
-          user: {
-            id: parsed.id,
-            email: parsed.email,
-            name: parsed.name || parsed.email,
-            role: parsed.role || 'SEKRETARIAT',
           },
         };
       }

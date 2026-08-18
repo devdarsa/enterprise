@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@darsa/database';
 import { auth } from '@darsa/auth';
 
@@ -61,7 +61,28 @@ const DEFAULT_ACCOUNTS = [
   },
 ];
 
-export async function POST() {
+function isAuthorized(request: NextRequest): boolean {
+  // Allow in development
+  if (process.env.NODE_ENV !== 'production') return true;
+
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const validSecret = process.env.ADMIN_SEED_SECRET || process.env.BETTER_AUTH_SECRET;
+
+  return !!token && !!validSecret && token === validSecret;
+}
+
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Akses ditolak: Operasi reset akun hanya dapat dijalankan di lingkungan lokal atau dengan Bearer Token otorisasi admin yang sah.',
+      },
+      { status: 403 }
+    );
+  }
+
   const results = [];
 
   for (const acc of DEFAULT_ACCOUNTS) {
@@ -127,19 +148,20 @@ export async function POST() {
       }
 
       results.push({ email: acc.email, status: 'VERIFIED_AND_ACTIVE', role: acc.role, portal: acc.portal });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorObj = err as { message?: string };
       console.error(`Error seeding account ${acc.email}:`, err);
-      results.push({ email: acc.email, status: 'ERROR', message: err?.message || 'Gagal' });
+      results.push({ email: acc.email, status: 'ERROR', message: errorObj?.message || 'Gagal' });
     }
   }
 
   return NextResponse.json({
     success: true,
-    message: `Berhasil memverifikasi & mengaktifkan 8 akun default Darsa Enterprise di Database PostgreSQL (Neon.tech).`,
+    message: `Berhasil memverifikasi & mengaktifkan 8 akun default Darsa Enterprise di Database PostgreSQL.`,
     accounts: results,
   });
 }
 
-export async function GET() {
-  return POST();
+export async function GET(request: NextRequest) {
+  return POST(request);
 }

@@ -20,12 +20,15 @@ const PUBLIC_PREFIXES = [
   '/api/auth',
   '/api/v1/auth/login',
   '/api/v1/auth/register',
+  '/api/v1/auth/register-wali',
+  '/api/v1/health',
   '/public',
 ];
 
 const SESSION_COOKIE_NAMES = [
   'better-auth.session_token',
   '__Secure-better-auth.session_token',
+  'sb-access-token',
   'darsa_session',
 ];
 
@@ -55,12 +58,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Cek keberadaan session cookie
+  // 3. Cek keberadaan session cookie atau Authorization header
   const cookies = request.cookies;
-  const hasSession = SESSION_COOKIE_NAMES.some((name) => {
+  const authHeader = request.headers.get('authorization') || '';
+  const hasAuthHeader = authHeader.startsWith('Bearer ') && authHeader.length > 10;
+  const hasSessionCookie = SESSION_COOKIE_NAMES.some((name) => {
     const cookie = cookies.get(name);
     return cookie && cookie.value && cookie.value.length > 5;
   });
+  const hasSession = hasSessionCookie || hasAuthHeader;
 
   // 4. Deteksi Klien CLI / API Request
   const accept = (request.headers.get('accept') || '').toLowerCase();

@@ -18,12 +18,14 @@ import * as dashboardStats from '../dashboard/stats/handler';
 import * as guru from '../guru/handler';
 import * as jadwal from '../jadwal/handler';
 import * as jadwalId from '../jadwal/[id]/handler';
+import * as konfigurasiJabatan from '../konfigurasi/jabatan/handler';
 import * as pelanggaran from '../pelanggaran/handler';
 import * as pengumuman from '../pengumuman/handler';
 import * as pengurus from '../pengurus/handler';
 import * as perizinan from '../perizinan/handler';
 import * as santri from '../santri/handler';
 import * as santriId from '../santri/[id]/handler';
+import * as santriMutasi from '../santri/[id]/mutasi/handler';
 import * as santriPull from '../santri/pull-sync/handler';
 import * as surat from '../surat/handler';
 import * as tahunAjaran from '../tahun-ajaran/handler';
@@ -53,6 +55,7 @@ const handlers: Record<string, ApiHandlerModule> = {
   'dashboard/stats': dashboardStats as unknown as ApiHandlerModule,
   'guru': guru as unknown as ApiHandlerModule,
   'jadwal': jadwal as unknown as ApiHandlerModule,
+  'konfigurasi/jabatan': konfigurasiJabatan as unknown as ApiHandlerModule,
   'pelanggaran': pelanggaran as unknown as ApiHandlerModule,
   'pengumuman': pengumuman as unknown as ApiHandlerModule,
   'pengurus': pengurus as unknown as ApiHandlerModule,
@@ -80,10 +83,13 @@ async function handleDispatch(
   let handlerModule = handlers[path];
   let dynamicContext: unknown = undefined;
 
-  // Handle dynamic parameters like /api/v1/santri/[id] or /api/v1/jadwal/[id]
+  // Handle dynamic parameters like /api/v1/santri/[id] or /api/v1/santri/[id]/mutasi or /api/v1/jadwal/[id]
   if (!handlerModule && routeParts.length >= 2) {
     if (routeParts[0] === 'santri' && routeParts.length === 2) {
       handlerModule = santriId as ApiHandlerModule;
+      dynamicContext = { params: Promise.resolve({ id: routeParts[1] }) };
+    } else if (routeParts[0] === 'santri' && routeParts.length === 3 && routeParts[2] === 'mutasi') {
+      handlerModule = santriMutasi as ApiHandlerModule;
       dynamicContext = { params: Promise.resolve({ id: routeParts[1] }) };
     } else if (routeParts[0] === 'jadwal' && routeParts.length === 2) {
       handlerModule = jadwalId as ApiHandlerModule;
