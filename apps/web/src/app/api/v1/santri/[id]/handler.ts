@@ -94,7 +94,7 @@ export const PUT = withAuth(
         desa: body.desa !== undefined ? body.desa : existing.desa,
         status: body.status !== undefined ? body.status : existing.status,
         deleted_at: body.deleted_at !== undefined ? body.deleted_at : existing.deleted_at,
-      },
+      } as any,
       include: {
         kelas: true,
       },

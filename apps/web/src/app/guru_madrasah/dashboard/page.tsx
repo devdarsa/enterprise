@@ -155,6 +155,7 @@ export default function GuruMadrasahDashboardPage() {
       }
     }
     loadRealData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleInputNilaiSubmit = (e: React.FormEvent) => {
