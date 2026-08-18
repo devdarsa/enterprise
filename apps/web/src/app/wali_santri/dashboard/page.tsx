@@ -7,6 +7,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import AccountSettingsModal from '@/components/AccountSettingsModal';
+import { DigitalSantriCard } from '@/components/DigitalSantriCard';
 import {
   LogOut,
   Home,
@@ -42,12 +43,14 @@ interface ConnectedSantri {
   nama: string;
   kelas: string;
   instansi: string;
+  jenjang?: string;
   status: string;
   hafalan_juz: number;
   nik?: string;
   foto_url?: string;
   nik_wali?: string;
   nama_wali?: string;
+  no_kk?: string;
   kamar?: string;
   perizinan?: Array<{ id: string; status: string; jenis: string; alasan: string; tanggal_mulai: string; tanggal_selesai?: string }>;
   nilai?: Array<{ mapel: string; nilai: number; predikat: string; ustadz?: string }>;
@@ -770,32 +773,27 @@ export default function WaliSantriDashboardPage() {
 
       {/* Kartu Santri & QR Code Digital Modal */}
       {activeSantri && (
-        <Modal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} title="Kartu Santri & QR Code Digital">
-          <div className="text-center space-y-3.5 py-1">
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-800 text-white space-y-2.5 shadow-lg relative overflow-hidden">
-              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-400 text-emerald-950 text-[9px] font-black uppercase">
-                VERIFIED SANTRI
-              </div>
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-lg sm:text-xl mx-auto shadow-inner">
-                {activeSantri.nama?.[0] || 'S'}
-              </div>
-              <div>
-                <h3 className="font-black text-sm sm:text-base">{activeSantri.nama}</h3>
-                <p className="text-xs text-emerald-200 font-mono">No. Stambuk: {activeSantri.nisp}</p>
-                <span className="inline-block mt-1 px-3 py-0.5 rounded-full bg-white/10 text-[10px] font-bold border border-white/20">
-                  {activeSantri.kelas} • Ma'had Darussa'adah Lirboyo
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 flex flex-col items-center">
-              <div className="w-40 h-40 sm:w-44 sm:h-44 bg-white p-3 rounded-2xl border border-slate-300 shadow-inner flex items-center justify-center">
-                <QrCode className="w-32 h-32 sm:w-36 sm:h-36 text-slate-900" />
-              </div>
-              <p className="text-[10.5px] sm:text-[11px] text-slate-500 font-semibold max-w-xs leading-tight">
-                Tunjukkan QR Code ini kepada Petugas Keamanan saat Sambang Santri / Verifikasi Izin.
-              </p>
-            </div>
+        <Modal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} title="🪪 Kartu Santri & QR Code Digital">
+          <div className="flex flex-col items-center space-y-4 py-2">
+            <DigitalSantriCard
+              santri={{
+                id: activeSantri.id,
+                nisp: activeSantri.nisp,
+                nisn: activeSantri.nisn || '',
+                nik: activeSantri.nik,
+                nama: activeSantri.nama,
+                jenjang: activeSantri.jenjang || activeSantri.instansi || 'PONDOK',
+                kelas: activeSantri.kelas,
+                kamar: activeSantri.kamar,
+                status: activeSantri.status || 'AKTIF',
+                nama_wali: activeSantri.nama_wali || user?.nama || 'Wali Santri',
+                nik_wali: activeSantri.nik_wali || user?.nik,
+                no_kk: activeSantri.no_kk,
+              }}
+            />
+            <p className="text-[11px] text-slate-500 font-semibold text-center max-w-sm">
+              Tunjukkan QR Code ini kepada Petugas Keamanan Pondok saat Sambang Santri / Verifikasi Izin Kepulangan.
+            </p>
           </div>
         </Modal>
       )}

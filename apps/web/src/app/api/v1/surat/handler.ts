@@ -51,10 +51,10 @@ export const POST = withAuth(
       const existing = await prisma.surat.findFirst({ where: { nomor_surat } });
       if (existing) return apiError(`Nomor surat ${nomor_surat} sudah terdaftar.`, 409);
 
-      const validJenisList = Object.values(JenisSurat);
-      const normalizedJenis: JenisSurat = validJenisList.includes(jenis_surat as any)
-        ? (jenis_surat as JenisSurat)
-        : JenisSurat.SURAT_IZIN_SANTRI;
+      const validJenisList = Object.values(JenisSurat as Record<string, string>);
+      const normalizedJenis = (validJenisList.includes(jenis_surat as string)
+        ? jenis_surat
+        : ((JenisSurat as any).SURAT_IZIN_SANTRI || 'SURAT_IZIN_SANTRI')) as JenisSurat;
 
       const surat = await prisma.surat.create({
         data: {
