@@ -38,6 +38,7 @@ export const GET = withAuth(
         take: limit,
         orderBy: { created_at: 'desc' },
         include: {
+          user: { select: { foto_url: true } },
           kelas: { select: { nama_kelas: true, tingkat: true } },
           penempatan: {
             where: { status: 'AKTIF' },
@@ -48,8 +49,13 @@ export const GET = withAuth(
       }),
     ]);
 
+    const formattedSantri = santri.map((s) => ({
+      ...s,
+      avatar_url: s.user?.foto_url || undefined,
+    }));
+
     return apiSuccess(
-      santri,
+      formattedSantri,
       undefined,
       {
         total,
@@ -72,7 +78,7 @@ export const POST = withAuth(
       tempat_lahir, tanggal_lahir, anak_ke, jumlah_saudara, alamat, telepon,
       jenjang, kelas_id, kamar, status_tempat_tinggal, hafalan_juz,
       nik_wali, nama_wali, telepon_wali, hubungan_wali, no_kk,
-      pondok_id, user_id,
+      pondok_id, user_id, avatar_url, foto_url,
     } = body;
 
     // Validasi minimum
@@ -127,10 +133,16 @@ export const POST = withAuth(
         data: {
           email: `${finalNisp.toLowerCase()}@darsa.santri.id`,
           nama_lengkap: nama_lengkap,
+          foto_url: avatar_url || foto_url || null,
           email_verified: false,
         },
       });
       finalUserId = newUser.id;
+    } else if (avatar_url || foto_url) {
+      await prisma.user.update({
+        where: { id: finalUserId },
+        data: { foto_url: avatar_url || foto_url },
+      }).catch(() => {});
     }
 
     const santri = await prisma.santri.create({

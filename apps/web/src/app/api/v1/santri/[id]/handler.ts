@@ -11,6 +11,7 @@ export const GET = withAuth(
     const santri = await prisma.santri.findFirst({
       where: { id, deleted_at: null },
       include: {
+        user: { select: { foto_url: true, email: true } },
         kelas: true,
         penempatan: { orderBy: { created_at: 'desc' } },
         wali_santri: { include: { wali_santri: true } },
@@ -21,7 +22,13 @@ export const GET = withAuth(
     });
 
     if (!santri) return apiError('Data santri tidak ditemukan.', 404);
-    return apiSuccess(santri);
+
+    const formatted = {
+      ...santri,
+      avatar_url: santri.user?.foto_url || undefined,
+    };
+
+    return apiSuccess(formatted);
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI', 'WALI_SANTRI']
 );
@@ -36,29 +43,68 @@ export const PUT = withAuth(
     const existing = await prisma.santri.findFirst({ where: { id, deleted_at: null } });
     if (!existing) return apiError('Data santri tidak ditemukan.', 404);
 
+    const photoUrl = body.avatar_url || body.foto_url;
+    let userId = existing.user_id;
+
+    // Sinkronisasi foto santri ke User Profile
+    if (photoUrl) {
+      if (userId) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { foto_url: photoUrl, nama_lengkap: body.nama_lengkap || existing.nama_lengkap },
+        }).catch(() => {});
+      } else {
+        const newUser = await prisma.user.create({
+          data: {
+            email: `santri.${(existing.nisp || existing.id).toLowerCase()}@darsa.santri.id`,
+            nama_lengkap: body.nama_lengkap || existing.nama_lengkap,
+            foto_url: photoUrl,
+            email_verified: false,
+          },
+        }).catch(() => null);
+        if (newUser) {
+          userId = newUser.id;
+        }
+      }
+    }
+
     const updated = await prisma.santri.update({
       where: { id },
       data: {
-        nama_lengkap: body.nama_lengkap,
-        nama_panggilan: body.nama_panggilan,
-        jenis_kelamin: body.jenis_kelamin,
-        tempat_lahir: body.tempat_lahir,
-        tanggal_lahir: body.tanggal_lahir,
-        anak_ke: body.anak_ke,
-        jumlah_saudara: body.jumlah_saudara,
-        alamat: body.alamat,
-        telepon: body.telepon,
-        jenjang: body.jenjang,
-        kelas_id: body.kelas_id,
-        kamar: body.kamar,
-        status_tempat_tinggal: body.status_tempat_tinggal,
-        hafalan_juz: body.hafalan_juz,
-        nik_wali: body.nik_wali,
-        nama_wali: body.nama_wali,
-        telepon_wali: body.telepon_wali,
-        hubungan_wali: body.hubungan_wali,
-        no_kk: body.no_kk,
-        status: body.status,
+        user_id: userId,
+        nama_lengkap: body.nama_lengkap !== undefined ? body.nama_lengkap : existing.nama_lengkap,
+        nama_panggilan: body.nama_panggilan !== undefined ? body.nama_panggilan : existing.nama_panggilan,
+        nisp: body.nisp !== undefined ? body.nisp : existing.nisp,
+        nisn: body.nisn !== undefined ? body.nisn : existing.nisn,
+        nis: body.nis !== undefined ? body.nis : existing.nis,
+        nik: body.nik !== undefined ? body.nik : existing.nik,
+        jenis_kelamin: body.jenis_kelamin !== undefined ? body.jenis_kelamin : existing.jenis_kelamin,
+        tempat_lahir: body.tempat_lahir !== undefined ? body.tempat_lahir : existing.tempat_lahir,
+        tanggal_lahir: body.tanggal_lahir ? new Date(body.tanggal_lahir) : existing.tanggal_lahir,
+        anak_ke: body.anak_ke !== undefined ? (Number(body.anak_ke) || null) : existing.anak_ke,
+        jumlah_saudara: body.jumlah_saudara !== undefined ? (Number(body.jumlah_saudara) || null) : existing.jumlah_saudara,
+        alamat: body.alamat !== undefined ? body.alamat : existing.alamat,
+        telepon: body.telepon !== undefined ? body.telepon : existing.telepon,
+        jenjang: body.jenjang !== undefined ? body.jenjang : existing.jenjang,
+        kelas_id: body.kelas_id !== undefined ? body.kelas_id : existing.kelas_id,
+        kamar: body.kamar !== undefined ? body.kamar : existing.kamar,
+        status_tempat_tinggal: body.status_tempat_tinggal !== undefined ? body.status_tempat_tinggal : existing.status_tempat_tinggal,
+        hafalan_juz: body.hafalan_juz !== undefined ? (Number(body.hafalan_juz) || 0) : existing.hafalan_juz,
+        nik_wali: body.nik_wali !== undefined ? body.nik_wali : existing.nik_wali,
+        nama_wali: body.nama_wali !== undefined ? body.nama_wali : existing.nama_wali,
+        telepon_wali: body.telepon_wali !== undefined ? body.telepon_wali : existing.telepon_wali,
+        hubungan_wali: body.hubungan_wali !== undefined ? body.hubungan_wali : existing.hubungan_wali,
+        no_kk: body.no_kk !== undefined ? body.no_kk : existing.no_kk,
+        provinsi: body.provinsi !== undefined ? body.provinsi : existing.provinsi,
+        kabupaten: body.kabupaten !== undefined ? body.kabupaten : existing.kabupaten,
+        kecamatan: body.kecamatan !== undefined ? body.kecamatan : existing.kecamatan,
+        desa: body.desa !== undefined ? body.desa : existing.desa,
+        status: body.status !== undefined ? body.status : existing.status,
+        deleted_at: body.deleted_at !== undefined ? body.deleted_at : existing.deleted_at,
+      },
+      include: {
+        user: { select: { foto_url: true } },
+        kelas: true,
       },
     });
 
@@ -70,7 +116,12 @@ export const PUT = withAuth(
       metadata: { perubahan: body },
     });
 
-    return apiSuccess(updated, 'Data santri berhasil diperbarui.');
+    const responseData = {
+      ...updated,
+      avatar_url: photoUrl || updated.user?.foto_url || undefined,
+    };
+
+    return apiSuccess(responseData, 'Data santri berhasil diperbarui.');
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI']
 );

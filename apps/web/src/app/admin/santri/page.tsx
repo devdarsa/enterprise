@@ -141,6 +141,7 @@ export default function MasterSantriPage() {
           jumlah_saudara: s.jumlah_saudara,
           alamat: s.alamat,
           telepon: s.telepon,
+          avatar_url: s.avatar_url || s.user?.foto_url || undefined,
           jenjang: s.jenjang,
           kelas: s.kelas?.nama_kelas || s.kelas_id || '-',
           kamar: s.kamar,
@@ -463,8 +464,23 @@ export default function MasterSantriPage() {
                   <tr key={santri.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="font-mono text-xs font-bold text-emerald-800">{santri.nisp || '-'}</td>
                     <td>
-                      <div className="font-bold text-slate-900">{santri.nama}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">NISN: {santri.nisn}</div>
+                      <div className="flex items-center gap-2.5">
+                        {santri.avatar_url ? (
+                          <img
+                            src={santri.avatar_url}
+                            alt={santri.nama}
+                            className="w-8 h-8 rounded-lg object-cover border border-emerald-600/40 shadow-sm shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px] shrink-0">
+                            {santri.nama.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-bold text-slate-900 leading-snug">{santri.nama}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">NISN: {santri.nisn}</div>
+                        </div>
+                      </div>
                     </td>
                     <td>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${genderBadge(santri.jenis_kelamin)}`}>

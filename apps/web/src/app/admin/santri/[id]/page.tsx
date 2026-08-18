@@ -8,6 +8,8 @@ import Toast, { ToastProps } from '@/components/Toast';
 import Modal from '@/components/Modal';
 import RegionSelector from '@/components/RegionSelector';
 
+import { setLocalCache, removeIndexedDBCache } from '@/lib/cache-storage';
+
 interface SantriDetail {
   id: string;
   nisp?: string;
@@ -56,6 +58,7 @@ export default function DetailSantriPage() {
 
   useEffect(() => {
     fetchDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchDetail = async () => {
@@ -88,8 +91,16 @@ export default function DetailSantriPage() {
       const json = await res.json();
       if (json.success) {
         setEditOpen(false);
+        setSantri((prev) => ({ ...prev, ...json.data }));
+        // Invalidate list cache so master list displays updated photo and fields immediately
+        try {
+          setLocalCache('santri_list', null);
+          removeIndexedDBCache('santri', 'list_pondok');
+          removeIndexedDBCache('santri', 'list_madrasah');
+          removeIndexedDBCache('santri', 'list_mi');
+        } catch {}
         fetchDetail();
-        showToast('success', 'Berhasil Disimpan', 'Data santri berhasil diperbarui.');
+        showToast('success', 'Berhasil Disimpan', 'Data santri dan pas foto berhasil diperbarui.');
       } else {
         showToast('error', 'Gagal Menyimpan', json.error);
       }
