@@ -96,41 +96,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchSession = async () => {
       try {
         const res = await fetch('/api/v1/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.user) {
-            const u = data.user;
-            const role = u.role || 'SEKRETARIAT';
-
-            const roleRedirects: Record<string, string> = {
-              GURU_MADRASAH: '/guru_madrasah/dashboard',
-              GURU_MI: '/guru_mi/dashboard',
-              GURU: '/guru_madrasah/dashboard',
-              MUSTAHIQ: '/guru_madrasah/dashboard',
-              MUNAWWIB: '/guru_madrasah/dashboard',
-              KEAMANAN: '/keamanan/dashboard',
-              WALI_SANTRI: '/wali_santri/dashboard',
-              SANTRI: '/wali_santri/dashboard',
-            };
-
-            if (roleRedirects[role]) {
-              router.replace(roleRedirects[role]);
-              return;
-            }
-
-            const detectedInstansi = (u.instansi || 'PONDOK').toLowerCase() as 'pondok' | 'madrasah' | 'mi';
-            setActiveInstansi(detectedInstansi);
-
-            setUser({
-              email: u.email,
-              nama: u.name || u.email,
-              role: role,
-              instansi: u.instansi || 'PONDOK',
-              loginAt: new Date().toISOString(),
-            });
-          }
+        if (!res.ok || res.status === 401) {
+          clearAllLocalCache();
+          router.replace('/admin/login');
+          return;
         }
-      } catch {}
+        const data = await res.json();
+        if (data?.user) {
+          const u = data.user;
+          const role = u.role || 'SEKRETARIAT';
+
+          const roleRedirects: Record<string, string> = {
+            GURU_MADRASAH: '/guru_madrasah/dashboard',
+            GURU_MI: '/guru_mi/dashboard',
+            GURU: '/guru_madrasah/dashboard',
+            MUSTAHIQ: '/guru_madrasah/dashboard',
+            MUNAWWIB: '/guru_madrasah/dashboard',
+            KEAMANAN: '/keamanan/dashboard',
+            WALI_SANTRI: '/wali_santri/dashboard',
+            SANTRI: '/wali_santri/dashboard',
+          };
+
+          if (roleRedirects[role]) {
+            router.replace(roleRedirects[role]);
+            return;
+          }
+
+          const detectedInstansi = (u.instansi || 'PONDOK').toLowerCase() as 'pondok' | 'madrasah' | 'mi';
+          setActiveInstansi(detectedInstansi);
+
+          setUser({
+            email: u.email,
+            nama: u.name || u.email,
+            role: role,
+            instansi: u.instansi || 'PONDOK',
+            loginAt: new Date().toISOString(),
+          });
+        } else {
+          clearAllLocalCache();
+          router.replace('/admin/login');
+        }
+      } catch {
+        clearAllLocalCache();
+        router.replace('/admin/login');
+      }
     };
 
     const fetchActiveTahunAjaran = async () => {
