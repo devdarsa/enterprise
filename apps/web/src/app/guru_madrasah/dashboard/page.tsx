@@ -483,7 +483,7 @@ export default function GuruMadrasahDashboardPage() {
               }}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-black text-xs shadow-md transition-all active:scale-95 min-h-[46px] touch-manipulation cursor-pointer"
             >
-              Simulasi Scan QR Presensi
+              Verifikasi Scan QR Presensi
             </button>
           </div>
         </div>
