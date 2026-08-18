@@ -32,47 +32,57 @@ export const GET = withAuth(
 // POST /api/v1/surat
 export const POST = withAuth(
   async (req: NextRequest, session) => {
-    const body = await req.json();
-    const { nomor_surat, jenis_surat, perihal, pengirim, penerima, tanggal, file_url, keterangan } = body;
+    try {
+      const body = await req.json();
+      const { nomor_surat, jenis_surat, perihal, pengirim, penerima, tanggal, file_url, keterangan } = body;
 
-    if (!nomor_surat || !jenis_surat || !perihal) {
-      return apiError('nomor_surat, jenis_surat, dan perihal wajib diisi.');
-    }
+      if (!nomor_surat || !perihal) {
+        return apiError('Nomor surat dan perihal wajib diisi.', 400);
+      }
 
-    let defaultPondok = await prisma.pondok.findFirst();
-    if (!defaultPondok) {
-      defaultPondok = await prisma.pondok.create({
-        data: { nama: "Pondok Pesantren Ma'had Darussa'adah Lirboyo" },
+      let defaultPondok = await prisma.pondok.findFirst();
+      if (!defaultPondok) {
+        defaultPondok = await prisma.pondok.create({
+          data: { nama: "Pondok Pesantren Darussa'adah Lirboyo" },
+        });
+      }
+
+      // Cek duplikasi nomor surat
+      const existing = await prisma.surat.findFirst({ where: { nomor_surat } });
+      if (existing) return apiError(`Nomor surat ${nomor_surat} sudah terdaftar.`, 409);
+
+      const validJenisList = Object.values(JenisSurat);
+      const normalizedJenis: JenisSurat = validJenisList.includes(jenis_surat as any)
+        ? (jenis_surat as JenisSurat)
+        : JenisSurat.SURAT_IZIN_SANTRI;
+
+      const surat = await prisma.surat.create({
+        data: {
+          pondok_id: defaultPondok.id,
+          nomor_surat,
+          jenis_surat: normalizedJenis,
+          perihal,
+          pengirim: pengirim || session.user.name || session.user.email,
+          penerima: penerima || 'Sekretariat Utama',
+          tanggal: tanggal ? new Date(tanggal) : new Date(),
+          file_url: file_url || null,
+          keterangan: keterangan || null,
+        },
       });
+
+      await logAudit({
+        userId: session.user.id,
+        action: 'CREATE_SURAT',
+        entityType: 'Surat',
+        entityId: surat.id,
+        metadata: { nomor_surat, jenis_surat: normalizedJenis, perihal },
+      });
+
+      return apiSuccess(surat, `Surat ${nomor_surat} berhasil diterbitkan.`);
+    } catch (err: any) {
+      console.error('[POST /api/v1/surat Error]:', err);
+      return apiError(err?.message || 'Gagal menerbitkan surat.', 500);
     }
-
-    // Cek duplikasi nomor surat
-    const existing = await prisma.surat.findFirst({ where: { nomor_surat } });
-    if (existing) return apiError(`Nomor surat ${nomor_surat} sudah terdaftar.`, 409);
-
-    const surat = await prisma.surat.create({
-      data: {
-        pondok_id: defaultPondok.id,
-        nomor_surat,
-        jenis_surat: jenis_surat as JenisSurat,
-        perihal,
-        pengirim: pengirim || session.user.name || session.user.email,
-        penerima: penerima || 'Sekretariat Utama',
-        tanggal: tanggal ? new Date(tanggal) : new Date(),
-        file_url: file_url || null,
-        keterangan: keterangan || null,
-      },
-    });
-
-    await logAudit({
-      userId: session.user.id,
-      action: 'CREATE_SURAT',
-      entityType: 'Surat',
-      entityId: surat.id,
-      metadata: { nomor_surat, jenis_surat, perihal },
-    });
-
-    return apiSuccess(surat, `Surat ${nomor_surat} berhasil diterbitkan.`);
   },
-  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH']
+  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI', 'GURU']
 );
