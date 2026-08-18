@@ -25,7 +25,7 @@ export default function KeamananDashboardPage() {
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, msg?: string) => setToast({ isOpen: true, type, title, message: msg });
 
-  const [user, setUser] = useState({ nama: 'Tim Keamanan & Perizinan', role: 'KEAMANAN', email: 'keamanan@darsa.id' });
+  const [user, setUser] = useState({ nama: 'Petugas Keamanan', role: 'KEAMANAN', email: 'keamanan@darsa.id' });
   const [qrInput, setQrInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('beranda');
@@ -106,24 +106,18 @@ export default function KeamananDashboardPage() {
   }, []);
 
   useEffect(() => {
-    const cachedUser = getLocalCache<any>('keamanan_user_session');
-    if (cachedUser) {
-      setUser(cachedUser);
-    }
-
     async function loadSession() {
       try {
-        const res = await fetch('/api/auth/get-session');
+        const res = await fetch('/api/v1/auth/me');
         if (res.ok) {
           const data = await res.json();
           if (data?.user) {
             const newUser = {
-              nama: data.user.name || data.user.nama_lengkap || 'Tim Keamanan & Perizinan',
+              nama: data.user.name || data.user.nama_lengkap || 'Petugas Keamanan',
               role: data.user.role || 'KEAMANAN',
               email: data.user.email || 'keamanan@darsa.id',
             };
             setUser(newUser);
-            setLocalCache('keamanan_user_session', newUser);
           }
         }
       } catch (e) {

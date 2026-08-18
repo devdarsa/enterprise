@@ -22,7 +22,7 @@ export default function GuruMIDashboardPage() {
   const [toast, setToast] = useState<Omit<ToastProps, 'onClose'>>({ isOpen: false, type: 'success', title: '' });
   const showToast = (type: ToastProps['type'], title: string, msg?: string) => setToast({ isOpen: true, type, title, message: msg });
 
-  const [user, setUser] = useState({ nama: 'Ustadzah Fatimah, S.Pd', role: 'GURU_MI', nip: '199208152018022003', email: 'fatimah@darsa.id' });
+  const [user, setUser] = useState({ nama: 'Guru Formal MI', role: 'GURU_MI', nip: '-', email: 'gurumi@darsa.id' });
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [riwayat, setRiwayat] = useState<PresensiLog[]>([]);
@@ -74,16 +74,16 @@ export default function GuruMIDashboardPage() {
     async function loadData() {
       try {
         setLoading(true);
-        // Load Session
-        const sessRes = await fetch('/api/auth/get-session');
+        // Load Live Session from DB
+        const sessRes = await fetch('/api/v1/auth/me');
         if (sessRes.ok) {
           const sess = await sessRes.json();
           if (sess?.user) {
             setUser({
-              nama: sess.user.name || sess.user.nama_lengkap || 'Ustadzah Fatimah, S.Pd',
+              nama: sess.user.name || sess.user.nama_lengkap || 'Guru Formal MI',
               role: sess.user.role || 'GURU_MI',
-              nip: sess.user.nip || '199208152018022003',
-              email: sess.user.email || 'fatimah@darsa.id',
+              nip: sess.user.nip || '-',
+              email: sess.user.email || 'gurumi@darsa.id',
             });
           }
         }
