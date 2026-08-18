@@ -6,6 +6,7 @@ import Image from 'next/image';
 import RegionSelector from '@/components/RegionSelector';
 import Toast, { ToastProps } from '@/components/Toast';
 import { PageHeader } from '@/components/PageHeader';
+import { setLocalCache, removeIndexedDBCache } from '@/lib/cache-storage';
 
 interface SantriPondokCandidate {
   id: string;
@@ -183,10 +184,16 @@ export default function RegistrasiSantriBaruPage() {
 
       const json = await res.json();
       if (json.success) {
+        try {
+          setLocalCache('santri_list', null);
+          removeIndexedDBCache('santri', 'list_pondok');
+          removeIndexedDBCache('santri', 'list_madrasah');
+          removeIndexedDBCache('santri', 'list_mi');
+        } catch {}
         showToast('success', 'Registrasi Sukses!', `Santri ${nama} berhasil didaftarkan ke Database.`);
         setTimeout(() => {
           window.location.href = '/admin/santri';
-        }, 1200);
+        }, 800);
       } else {
         showToast('error', 'Gagal Mendaftar', json.error || 'Terjadi kesalahan sistem.');
       }

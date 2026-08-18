@@ -63,3 +63,44 @@ export const POST = withAuth(
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI']
 );
+
+// PUT /api/v1/pengurus — Update pengurus
+export const PUT = withAuth(
+  async (req: NextRequest, session) => {
+    const body = await req.json();
+    const { id, nik, nama_lengkap, jabatan, unit, telepon, alamat, status } = body;
+
+    if (!id) {
+      return apiError('ID pengurus wajib diisi.', 400);
+    }
+
+    const existing = await prisma.pengurus.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError('Data pengurus tidak ditemukan.', 404);
+    }
+
+    const updated = await prisma.pengurus.update({
+      where: { id },
+      data: {
+        nama_lengkap: nama_lengkap !== undefined ? nama_lengkap : existing.nama_lengkap,
+        nik: nik !== undefined ? nik : existing.nik,
+        jabatan: jabatan !== undefined ? jabatan : existing.jabatan,
+        unit: unit !== undefined ? unit : existing.unit,
+        telepon: telepon !== undefined ? telepon : existing.telepon,
+        alamat: alamat !== undefined ? alamat : existing.alamat,
+        status: status !== undefined ? status : existing.status,
+      },
+    });
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE_PENGURUS',
+      entityType: 'Pengurus',
+      entityId: id,
+      metadata: { perubahan: body },
+    });
+
+    return apiSuccess(updated, 'Data pengurus berhasil diperbarui.');
+  },
+  ['SEKRETARIAT', 'ADMIN_INSTANSI']
+);

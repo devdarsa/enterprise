@@ -33,16 +33,18 @@ export const GET = withAuth(
 export const POST = withAuth(
   async (req: NextRequest, session) => {
     const body = await req.json();
-    const { nomor_surat, jenis_surat, perihal, pengirim, penerima } = body;
+    const { nomor_surat, jenis_surat, perihal, pengirim, penerima, tanggal, file_url, keterangan } = body;
 
     if (!nomor_surat || !jenis_surat || !perihal) {
       return apiError('nomor_surat, jenis_surat, dan perihal wajib diisi.');
     }
 
-    // Dapatkan pondok_id dari user
-    const user = await prisma.user.findFirst({ where: { id: session.user.id } });
-    const pondok = await prisma.pondok.findFirst();
-    if (!pondok) return apiError('Data pondok tidak ditemukan di database.', 404);
+    let defaultPondok = await prisma.pondok.findFirst();
+    if (!defaultPondok) {
+      defaultPondok = await prisma.pondok.create({
+        data: { nama: "Pondok Pesantren Ma'had Darussa'adah Lirboyo" },
+      });
+    }
 
     // Cek duplikasi nomor surat
     const existing = await prisma.surat.findFirst({ where: { nomor_surat } });
@@ -50,12 +52,15 @@ export const POST = withAuth(
 
     const surat = await prisma.surat.create({
       data: {
-        pondok_id: pondok.id,
+        pondok_id: defaultPondok.id,
         nomor_surat,
         jenis_surat: jenis_surat as JenisSurat,
         perihal,
         pengirim: pengirim || session.user.name || session.user.email,
         penerima: penerima || 'Sekretariat Utama',
+        tanggal: tanggal ? new Date(tanggal) : new Date(),
+        file_url: file_url || null,
+        keterangan: keterangan || null,
       },
     });
 

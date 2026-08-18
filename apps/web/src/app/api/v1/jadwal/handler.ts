@@ -78,7 +78,9 @@ export const POST = withAuth(
         mata_pelajaran_id: mapel.id,
         kelas_id: kelas.id,
         guru_id: guru.id,
-        ruangan: ruang || '-',
+        ruangan: ruang || body.ruangan || '-',
+        tahun_ajaran: body.tahun_ajaran || '2025/2026',
+        semester: body.semester || 'GANJIL',
       },
       include: {
         mata_pelajaran: { select: { nama_mapel: true } },

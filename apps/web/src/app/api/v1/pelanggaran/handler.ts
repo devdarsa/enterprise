@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma, Prisma } from '@darsa/database';
+import { prisma, Prisma, TingkatPelanggaran } from '@darsa/database';
 import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 
 // GET /api/v1/pelanggaran
@@ -57,10 +57,13 @@ export const POST = withAuth(
     const pelanggaran = await prisma.pelanggaran.create({
       data: {
         santri_id,
-        jenis,
-        tingkat: tingkat || 'RINGAN',
-        tindakan,
-        keterangan,
+        jenis: jenis || body.kategori || 'Indisipliner',
+        tingkat: (tingkat as TingkatPelanggaran) || TingkatPelanggaran.RINGAN,
+        tindakan: tindakan || body.hukuman || null,
+        hukuman: body.hukuman || tindakan || null,
+        deskripsi: body.deskripsi || keterangan || null,
+        keterangan: keterangan || body.deskripsi || null,
+        poin_pelanggaran: Number(body.poin_pelanggaran || body.poin) || 5,
         petugas_id: session.user.id,
         tanggal: tanggal ? new Date(tanggal) : new Date(),
       },

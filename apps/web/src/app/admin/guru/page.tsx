@@ -86,11 +86,28 @@ export default function MasterGuruPage() {
     }
   };
 
-  const handleToggleStatus = (id: string, name: string) => {
-    setGuruList((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, status: g.status === 'NON_AKTIF' ? 'AKTIF' : 'NON_AKTIF' } : g))
-    );
-    showToast('success', 'Status Diperbarui', `Status ${name} berhasil diperbarui.`);
+  const handleToggleStatus = async (id: string, name: string) => {
+    const target = guruList.find((g) => g.id === id);
+    if (!target) return;
+    const newStatus = target.status === 'NON_AKTIF' ? 'AKTIF' : 'NON_AKTIF';
+    try {
+      const res = await fetch('/api/v1/guru', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status_pegawai: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setGuruList((prev) =>
+          prev.map((g) => (g.id === id ? { ...g, status: newStatus } : g))
+        );
+        showToast('success', 'Status Diperbarui', `Status ${name} berhasil diubah menjadi ${newStatus}.`);
+      } else {
+        showToast('error', 'Gagal', json.error || 'Gagal mengubah status');
+      }
+    } catch {
+      showToast('error', 'Error', 'Gagal terhubung ke server');
+    }
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -98,9 +115,26 @@ export default function MasterGuruPage() {
     if (!editGuru) return;
     setSaving(true);
     try {
-      setGuruList((prev) => prev.map((g) => (g.id === editGuru.id ? { ...g, ...editGuru } : g)));
-      showToast('success', 'Berhasil Disimpan', `Data pengajar ${editGuru.nama} berhasil diperbarui.`);
-      setEditGuru(null);
+      const res = await fetch('/api/v1/guru', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editGuru.id,
+          nama_lengkap: editGuru.nama,
+          nip: editGuru.nip,
+          telepon: editGuru.telepon,
+          foto_url: editGuru.foto_url,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setGuruList((prev) => prev.map((g) => (g.id === editGuru.id ? { ...g, ...editGuru } : g)));
+        setLocalCache('guru_list', null);
+        showToast('success', 'Berhasil Disimpan', `Data pengajar ${editGuru.nama} berhasil diperbarui.`);
+        setEditGuru(null);
+      } else {
+        showToast('error', 'Gagal', json.error || 'Gagal menyimpan perubahan');
+      }
     } catch {
       showToast('error', 'Gagal', 'Gagal menyimpan perubahan.');
     } finally {

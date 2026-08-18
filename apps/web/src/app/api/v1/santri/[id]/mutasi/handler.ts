@@ -29,13 +29,13 @@ export const POST = withAuth(
       return apiError(`Tipe mutasi tidak valid. Pilihan: ${validTypes.join(', ')}`);
     }
 
-    // Map tipe → status santri baru
-    const statusMap: Record<string, string> = {
-      BOYONG: 'BOYONG',
-      CUTI:   'CUTI',
-      PINDAH: 'PINDAH',
+    // Map tipe → status santri baru (Prisma Enum StatusSantri: AKTIF, LULUS, MUTASI, DO)
+    const statusMap: Record<string, 'AKTIF' | 'LULUS' | 'MUTASI' | 'DO'> = {
+      BOYONG: 'MUTASI',
+      CUTI:   'MUTASI',
+      PINDAH: 'MUTASI',
       LULUS:  'LULUS',
-      PURGE:  'BOYONG', // akan di-delete setelah log
+      PURGE:  'MUTASI',
     };
 
     const tanggal = tanggal_efektif ? new Date(tanggal_efektif) : new Date();

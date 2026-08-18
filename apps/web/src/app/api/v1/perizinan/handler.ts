@@ -87,11 +87,12 @@ export const POST = withAuth(
 export const PATCH = withAuth(
   async (req: NextRequest, session) => {
     const body = await req.json();
-    const { id, status, keterangan } = body;
+    const { id, status, keterangan, catatan_petugas } = body;
 
     if (!id || !status) return apiError('id dan status wajib diisi.');
-    if (!['DISETUJUI', 'DITOLAK', 'SELESAI'].includes(status)) {
-      return apiError('Status tidak valid. Gunakan: DISETUJUI, DITOLAK, SELESAI');
+    const validStatuses = ['PENDING', 'MENUNGGU', 'DISETUJUI', 'DITOLAK', 'KEMBALI', 'SELESAI'];
+    if (!validStatuses.includes(status)) {
+      return apiError(`Status tidak valid. Gunakan salah satu dari: ${validStatuses.join(', ')}`);
     }
 
     const existing = await prisma.perizinan.findFirst({ where: { id, deleted_at: null } });
@@ -99,7 +100,13 @@ export const PATCH = withAuth(
 
     const updated = await prisma.perizinan.update({
       where: { id },
-      data: { status, keterangan, disetujui_oleh: session.user.id },
+      data: {
+        status: status as any,
+        keterangan: keterangan !== undefined ? keterangan : existing.keterangan,
+        catatan_petugas: catatan_petugas !== undefined ? catatan_petugas : existing.catatan_petugas,
+        approved_by_id: session.user.id,
+        disetujui_oleh: session.user.name || session.user.email,
+      },
     });
 
     await logAudit({
@@ -107,10 +114,10 @@ export const PATCH = withAuth(
       action: `${status}_PERIZINAN`,
       entityType: 'Perizinan',
       entityId: id,
-      metadata: { status, keterangan },
+      metadata: { status, keterangan, catatan_petugas },
     });
 
-    return apiSuccess(updated, `Perizinan berhasil ${status === 'DISETUJUI' ? 'disetujui' : 'ditolak'}.`);
+    return apiSuccess(updated, `Perizinan berhasil diperbarui status menjadi ${status}.`);
   },
-  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH']
+  ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'KEAMANAN']
 );

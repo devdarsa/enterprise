@@ -169,11 +169,28 @@ export default function DataPengurusPage() {
       p.nik.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleToggleStatus = (id: string, name: string) => {
-    setList((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: p.status === 'NON_AKTIF' ? 'AKTIF' : 'NON_AKTIF' } : p))
-    );
-    showToast('success', 'Status Diperbarui', `Status ${name} berhasil diperbarui.`);
+  const handleToggleStatus = async (id: string, name: string) => {
+    const target = list.find((p) => p.id === id);
+    if (!target) return;
+    const newStatus = target.status === 'NON_AKTIF' ? 'AKTIF' : 'NON_AKTIF';
+    try {
+      const res = await fetch('/api/v1/pengurus', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setList((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
+        );
+        showToast('success', 'Status Diperbarui', `Status ${name} berhasil diubah menjadi ${newStatus}.`);
+      } else {
+        showToast('error', 'Gagal', json.error || 'Gagal memperbarui status');
+      }
+    } catch {
+      showToast('error', 'Error', 'Gagal terhubung ke server');
+    }
   };
 
   const handleSaveAdd = async (e: React.FormEvent) => {
@@ -184,20 +201,36 @@ export default function DataPengurusPage() {
     }
     setSaving(true);
     try {
-      const newPengurus: Pengurus = {
-        id: `PGR-${Date.now()}`,
-        nik: formData.nik.trim() || '3571000000000000',
-        nama: formData.nama.trim(),
-        jabatan: formData.jabatan.trim() || 'Sekretariat Utama',
-        unit: formData.unit,
-        telepon: formData.telepon.trim() || '-',
-        status: formData.status,
-        avatar_url: formData.avatar_url,
-      };
-
-      setList((prev) => [newPengurus, ...prev]);
-      setShowAddModal(false);
-      showToast('success', 'Pengurus Didaftarkan', `Data ${formData.nama} berhasil disimpan.`);
+      const res = await fetch('/api/v1/pengurus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nik: formData.nik.trim() || undefined,
+          nama_lengkap: formData.nama.trim(),
+          jabatan: formData.jabatan.trim() || 'Sekretariat Utama',
+          unit: formData.unit,
+          telepon: formData.telepon.trim() || '-',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const newPengurus: Pengurus = {
+          id: json.data.id,
+          nik: json.data.nik || '-',
+          nama: json.data.nama_lengkap,
+          jabatan: json.data.jabatan,
+          unit: json.data.unit,
+          telepon: json.data.telepon || '-',
+          status: 'AKTIF',
+          avatar_url: formData.avatar_url,
+        };
+        setList((prev) => [newPengurus, ...prev]);
+        setLocalCache('pengurus_list', null);
+        setShowAddModal(false);
+        showToast('success', 'Pengurus Didaftarkan', `Data ${formData.nama} berhasil disimpan.`);
+      } else {
+        showToast('error', 'Gagal', json.error || 'Gagal menyimpan pengurus.');
+      }
     } catch {
       showToast('error', 'Gagal', 'Terjadi kesalahan saat menyimpan pengurus.');
     } finally {
@@ -210,9 +243,27 @@ export default function DataPengurusPage() {
     if (!editPengurus) return;
     setSaving(true);
     try {
-      setList((prev) => prev.map((p) => (p.id === editPengurus.id ? editPengurus : p)));
-      showToast('success', 'Berhasil Disimpan', `Data pengurus ${editPengurus.nama} berhasil diperbarui.`);
-      setEditPengurus(null);
+      const res = await fetch('/api/v1/pengurus', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editPengurus.id,
+          nama_lengkap: editPengurus.nama,
+          nik: editPengurus.nik,
+          jabatan: editPengurus.jabatan,
+          unit: editPengurus.unit,
+          telepon: editPengurus.telepon,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setList((prev) => prev.map((p) => (p.id === editPengurus.id ? editPengurus : p)));
+        setLocalCache('pengurus_list', null);
+        showToast('success', 'Berhasil Disimpan', `Data pengurus ${editPengurus.nama} berhasil diperbarui.`);
+        setEditPengurus(null);
+      } else {
+        showToast('error', 'Gagal', json.error || 'Gagal menyimpan perubahan.');
+      }
     } catch {
       showToast('error', 'Gagal', 'Gagal menyimpan perubahan.');
     } finally {
