@@ -64,11 +64,18 @@ export async function GET(req: NextRequest) {
       }))
     );
 
-    return NextResponse.json({
-      success: true,
-      data: kamarList,
-      gedung: gedungs.map((g) => ({ id: g.id, nama_gedung: g.nama_gedung, gender: g.gender })),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: kamarList,
+        gedung: gedungs.map((g) => ({ id: g.id, nama_gedung: g.nama_gedung, gender: g.gender })),
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=5, stale-while-revalidate=15',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error fetching asrama:', error);
     return NextResponse.json(

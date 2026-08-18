@@ -27,7 +27,7 @@ export const GET = withAuth(
       prisma.pengurus.findMany({ where, skip, take: limit, orderBy: { nama_lengkap: 'asc' } }),
     ]);
 
-    return apiSuccess(data, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) });
+    return apiSuccess(data, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) }, 5);
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI']
 );

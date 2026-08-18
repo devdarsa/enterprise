@@ -10,6 +10,10 @@ export interface AuthSession {
   };
 }
 
+// In-Memory Fast Cache for Auth Sessions (TTL: 30s)
+// Drastically cuts down PostgreSQL roundtrips from 3-4 per request down to 0 for warm requests!
+const sessionCache = new Map<string, { session: AuthSession; expiresAt: number }>();
+
 export async function authenticateRequest(request: NextRequest): Promise<{ authenticated: boolean; user?: AuthSession['user'] }> {
   const session = await getApiSession(request);
   if (!session?.user) {
@@ -19,10 +23,26 @@ export async function authenticateRequest(request: NextRequest): Promise<{ authe
 }
 
 /**
- * Get session from a Next.js API route request.
+ * Get session from a Next.js API route request with 30s High-Speed Memory Cache.
  * Returns null if not authenticated.
  */
 export async function getApiSession(request: NextRequest): Promise<AuthSession | null> {
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
+
+  const sessionToken =
+    bearerToken ||
+    request.cookies.get('better-auth.session_token')?.value ||
+    request.cookies.get('__Secure-better-auth.session_token')?.value ||
+    request.cookies.get('darsa_session')?.value;
+
+  if (sessionToken) {
+    const cached = sessionCache.get(sessionToken);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.session;
+    }
+  }
+
   // 1. Better-Auth session lookup
   try {
     const session = await auth.api.getSession({
@@ -40,20 +60,16 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
           authSession.user.role = userRole.role.name;
         }
       }
+
+      if (sessionToken) {
+        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + 30_000 });
+      }
       return authSession;
     }
   } catch {}
 
   // 2. Direct database session lookup (via Cookie or Bearer Header)
   try {
-    const authHeader = request.headers.get('authorization');
-    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
-
-    const sessionToken =
-      bearerToken ||
-      request.cookies.get('better-auth.session_token')?.value ||
-      request.cookies.get('__Secure-better-auth.session_token')?.value;
-
     if (sessionToken) {
       const { prisma } = await import('@darsa/database');
       const dbSession = await prisma.session.findFirst({
@@ -69,7 +85,7 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
 
       if (dbSession?.user && !dbSession.user.deleted_at) {
         const userRole = dbSession.user.user_roles?.[0]?.role?.name || 'SEKRETARIAT';
-        return {
+        const authSession: AuthSession = {
           user: {
             id: dbSession.user.id,
             email: dbSession.user.email,
@@ -77,6 +93,9 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
             role: userRole,
           },
         };
+
+        sessionCache.set(sessionToken, { session: authSession, expiresAt: Date.now() + 30_000 });
+        return authSession;
       }
     }
   } catch {}
@@ -84,21 +103,11 @@ export async function getApiSession(request: NextRequest): Promise<AuthSession |
   return null;
 }
 
-/**
- * Get user's primary role from UserRole table via session.
- * Falls back to reading from session metadata.
- */
 export type RouteContext = { params?: Promise<Record<string, string | string[]>> } | unknown;
 
 export async function getUserRole(request: NextRequest): Promise<string | null> {
-  try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) return null;
-    const user = session.user as AuthSession['user'];
-    return user.role || null;
-  } catch {
-    return null;
-  }
+  const session = await getApiSession(request);
+  return session?.user?.role || null;
 }
 
 const ROLE_HIERARCHY: Record<string, number> = {
@@ -117,9 +126,6 @@ const ROLE_HIERARCHY: Record<string, number> = {
 
 /**
  * Higher-order function: wraps an API handler with auth + role check.
- * Supports an optional context (route params) forwarded from dynamic routes.
- * Usage:
- *   export const GET = withAuth(handler, ['SEKRETARIAT', 'ADMIN_INSTANSI']);
  */
 export function withAuth(
   handler: (req: NextRequest, session: AuthSession, context?: RouteContext) => Promise<NextResponse>,
@@ -150,22 +156,29 @@ export function withAuth(
 }
 
 /**
- * Standard success response
+ * High-performance success response with optional HTTP SWR caching headers
  */
-export function apiSuccess<T>(data: T, message?: string, meta?: Record<string, unknown>) {
-  return NextResponse.json({ success: true, data, message, meta });
+export function apiSuccess<T>(
+  data: T,
+  message?: string,
+  meta?: Record<string, unknown>,
+  cacheSeconds = 0
+) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (cacheSeconds > 0) {
+    headers['Cache-Control'] = `private, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`;
+  }
+
+  return NextResponse.json({ success: true, data, message, meta }, { headers });
 }
 
-/**
- * Standard error response
- */
 export function apiError(message: string, status = 400, details?: unknown) {
   return NextResponse.json({ success: false, error: message, details }, { status });
 }
 
-/**
- * Log an audit entry via the AuditLog table.
- */
 export async function logAudit(params: {
   userId?: string;
   action: string;
@@ -189,7 +202,6 @@ export async function logAudit(params: {
       },
     });
   } catch {
-    // Audit log failure should not break the main flow
     console.error('[AuditLog] Failed to write audit entry');
   }
 }

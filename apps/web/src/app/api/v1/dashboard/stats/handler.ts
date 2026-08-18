@@ -72,7 +72,7 @@ export const GET = withAuth(
       },
       pengumuman: pengumumanTerbaru,
       aktivitasTerbaru: auditLogTerbaru,
-    });
+    }, undefined, undefined, 10);
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI']
 );

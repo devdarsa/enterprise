@@ -6,7 +6,7 @@ import { withAuth, apiSuccess, apiError, logAudit } from '@/lib/api-auth';
 export const GET = withAuth(
   async (req: NextRequest, session) => {
     const data = await prisma.tahunAjaran.findMany({ orderBy: { created_at: 'desc' } });
-    return apiSuccess(data);
+    return apiSuccess(data, undefined, undefined, 15);
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI']
 );

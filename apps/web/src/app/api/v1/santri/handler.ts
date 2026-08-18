@@ -48,12 +48,17 @@ export const GET = withAuth(
       }),
     ]);
 
-    return apiSuccess(santri, undefined, {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    });
+    return apiSuccess(
+      santri,
+      undefined,
+      {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      5
+    );
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI']
 );

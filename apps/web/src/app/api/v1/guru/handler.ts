@@ -28,15 +28,12 @@ export const GET = withAuth(
         take: limit,
         orderBy: { nama_lengkap: 'asc' },
         include: {
-          user: { select: { email: true, user_roles: { include: { role: true } } } },
-          jadwal: {
-            include: { mata_pelajaran: true, kelas: true },
-          },
+          user: { select: { email: true } },
         },
       }),
     ]);
 
-    return apiSuccess(guru, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) });
+    return apiSuccess(guru, undefined, { total, page, limit, totalPages: Math.ceil(total / limit) }, 5);
   },
   ['SEKRETARIAT', 'ADMIN_INSTANSI', 'GURU_MADRASAH', 'GURU_MI']
 );
